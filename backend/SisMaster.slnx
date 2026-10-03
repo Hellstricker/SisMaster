@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/building_blocks/SisMaster.Core/SisMaster.Core.csproj" Id="51ee4619-165a-4e97-838d-386fc4fcdf24" />
+    <Project Path="src/building_blocks/SisMaster.WebApi.Core/SisMaster.WebApi.Core.csproj" Id="2e7acbd2-05de-4e99-935f-7f7a4776a78a" />
+    <Project Path="src/building_blocks/SisMaster.MessageBus/SisMaster.MessageBus.csproj" Id="11f123dd-57b0-47eb-a221-031c73a2e856" />
+  </Folder>
+  <Folder Name="/src/Services/">
+    <Project Path="src/services/SisMaster.Identidade.Api/SisMaster.Identidade.Api.csproj" Id="910bb720-2d17-4d30-84a6-9e619fd5e439" />
+    <Project Path="src/services/SisMaster.WebApps.WebApi/SisMaster.WebApps.WebApi.csproj" Id="c3a5f812-8b2e-4d17-a9c1-6f4e3d7b1e05" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="../tests/SisMaster.WebApps.Tests/SisMaster.WebApps.Tests.csproj" Id="d7b29a43-1c4f-4e82-b3d6-9e2f5c8a7f11" />
+  </Folder>
+</Solution>

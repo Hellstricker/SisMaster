@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SisMaster — Mesário de Estatísticas</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500;600&display=swap">
+  <style>
+    :root {
+      --bg:      #070b14;
+      --surface: #0d1320;
+      --card:    #111827;
+      --border:  #1c2840;
+      --home:    #22c55e;
+      --away:    #3b82f6;
+      --shot:    #f59e0b;
+      --danger:  #ef4444;
+      --purple:  #a855f7;
+      --muted:   #4a5a72;
+      --brand:   #f97316;
+      --text:    #c8d6e8;
+      color-scheme: dark;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Barlow', system-ui, sans-serif; }
+    body { display: grid; grid-template-rows: auto 1fr auto; }
+
+    /* ── Topbar ── */
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 7px 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .topbar-brand { font-family: 'Barlow Condensed', sans-serif; font-size: .85rem; font-weight: 700; color: var(--brand); letter-spacing: 3px; text-transform: uppercase; }
+    .back-link { font-size: .68rem; color: var(--muted); text-decoration: none; display: flex; align-items: center; gap: 3px; transition: color .15s; }
+    .back-link:hover { color: var(--text); }
+    .topbar-role { font-size: .65rem; font-weight: 600; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; background: rgba(249,115,22,.08); border: 1px solid rgba(249,115,22,.2); padding: 2px 10px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
+    .conn-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--danger); transition: background .3s; }
+    .conn-dot.ok { background: var(--home); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* Mini placar */
+    .mini-placar { display: flex; align-items: center; gap: 14px; }
+    .mini-team { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .mini-name { font-family: 'Barlow Condensed', sans-serif; font-size: .65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: .7; }
+    .mini-score { font-family: 'Barlow Condensed', sans-serif; font-size: 1.5rem; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+    .mini-faltas { font-size: .58rem; font-weight: 600; color: var(--shot); }
+    .mini-team.home .mini-name, .mini-team.home .mini-score { color: var(--home); }
+    .mini-team.away .mini-name, .mini-team.away .mini-score { color: var(--away); }
+    .mini-center { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .mini-sep { color: var(--muted); font-size: .65rem; font-weight: 600; }
+    .mini-periodo { font-size: .68rem; font-weight: 600; color: var(--brand); background: rgba(249,115,22,.08); border: 1px solid rgba(249,115,22,.2); padding: 2px 10px; border-radius: 20px; }
+    .mini-clock { font-family: 'Barlow Condensed', sans-serif; font-size: .72rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+
+    /* ── Main ── */
+    .main { display: grid; grid-template-columns: 1fr 0px; transition: grid-template-columns .25s ease; overflow: hidden; min-height: 0; }
+    .main.panel-open { grid-template-columns: 1fr 264px; }
+
+    /* ── Ações ── */
+    .actions-area { overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+
+    .category { display: flex; flex-direction: column; gap: 6px; }
+    .cat-label {
+      font-size: .58rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .cat-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .cat-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+    .action-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 7px; }
+
+    .action-btn {
+      padding: 11px 10px; border-radius: 7px; border: 1.5px solid transparent;
+      background: transparent; cursor: pointer;
+      font-family: 'Barlow Condensed', sans-serif; font-size: .88rem; font-weight: 700;
+      letter-spacing: .5px; text-transform: uppercase;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      transition: background .15s, border-color .15s, transform .1s; color: var(--text);
+    }
+    .action-btn:active { transform: scale(.96); }
+    .action-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+    .action-btn.selected { outline: 2px solid white; outline-offset: 1px; }
+    .action-btn .pts { font-size: .62rem; font-weight: 600; opacity: .7; letter-spacing: .04em; font-family: 'Barlow', sans-serif; }
+
+    .cat-green  .action-btn { background: rgba(34,197,94,.08);  border-color: rgba(34,197,94,.25);  color: var(--home); }
+    .cat-green  .action-btn:hover { background: rgba(34,197,94,.18); }
+    .cat-amber  .action-btn { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.25); color: var(--shot); }
+    .cat-amber  .action-btn:hover { background: rgba(245,158,11,.18); }
+    .cat-blue   .action-btn { background: rgba(59,130,246,.08);  border-color: rgba(59,130,246,.25);  color: var(--away); }
+    .cat-blue   .action-btn:hover { background: rgba(59,130,246,.18); }
+    .cat-red    .action-btn { background: rgba(239,68,68,.08);   border-color: rgba(239,68,68,.25);   color: var(--danger); }
+    .cat-red    .action-btn:hover { background: rgba(239,68,68,.18); }
+    .cat-purple .action-btn { background: rgba(168,85,247,.08);  border-color: rgba(168,85,247,.25);  color: var(--purple); }
+    .cat-purple .action-btn:hover { background: rgba(168,85,247,.18); }
+
+    /* ── Painel de jogadores ── */
+    .player-panel {
+      background: var(--surface); border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden; min-width: 0;
+    }
+    .panel-header {
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .panel-title { font-family: 'Barlow Condensed', sans-serif; font-size: .82rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .panel-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 2px 6px; border-radius: 4px; line-height: 1; transition: color .15s; }
+    .panel-close:hover { color: var(--text); }
+    .action-summary { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: .72rem; color: var(--muted); flex-shrink: 0; }
+    .action-summary strong { font-weight: 700; color: var(--text); }
+
+    .player-list { overflow-y: auto; flex: 1; }
+    .team-header {
+      padding: 6px 14px; font-size: .6rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+      position: sticky; top: 0; z-index: 1;
+    }
+    .team-header.home { background: rgba(34,197,94,.06); color: var(--home); border-bottom: 1px solid rgba(34,197,94,.15); }
+    .team-header.away { background: rgba(59,130,246,.06); color: var(--away); border-bottom: 1px solid rgba(59,130,246,.15); }
+    .player-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background .12s;
+    }
+    .player-item:hover { background: rgba(255,255,255,.04); }
+    .player-item.selected { background: rgba(249,115,22,.1); }
+    .player-num { font-family: 'Barlow Condensed', sans-serif; font-size: .9rem; font-weight: 900; font-variant-numeric: tabular-nums; min-width: 24px; text-align: right; color: var(--muted); }
+    .player-nome { font-size: .8rem; font-weight: 600; }
+
+    /* Strip de confirmação */
+    .confirm-strip { border-top: 1px solid var(--border); padding: 10px 14px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; }
+    .confirm-strip[hidden] { display: none; }
+    .confirm-desc { font-size: .72rem; color: var(--text); line-height: 1.4; }
+    .confirm-desc strong { color: var(--brand); }
+    .confirm-actions { display: flex; gap: 6px; }
+
+    /* ── Botões ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      border: none; border-radius: 6px; font-family: 'Barlow', sans-serif;
+      font-size: .78rem; font-weight: 600; cursor: pointer; padding: 9px 14px;
+      transition: opacity .15s, transform .1s; white-space: nowrap;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+    .btn-confirm { background: var(--brand); color: #fff; flex: 1; }
+    .btn-cancel  { background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+
+    /* ── Rodapé desfazer ── */
+    .footer { background: var(--surface); border-top: 1px solid var(--border); padding: 6px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .last-event { font-size: .68rem; color: var(--muted); }
+    .last-event strong { color: var(--text); font-weight: 600; }
+    .btn-undo {
+      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25); color: var(--danger);
+      font-size: .7rem; padding: 5px 12px; border-radius: 5px; font-weight: 600; cursor: pointer;
+      white-space: nowrap; font-family: 'Barlow', sans-serif; transition: background .15s;
+      display: none; align-items: center; gap: 4px;
+    }
+    .btn-undo.visible { display: inline-flex; }
+    .btn-undo:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-undo:not(:disabled):hover { background: rgba(239,68,68,.2); }
+
+    /* ── Confirm overlay (desfazer) ── */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 200; }
+    .overlay[hidden] { display: none; }
+    .confirm-box { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px 28px; max-width: 320px; width: 90%; display: flex; flex-direction: column; gap: 16px; }
+    .confirm-box p { font-size: .9rem; color: var(--text); }
+    .confirm-box .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* ── Toast ── */
+    .toast { position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--home); color: #fff; font-size: .78rem; font-weight: 600; padding: 8px 20px; border-radius: 6px; transition: transform .25s; z-index: 100; pointer-events: none; }
+    .toast.err  { background: var(--danger); }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 520px) {
+      .main.panel-open { grid-template-columns: 0px 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Confirm overlay — desfazer -->
+<div class="overlay" id="undoOverlay" hidden>
+  <div class="confirm-box">
+    <p>Desfazer o último evento registrado?</p>
+    <div class="confirm-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('undoOverlay').hidden=true">Cancelar</button>
+      <button class="btn btn-confirm" style="background:var(--danger)" onclick="executarDesfazer()">↩ Desfazer</button>
+    </div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-brand">SisMaster</div>
+    <a class="back-link" href="index.html">← Voltar</a>
+  </div>
+  <div class="mini-placar">
+    <div class="mini-team home">
+      <span class="mini-name"  id="nomeCasa">—</span>
+      <span class="mini-score" id="placarCasa">—</span>
+      <span class="mini-faltas" id="faltasCasa">0 faltas</span>
+    </div>
+    <div class="mini-center">
+      <span class="mini-sep">×</span>
+      <span class="mini-periodo" id="periodoLabel">—</span>
+      <span class="mini-clock" id="clockLabel">—:——</span>
+    </div>
+    <div class="mini-team away">
+      <span class="mini-name"  id="nomeVisit">—</span>
+      <span class="mini-score" id="placarVisit">—</span>
+      <span class="mini-faltas" id="faltasVisit">0 faltas</span>
+    </div>
+  </div>
+  <div class="topbar-role">
+    <span class="conn-dot" id="connDot"></span>
+    <span id="connTxt">Conectando...</span>
+  </div>
+</div>
+
+<div class="main" id="main">
+
+  <!-- Grade de ações -->
+  <div class="actions-area">
+
+    <div class="category cat-green">
+      <div class="cat-label"><span class="cat-dot" style="background:var(--home)"></span>Pontos Convertidos</div>
+      <div class="action-grid">
+        <button class="action-btn" onclick="selectAction(1,'Bandeja / 2pts')">Bandeja / 2pts<span class="pts">+2 pontos</span></button>
+        <button class="action-btn" onclick="selectAction(2,'Arremesso 3pts')">Arremesso 3pts<span class="pts">+3 pontos</span></button>
+        <button class="action-btn" onclick="selectAction(3,'Lance Livre')">Lance Livre<span class="pts">+1 ponto</span></button>
+      </div>
+    </div>
+
+    <div class="category cat-amber">
+      <div class="cat-label"><span class="cat-dot" style="background:var(--shot)"></span>Arremessos Errados</div>
+      <div class="action-grid">
+        <button class="action-btn" onclick="selectAction(4,'Erro 2pts')">Erro 2pts</button>
+        <button class="action-btn" onclick="selectAction(5,'Erro 3pts')">Erro 3pts</button>
+        <button class="action-btn" onclick="selectAction(6,'Erro Lance Livre')">Erro Lance Livre</button>
+      </div>
+    </div>
+
+    <div class="category cat-blue">
+      <div class="cat-label"><span class="cat-dot" style="background:var(--away)"></span>Estatísticas</div>
+      <div class="action-grid">
+        <button class="action-btn" onclick="selectAction(7,'Rebote Ofensivo')">Rebote Of.</button>
+        <button class="action-btn" onclick="selectAction(8,'Rebote Defensivo')">Rebote Def.</button>
+        <button class="action-btn" onclick="selectAction(9,'Assistência')">Assistência</button>
+        <button class="action-btn" onclick="selectAction(10,'Roubada')">Roubada</button>
+        <button class="action-btn" onclick="selectAction(11,'Toco')">Toco</button>
+        <button class="action-btn" onclick="selectAction(15,'Turnover')">Turnover</button>
+      </div>
+    </div>
+
+    <div class="category cat-red">
+      <div class="cat-label"><span class="cat-dot" style="background:var(--danger)"></span>Faltas</div>
+      <div class="action-grid">
+        <button class="action-btn" onclick="selectAction(12,'Falta Pessoal')">Falta Pessoal</button>
+        <button class="action-btn" onclick="selectAction(13,'Falta Técnica')">Falta Técnica</button>
+      </div>
+    </div>
+
+    <div class="category cat-purple">
+      <div class="cat-label"><span class="cat-dot" style="background:var(--purple)"></span>Falta Grave</div>
+      <div class="action-grid">
+        <button class="action-btn" onclick="selectAction(14,'Falta Anti-Desportiva')">Anti-Desportiva</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Painel de jogadores -->
+  <div class="player-panel" id="playerPanel">
+    <div class="panel-header">
+      <span class="panel-title">Selecionar Jogador</span>
+      <button class="panel-close" onclick="fecharPainel()">✕</button>
+    </div>
+    <div class="action-summary" id="actionSummary">—</div>
+    <div class="player-list" id="playerList"></div>
+    <div class="confirm-strip" id="confirmStrip" hidden>
+      <div class="confirm-desc" id="confirmDesc">—</div>
+      <div class="confirm-actions">
+        <button class="btn btn-cancel"  onclick="cancelarConfirm()">Cancelar</button>
+        <button class="btn btn-confirm" onclick="confirmarEvento()">✓ Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <span class="last-event" id="lastEvent">Nenhum evento registrado</span>
+  <button class="btn-undo" id="btnUndo" onclick="desfazer()">↩ Desfazer</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = 'http://localhost:5200';
+  const params = new URLSearchParams(location.search);
+  const PARTIDA_ID = params.get('partidaId') || '';
+
+  if (!PARTIDA_ID) {
+    document.body.innerHTML = '<div style="padding:40px;color:#ef4444;font-size:1.2rem">⚠ Partida ID não informado. <a style="color:#f97316" href="index.html">Voltar</a></div>';
+  }
+
+  let selectedTipo      = null;
+  let selectedAcaoLabel = '';
+  let selectedJogadorId = null;
+  let selectedJogadorDesc = '';
+  let jogadoresPorTime  = { casa: [], visitante: [] };
+  let nomeCasaVal = '—', nomeVisitVal = '—';
+  let clockState  = null;
+  let tickInterval = null;
+
+  // ── SignalR ──────────────────────────────────────────────────────
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl(`${API}/hubs/sumula?partidaId=${PARTIDA_ID}`, {
+      skipNegotiation: true,
+      transport: signalR.HttpTransportType.WebSockets
+    })
+    .withAutomaticReconnect()
+    .build();
+
+  connection.on('EstadoAtual', state => {
+    updateScore(state);
+    updateClock(state.cronometro);
+    if (state.ultimoEvento) updateUndoBar(state.ultimoEvento);
+    else clearUndoBar();
+  });
+
+  connection.on('EventoRegistrado', ev => {
+    updateScore(ev);
+    updateUndoBar({ tipo: ev.tipo, jogadorId: ev.jogadorId });
+    toast('Evento registrado!');
+  });
+
+  connection.on('CronometroAtualizado', cron => updateClock(cron));
+  connection.onreconnecting(() => setConn(false));
+  connection.onreconnected(() => setConn(true));
+
+  connection.start()
+    .then(async () => {
+      setConn(true);
+      await connection.invoke('EntrarComoMesarioStats', PARTIDA_ID);
+      await loadPlayers();
+    })
+    .catch(() => setConn(false));
+
+  function setConn(ok) {
+    document.getElementById('connDot').className = 'conn-dot' + (ok ? ' ok' : '');
+    document.getElementById('connTxt').textContent = ok ? 'Conectado' : 'Desconectado';
+  }
+
+  // ── Score / estado ───────────────────────────────────────────────
+  function updateScore(state) {
+    if (state.placarCasa        !== undefined) document.getElementById('placarCasa').textContent  = state.placarCasa;
+    if (state.placarVisitante   !== undefined) document.getElementById('placarVisit').textContent = state.placarVisitante;
+    if (state.faltasCasa        !== undefined) document.getElementById('faltasCasa').textContent  = state.faltasCasa + ' falta' + (state.faltasCasa !== 1 ? 's' : '');
+    if (state.faltasVisitante   !== undefined) document.getElementById('faltasVisit').textContent = state.faltasVisitante + ' falta' + (state.faltasVisitante !== 1 ? 's' : '');
+    if (state.periodoAtual      !== undefined) document.getElementById('periodoLabel').textContent = periodLabel(state.periodoAtual);
+  }
+
+  // ── Clock ────────────────────────────────────────────────────────
+  function updateClock(cron) {
+    clockState = cron;
+    if (cron.ativo) {
+      if (!tickInterval) tickInterval = setInterval(tickClock, 200);
+    } else {
+      clearInterval(tickInterval); tickInterval = null;
+      renderClock(cron.segundosRestantes);
+    }
+  }
+
+  function tickClock() {
+    if (!clockState?.ativo || !clockState.iniciadoEmMs) return;
+    const elapsed = (Date.now() - clockState.iniciadoEmMs) / 1000;
+    renderClock(Math.max(0, clockState.segundosAoIniciar - elapsed));
+  }
+
+  function renderClock(sec) {
+    const s = Math.ceil(sec);
+    document.getElementById('clockLabel').textContent = `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  }
+
+  // ── Jogadores ────────────────────────────────────────────────────
+  async function loadPlayers() {
+    try {
+      const r = await fetch(`${API}/api/partidas/${PARTIDA_ID}/jogadores`);
+      if (!r.ok) return;
+      const d = await r.json();
+      nomeCasaVal  = d.timeCasa?.sigla      || d.timeCasa?.nome      || 'Casa';
+      nomeVisitVal = d.timeVisitante?.sigla || d.timeVisitante?.nome || 'Visitante';
+      document.getElementById('nomeCasa').textContent  = nomeCasaVal;
+      document.getElementById('nomeVisit').textContent = nomeVisitVal;
+      jogadoresPorTime.casa      = d.timeCasa?.jogadores      || [];
+      jogadoresPorTime.visitante = d.timeVisitante?.jogadores || [];
+      buildPlayerList();
+    } catch {}
+  }
+
+  function buildPlayerList() {
+    const list = document.getElementById('playerList');
+    list.innerHTML = '';
+
+    const makeSection = (label, side, jogadores) => {
+      const h = document.createElement('div');
+      h.className = `team-header ${side}`;
+      h.textContent = label;
+      list.appendChild(h);
+      jogadores.forEach(j => {
+        const el = document.createElement('div');
+        el.className = 'player-item';
+        el.innerHTML = `<span class="player-num">#${j.numero}</span><span class="player-nome">${j.nome}</span>`;
+        el.onclick = () => selectJogador(j.id, `#${j.numero} ${j.nome} (${label})`, el);
+        list.appendChild(el);
+      });
+    };
+
+    makeSection(nomeCasaVal,  'home', jogadoresPorTime.casa);
+    makeSection(nomeVisitVal, 'away', jogadoresPorTime.visitante);
+  }
+
+  // ── Fluxo ────────────────────────────────────────────────────────
+  function selectAction(tipo, label) {
+    selectedTipo      = tipo;
+    selectedAcaoLabel = label;
+    selectedJogadorId = null;
+
+    document.getElementById('actionSummary').innerHTML = `<strong>${label}</strong>`;
+    document.getElementById('confirmStrip').hidden = true;
+    document.querySelectorAll('.player-item').forEach(i => i.classList.remove('selected'));
+    document.getElementById('main').classList.add('panel-open');
+
+    document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+  }
+
+  function selectJogador(id, desc, el) {
+    selectedJogadorId   = id;
+    selectedJogadorDesc = desc;
+
+    document.querySelectorAll('.player-item').forEach(i => i.classList.remove('selected'));
+    el.classList.add('selected');
+
+    document.getElementById('confirmDesc').innerHTML = `<strong>${selectedAcaoLabel}</strong> — ${desc}`;
+    document.getElementById('confirmStrip').hidden = false;
+  }
+
+  function cancelarConfirm() {
+    document.getElementById('confirmStrip').hidden = true;
+    selectedJogadorId = null;
+    document.querySelectorAll('.player-item').forEach(i => i.classList.remove('selected'));
+  }
+
+  function fecharPainel() {
+    document.getElementById('main').classList.remove('panel-open');
+    document.getElementById('confirmStrip').hidden = true;
+    document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('selected'));
+    selectedTipo = null; selectedJogadorId = null;
+  }
+
+  async function confirmarEvento() {
+    if (!selectedJogadorId || selectedTipo === null) return;
+    const jogadorId = selectedJogadorId;
+    const tipo = selectedTipo;
+    fecharPainel();
+    try {
+      const r = await fetch(`${API}/api/partidas/${PARTIDA_ID}/eventos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jogadorId, tipo })
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        toast((err?.errors?.messages?.[0]) || 'Erro ao registrar evento', true);
+      }
+    } catch { toast('Erro de comunicação', true); }
+  }
+
+  // ── Desfazer ─────────────────────────────────────────────────────
+  function desfazer() {
+    document.getElementById('undoOverlay').hidden = false;
+  }
+
+  async function executarDesfazer() {
+    document.getElementById('undoOverlay').hidden = true;
+    try {
+      const r = await fetch(`${API}/api/partidas/${PARTIDA_ID}/eventos/ultimo`, { method: 'DELETE' });
+      if (r.ok) {
+        toast('Evento desfeito!');
+        clearUndoBar();
+      } else {
+        const err = await r.json().catch(() => ({}));
+        toast((err?.errors?.messages?.[0]) || 'Erro ao desfazer', true);
+      }
+    } catch { toast('Erro de comunicação', true); }
+  }
+
+  const TIPO_LABELS = {
+    Ponto2: 'Bandeja / 2pts', Ponto3: 'Arremesso 3pts', LanceLivre: 'Lance Livre',
+    Erro2: 'Erro 2pts', Erro3: 'Erro 3pts', ErroLance: 'Erro Lance Livre',
+    ReboteOfensivo: 'Rebote Ofensivo', ReboteDefensivo: 'Rebote Defensivo',
+    Assistencia: 'Assistência', Roubada: 'Roubada', Toco: 'Toco', Turnover: 'Turnover',
+    FaltaPessoal: 'Falta Pessoal', FaltaTecnica: 'Falta Técnica', FaltaAntiDesportiva: 'Falta Anti-Desportiva'
+  };
+
+  function updateUndoBar(ev) {
+    const label = TIPO_LABELS[ev.tipo] || ev.tipo;
+    const all   = [...jogadoresPorTime.casa, ...jogadoresPorTime.visitante];
+    const j     = all.find(x => x.id === ev.jogadorId || x.id?.toLowerCase() === ev.jogadorId?.toLowerCase());
+    const jDesc = j ? ` — #${j.numero} ${j.nome}` : '';
+    document.getElementById('lastEvent').innerHTML = `Último: <strong>${label}</strong>${jDesc}`;
+    document.getElementById('btnUndo').classList.add('visible');
+    document.getElementById('btnUndo').disabled = false;
+  }
+
+  function clearUndoBar() {
+    document.getElementById('lastEvent').textContent = 'Nenhum evento registrado';
+    document.getElementById('btnUndo').classList.remove('visible');
+  }
+
+  // ── Toast ────────────────────────────────────────────────────────
+  let toastTimer = null;
+  function toast(msg, err = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast' + (err ? ' err' : '') + ' show';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  function periodLabel(n) {
+    return (['', '1º', '2º', '3º', '4º', 'Prorr.'][n] || n + 'º') + ' Período';
+  }
+</script>
+</body>
+</html>

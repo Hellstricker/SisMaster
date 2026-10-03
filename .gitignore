@@ -1,0 +1,60 @@
+# .NET build artifacts
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.userosscache
+*.sln.docstates
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Test results
+TestResults/
+coverage*/
+
+# NuGet
+*.nupkg
+**/[Pp]ackages/
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# Publish output
+**/publish/
+**/PublishProfiles/
+
+# User-specific files
+*.rsuser
+*.orig
+
+# IDE
+.idea/
+*.iml
+.vs/
+*.DotSettings.user
+
+# Node / Frontend tooling
+node_modules/
+npm-debug.log*
+yarn-error.log
+
+# Docker volumes (local only)
+.docker/
+
+# Claude Code session files
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.tmp
+*.bak
+*.Backup.tmp
+
+# Logs
+*.log

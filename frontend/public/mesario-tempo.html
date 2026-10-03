@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SisMaster — Mesário de Tempo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500;600&display=swap">
+  <style>
+    :root {
+      --bg:      #070b14;
+      --surface: #0d1320;
+      --card:    #111827;
+      --border:  #1c2840;
+      --home:    #22c55e;
+      --away:    #3b82f6;
+      --clock:   #e2eaf4;
+      --shot:    #f59e0b;
+      --danger:  #ef4444;
+      --muted:   #4a5a72;
+      --brand:   #f97316;
+      --text:    #c8d6e8;
+      color-scheme: dark;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Barlow', system-ui, sans-serif;
+    }
+
+    body { display: grid; grid-template-rows: auto 1fr auto; }
+
+    /* ── Topbar ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 7px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .topbar-brand {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .85rem; font-weight: 700;
+      color: var(--brand); letter-spacing: 3px; text-transform: uppercase;
+    }
+    .back-link {
+      font-size: .68rem; color: var(--muted);
+      text-decoration: none; display: flex; align-items: center; gap: 3px;
+      transition: color .15s;
+    }
+    .back-link:hover { color: var(--text); }
+    .topbar-role {
+      font-size: .65rem; font-weight: 600; color: var(--muted);
+      letter-spacing: .1em; text-transform: uppercase;
+      background: rgba(249,115,22,.08); border: 1px solid rgba(249,115,22,.2);
+      padding: 2px 10px; border-radius: 20px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .conn-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--danger); transition: background .3s;
+    }
+    .conn-dot.ok { background: var(--home); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* Mini placar */
+    .mini-placar { display: flex; align-items: center; gap: 14px; }
+    .mini-team { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .mini-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .65rem; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; opacity: .7;
+    }
+    .mini-score {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.5rem; font-weight: 900;
+      font-variant-numeric: tabular-nums; line-height: 1;
+    }
+    .mini-faltas { font-size: .58rem; font-weight: 600; color: var(--shot); letter-spacing: .04em; }
+    .mini-team.home .mini-name, .mini-team.home .mini-score { color: var(--home); }
+    .mini-team.away .mini-name, .mini-team.away .mini-score { color: var(--away); }
+    .mini-center { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .mini-sep { color: var(--muted); font-size: .65rem; font-weight: 600; }
+    .mini-periodo {
+      font-size: .68rem; font-weight: 600; color: var(--brand);
+      background: rgba(249,115,22,.08); border: 1px solid rgba(249,115,22,.2);
+      padding: 2px 10px; border-radius: 20px; white-space: nowrap;
+    }
+
+    /* ── Main ── */
+    .main {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px; padding: 14px 18px;
+      overflow: hidden; min-height: 0;
+    }
+
+    /* ── Clock block ── */
+    .clock-block {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px 40px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      width: 100%; max-width: 560px;
+    }
+    .section-label {
+      font-size: .58rem; font-weight: 600;
+      letter-spacing: .15em; text-transform: uppercase; color: var(--muted);
+    }
+    .game-clock {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(3.8rem, 13vw, 7.5rem); font-weight: 900;
+      font-variant-numeric: tabular-nums; letter-spacing: -2px;
+      line-height: 1; color: var(--clock); transition: color .3s;
+    }
+    .game-clock.running { color: var(--home); }
+    .game-clock.warning { color: var(--danger); }
+    .game-clock.paused  { color: var(--clock); }
+    .clock-controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+    /* ── Mid row ── */
+    .mid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 560px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 16px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+
+    /* Shot clock */
+    .shot-display {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(2rem, 5.5vw, 3.2rem); font-weight: 900;
+      font-variant-numeric: tabular-nums; color: var(--shot);
+      background: rgba(245,158,11,.06); border: 1.5px solid rgba(245,158,11,.2);
+      border-radius: 50%; width: clamp(72px,11vw,96px); height: clamp(72px,11vw,96px);
+      display: flex; align-items: center; justify-content: center; line-height: 1;
+      transition: color .3s, border-color .3s, background .3s;
+    }
+    .shot-display.warning {
+      color: var(--danger); border-color: rgba(239,68,68,.5);
+      background: rgba(239,68,68,.08);
+      animation: blink .5s ease-in-out infinite alternate;
+    }
+    @keyframes blink { from{opacity:1} to{opacity:.2} }
+    .shot-btns { display: flex; gap: 6px; }
+
+    /* Posse */
+    .posse-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+    .posse-btn {
+      padding: 12px 6px; border-radius: 6px;
+      border: 1.5px solid var(--border); background: transparent;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: .72rem; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; cursor: pointer; color: var(--muted);
+      transition: all .18s; line-height: 1.2;
+    }
+    .posse-btn.home { border-color: rgba(34,197,94,.25); }
+    .posse-btn.away { border-color: rgba(59,130,246,.25); }
+    .posse-btn.home.active { background: rgba(34,197,94,.13); border-color: var(--home); color: var(--home); }
+    .posse-btn.away.active { background: rgba(59,130,246,.13); border-color: var(--away); color: var(--away); }
+    .posse-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+    /* ── Period row ── */
+    .period-row {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 560px; gap: 12px;
+    }
+    .period-info { display: flex; align-items: center; gap: 8px; }
+    .period-info .section-label { margin: 0; }
+    .period-value {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem; font-weight: 700; color: var(--brand);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; border: none; border-radius: 6px;
+      font-family: 'Barlow', sans-serif; font-size: .8rem; font-weight: 600;
+      cursor: pointer; padding: 10px 18px;
+      transition: opacity .15s, transform .1s; white-space: nowrap;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-start  { background: var(--home); color: #fff; }
+    .btn-pause  { background: var(--shot); color: #000; }
+    .btn-period { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); color: var(--danger); font-size: .75rem; padding: 8px 14px; }
+    .btn-sm     { font-size: .72rem; padding: 8px 13px; }
+    .btn-r24    { background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3); color: var(--shot); }
+    .btn-r14    { background: rgba(245,158,11,.06); border: 1px solid rgba(245,158,11,.18); color: var(--shot); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+
+    /* ── Bottom bar ── */
+    .bottombar {
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 5px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .last-event { font-size: .65rem; color: var(--muted); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 36px; left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: var(--home); color: #fff;
+      font-size: .78rem; font-weight: 600;
+      padding: 8px 20px; border-radius: 6px;
+      transition: transform .25s; z-index: 100; pointer-events: none;
+    }
+    .toast.err  { background: var(--danger); }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Confirm overlay ── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      display: flex; align-items: center; justify-content: center; z-index: 200;
+    }
+    .overlay[hidden] { display: none; }
+    .confirm-box {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 24px 28px; max-width: 320px; width: 90%;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .confirm-box p { font-size: .9rem; color: var(--text); }
+    .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+    @media (max-width: 460px) {
+      .mid-row { grid-template-columns: 1fr; }
+      .clock-block { padding: 16px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Confirm overlay -->
+<div class="overlay" id="overlay" hidden>
+  <div class="confirm-box">
+    <p id="confirmMsg">Avançar para o próximo período?</p>
+    <div class="confirm-actions">
+      <button class="btn btn-outline" onclick="confirmResp(false)">Cancelar</button>
+      <button class="btn btn-period"  onclick="confirmResp(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-brand">SisMaster</div>
+    <a class="back-link" href="index.html">← Voltar</a>
+  </div>
+  <div class="mini-placar">
+    <div class="mini-team home">
+      <span class="mini-name"  id="nomeCasa">—</span>
+      <span class="mini-score" id="placarCasa">—</span>
+      <span class="mini-faltas" id="faltasCasa">0 faltas</span>
+    </div>
+    <div class="mini-center">
+      <span class="mini-sep">×</span>
+      <span class="mini-periodo" id="periodoLabel">—</span>
+    </div>
+    <div class="mini-team away">
+      <span class="mini-name"  id="nomeVisit">—</span>
+      <span class="mini-score" id="placarVisit">—</span>
+      <span class="mini-faltas" id="faltasVisit">0 faltas</span>
+    </div>
+  </div>
+  <div class="topbar-role">
+    <span class="conn-dot" id="connDot"></span>
+    <span id="connTxt">Conectando...</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="clock-block">
+    <div class="section-label">Cronômetro de Jogo</div>
+    <div class="game-clock paused" id="clockDisplay">—:——</div>
+    <div class="clock-controls">
+      <button class="btn btn-start"  id="btnIniciar" onclick="iniciarCronometro()">▶ Iniciar</button>
+      <button class="btn btn-pause"  id="btnPausar"  onclick="pausarCronometro()" style="display:none">⏸ Pausar</button>
+    </div>
+  </div>
+
+  <div class="mid-row">
+    <div class="card">
+      <div class="section-label">Shot Clock</div>
+      <div class="shot-display" id="shotDisplay">24</div>
+      <div class="shot-btns">
+        <button class="btn btn-sm btn-r24" onclick="resetarShot(24)">↺ 24s</button>
+        <button class="btn btn-sm btn-r14" onclick="resetarShot(14)">↺ 14s</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Posse de Bola</div>
+      <div class="posse-toggle">
+        <button class="posse-btn home" id="btnCasa"  onclick="definirPosse(true)">—</button>
+        <button class="posse-btn away" id="btnVisit" onclick="definirPosse(false)">—</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="period-row">
+    <div class="period-info">
+      <span class="section-label">Período</span>
+      <span class="period-value" id="periodoNum">—</span>
+    </div>
+    <button class="btn btn-period" onclick="confirmarPeriodo()">⏭ Avançar Período</button>
+  </div>
+
+</div>
+
+<div class="bottombar">
+  <span class="last-event" id="lastEvent">Último evento: —</span>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = 'http://localhost:5200';
+  const params = new URLSearchParams(location.search);
+  const PARTIDA_ID = params.get('partidaId') || '';
+
+  if (!PARTIDA_ID) {
+    document.body.innerHTML = '<div style="padding:40px;color:#ef4444;font-size:1.2rem">⚠ Partida ID não informado. <a style="color:#f97316" href="index.html">Voltar</a></div>';
+  }
+
+  let clockState = null;
+  let tickInterval = null;
+  let nomeCasaVal = '—', nomeVisitVal = '—';
+  let confirmCb = null;
+
+  // ── SignalR ──────────────────────────────────────────────────────
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl(`${API}/hubs/sumula?partidaId=${PARTIDA_ID}`, {
+      skipNegotiation: true,
+      transport: signalR.HttpTransportType.WebSockets
+    })
+    .withAutomaticReconnect()
+    .build();
+
+  connection.on('EstadoAtual', state => { updateScore(state); updateClock(state.cronometro); });
+  connection.on('EventoRegistrado', ev => updateScore(ev));
+  connection.on('CronometroAtualizado', cron => updateClock(cron));
+  connection.onreconnecting(() => setConn(false));
+  connection.onreconnected(() => setConn(true));
+
+  connection.start()
+    .then(async () => {
+      setConn(true);
+      await connection.invoke('EntrarComoMesarioTempo', PARTIDA_ID);
+    })
+    .catch(() => setConn(false));
+
+  function setConn(ok) {
+    document.getElementById('connDot').className = 'conn-dot' + (ok ? ' ok' : '');
+    document.getElementById('connTxt').textContent = ok ? 'Conectado' : 'Desconectado';
+  }
+
+  // ── Score / state ────────────────────────────────────────────────
+  function updateScore(state) {
+    document.getElementById('placarCasa').textContent  = state.placarCasa;
+    document.getElementById('placarVisit').textContent = state.placarVisitante;
+    document.getElementById('faltasCasa').textContent  = state.faltasCasa + ' falta' + (state.faltasCasa !== 1 ? 's' : '');
+    document.getElementById('faltasVisit').textContent = state.faltasVisitante + ' falta' + (state.faltasVisitante !== 1 ? 's' : '');
+    const lbl = periodLabel(state.periodoAtual);
+    document.getElementById('periodoLabel').textContent = lbl + ' Período';
+    document.getElementById('periodoNum').textContent   = lbl;
+    if (nomeCasaVal === '—') loadTeamNames();
+  }
+
+  async function loadTeamNames() {
+    try {
+      const r = await fetch(`${API}/api/partidas/${PARTIDA_ID}/jogadores`);
+      if (!r.ok) return;
+      const d = await r.json();
+      nomeCasaVal  = d.timeCasa?.sigla        || d.timeCasa?.nome        || 'Casa';
+      nomeVisitVal = d.timeVisitante?.sigla   || d.timeVisitante?.nome   || 'Visita';
+      document.getElementById('nomeCasa').textContent   = nomeCasaVal;
+      document.getElementById('nomeVisit').textContent  = nomeVisitVal;
+      document.getElementById('btnCasa').textContent    = nomeCasaVal;
+      document.getElementById('btnVisit').textContent   = nomeVisitVal;
+    } catch {}
+  }
+
+  // ── Clock rendering ──────────────────────────────────────────────
+  function updateClock(cron) {
+    clockState = cron;
+
+    // Posse
+    const posseCasa = cron.posseCasa;
+    document.getElementById('btnCasa').classList.toggle('active',  posseCasa);
+    document.getElementById('btnVisit').classList.toggle('active', !posseCasa);
+
+    // Botões iniciar/pausar
+    document.getElementById('btnIniciar').style.display = cron.ativo ? 'none' : '';
+    document.getElementById('btnPausar').style.display  = cron.ativo ? ''     : 'none';
+
+    // Tick local sincronizado com servidor
+    if (cron.ativo) {
+      if (!tickInterval) tickInterval = setInterval(tick, 100);
+    } else {
+      clearInterval(tickInterval); tickInterval = null;
+      renderGameClock(cron.segundosRestantes);
+      renderShotClock(cron.shotClockSegundos);
+    }
+  }
+
+  function tick() {
+    if (!clockState) return;
+    const now = Date.now();
+    let gameSec = clockState.segundosRestantes;
+    if (clockState.ativo && clockState.iniciadoEmMs) {
+      const elapsed = (now - clockState.iniciadoEmMs) / 1000;
+      gameSec = Math.max(0, clockState.segundosAoIniciar - elapsed);
+    }
+    let shotSec = clockState.shotClockSegundos;
+    if (clockState.shotClockAtivo && clockState.shotClockIniciadoEmMs) {
+      const elapsed = (now - clockState.shotClockIniciadoEmMs) / 1000;
+      shotSec = Math.max(0, clockState.shotClockSegundosAoIniciar - elapsed);
+    }
+    renderGameClock(gameSec);
+    renderShotClock(shotSec);
+  }
+
+  function renderGameClock(totalSec) {
+    const s = Math.ceil(totalSec);
+    const el = document.getElementById('clockDisplay');
+    el.textContent = `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+    el.className = 'game-clock' + (!clockState?.ativo ? ' paused' : s <= 30 ? ' warning' : ' running');
+  }
+
+  function renderShotClock(sec) {
+    const s = Math.ceil(sec);
+    const el = document.getElementById('shotDisplay');
+    el.textContent = s.toString().padStart(2, '0');
+    el.className = 'shot-display' + (clockState?.ativo && s <= 5 ? ' warning' : '');
+  }
+
+  // ── Hub actions ──────────────────────────────────────────────────
+  async function iniciarCronometro() {
+    try {
+      await connection.invoke('IniciarCronometro', PARTIDA_ID);
+      log('Cronômetro iniciado');
+    } catch { toast('Erro ao iniciar cronômetro', true); }
+  }
+
+  async function pausarCronometro() {
+    try {
+      await connection.invoke('PausarCronometro', PARTIDA_ID);
+      log('Cronômetro pausado');
+    } catch { toast('Erro ao pausar cronômetro', true); }
+  }
+
+  async function resetarShot(seg) {
+    try {
+      await connection.invoke('ResetarShotClock', PARTIDA_ID, seg);
+      log(`Shot clock → reset ${seg}s`);
+      toast(`Shot clock: ${seg}s`);
+    } catch { toast('Erro ao resetar shot clock', true); }
+  }
+
+  async function definirPosse(casa) {
+    try {
+      await connection.invoke('AlternarPosse', PARTIDA_ID);
+      const nome = casa ? nomeCasaVal : nomeVisitVal;
+      log(`Posse → ${nome}`);
+      toast(`Posse: ${nome}`);
+    } catch { toast('Erro ao alternar posse', true); }
+  }
+
+  function confirmarPeriodo() {
+    showConfirm('Avançar para o próximo período?', async () => {
+      try {
+        await connection.invoke('AvancarPeriodo', PARTIDA_ID);
+        log('Período avançado');
+        toast('Período avançado!');
+      } catch { toast('Erro ao avançar período', true); }
+    });
+  }
+
+  // ── Confirm overlay ──────────────────────────────────────────────
+  function showConfirm(msg, cb) {
+    document.getElementById('confirmMsg').textContent = msg;
+    document.getElementById('overlay').hidden = false;
+    confirmCb = cb;
+  }
+  function confirmResp(ok) {
+    document.getElementById('overlay').hidden = true;
+    if (ok && confirmCb) confirmCb();
+    confirmCb = null;
+  }
+
+  // ── Toast ────────────────────────────────────────────────────────
+  let toastTimer = null;
+  function toast(msg, err = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast' + (err ? ' err' : '') + ' show';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  function log(msg) {
+    document.getElementById('lastEvent').textContent = `Último evento: ${msg}`;
+  }
+
+  function periodLabel(n) {
+    return ['', '1º', '2º', '3º', '4º', 'Prorr.'][n] || n + 'º';
+  }
+</script>
+</body>
+</html>
