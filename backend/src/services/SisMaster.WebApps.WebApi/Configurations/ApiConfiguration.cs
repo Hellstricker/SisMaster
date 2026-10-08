@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using SisMaster.WebApps.WebApi.Hubs;
 
 namespace SisMaster.WebApps.WebApi.Configurations;
@@ -6,7 +7,8 @@ public static class ApiConfiguration
 {
     public static IServiceCollection AddApiConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         services.AddSignalR();
         services.AddCors(options =>
         {

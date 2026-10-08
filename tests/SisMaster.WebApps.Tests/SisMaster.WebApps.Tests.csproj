@@ -22,4 +22,8 @@
     <PackageReference Include="FluentAssertions" Version="8.4.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Importacao/Fiba/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

@@ -13,8 +13,11 @@ public class CampeonatoMapping : IEntityTypeConfiguration<Campeonato>
         builder.HasKey(c => c.Id);
 
         builder.Property(c => c.Nome).HasMaxLength(150).IsRequired();
-        builder.Property(c => c.Ano).IsRequired();
         builder.Property(c => c.Ativo).IsRequired();
+
+        builder.HasMany(c => c.Temporadas)
+               .WithOne(t => t.Campeonato)
+               .HasForeignKey(t => t.CampeonatoId);
 
         builder.Ignore(c => c.Notificacoes);
     }

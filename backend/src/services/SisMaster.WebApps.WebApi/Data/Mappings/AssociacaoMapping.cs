@@ -13,6 +13,7 @@ public class AssociacaoMapping : IEntityTypeConfiguration<Associacao>
         builder.HasKey(a => a.Id);
 
         builder.Property(a => a.Nome).HasMaxLength(150).IsRequired();
+        builder.Property(a => a.Sigla).HasMaxLength(10).IsRequired();
         builder.Property(a => a.Uf).HasMaxLength(2).IsRequired();
         builder.Property(a => a.Ativa).IsRequired();
 
