@@ -1,128 +1,35 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SisMaster — Súmula</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SisMaster</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, sans-serif;
-      background: #0d1117;
-      color: #e6edf3;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-    .card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      padding: 40px;
-      width: 100%;
-      max-width: 520px;
-    }
-    .logo { font-size: 2rem; font-weight: 800; color: #f97316; letter-spacing: -1px; margin-bottom: 4px; }
-    .subtitle { color: #8b949e; font-size: 0.9rem; margin-bottom: 32px; }
-    label { display: block; font-size: 0.8rem; color: #8b949e; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    input {
-      width: 100%;
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      color: #e6edf3;
-      font-size: 0.85rem;
-      padding: 10px 14px;
-      margin-bottom: 28px;
-      font-family: monospace;
-    }
-    input:focus { outline: none; border-color: #f97316; }
-    .screens { display: flex; flex-direction: column; gap: 12px; }
-    .btn {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 16px 20px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 1rem;
-      transition: opacity 0.15s;
-      cursor: pointer;
-    }
-    .btn:hover { opacity: 0.85; }
-    .btn-tempo { background: #1c3a2e; border: 1px solid #22c55e; color: #22c55e; }
-    .btn-stats { background: #1e293b; border: 1px solid #3b82f6; color: #3b82f6; }
-    .btn-placar { background: #2d1b4e; border: 1px solid #a855f7; color: #a855f7; }
-    .btn-icon { font-size: 1.5rem; }
-    .btn-text { display: flex; flex-direction: column; }
-    .btn-name { font-size: 1rem; }
-    .btn-desc { font-size: 0.75rem; opacity: 0.7; font-weight: 400; margin-top: 2px; }
-    .divider { height: 1px; background: #30363d; margin: 24px 0; }
-    .hint { font-size: 0.75rem; color: #8b949e; text-align: center; }
-    .hint a { color: #f97316; text-decoration: none; }
+    *, *::before, *::after { box-sizing: border-box; }
+    :root { color-scheme: light dark; --bg:#f1f5f9; --card:#fff; --text:#0f172a; --text2:#64748b; --border:#e2e8f0; --accent:#4f46e5; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --text2:#94a3b8; --border:#334155; --accent:#818cf8; } }
+    body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+      padding: 24px 16px; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, "Segoe UI", sans-serif; }
+    header { text-align: center; }
+    h1 { margin: 0; font-size: 2rem; letter-spacing: -0.5px; color: var(--accent); }
+    header p { margin: 6px 0 0; color: var(--text2); }
+    nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; width: 100%; max-width: 560px; }
+    nav a { display: block; text-align: center; text-decoration: none; color: var(--text); background: var(--card);
+      border: 1px solid var(--border); border-radius: 14px; padding: 26px 18px; font-weight: 700; font-size: 1.1rem; transition: border-color .15s, transform .15s; }
+    nav a:hover { border-color: var(--accent); transform: translateY(-2px); }
+    nav small { display: block; margin-top: 6px; font-weight: 400; font-size: .85rem; color: var(--text2); }
+    footer { color: var(--text2); font-size: .8rem; }
   </style>
 </head>
 <body>
-<div class="card">
-  <div class="logo">SisMaster</div>
-  <div class="subtitle">Súmula Eletrônica de Basketball Master</div>
-
-  <label for="partidaId">ID da Partida</label>
-  <input id="partidaId" type="text" value="00000000-0000-0000-0000-000000000099" placeholder="GUID da partida">
-
-  <div class="screens">
-    <a id="linkTempo" class="btn btn-tempo" href="#">
-      <span class="btn-icon">⏱</span>
-      <span class="btn-text">
-        <span class="btn-name">Mesário de Tempo</span>
-        <span class="btn-desc">Cronômetro · Shot Clock · Posse</span>
-      </span>
-    </a>
-    <a id="linkStats" class="btn btn-stats" href="#">
-      <span class="btn-icon">📊</span>
-      <span class="btn-text">
-        <span class="btn-name">Mesário de Estatísticas</span>
-        <span class="btn-desc">Registrar eventos · Pontos · Faltas</span>
-      </span>
-    </a>
-    <a id="linkPlacar" class="btn btn-placar" href="#">
-      <span class="btn-icon">📺</span>
-      <span class="btn-text">
-        <span class="btn-name">Placar — Espectadores</span>
-        <span class="btn-desc">Visualização ao vivo · Somente leitura</span>
-      </span>
-    </a>
-  </div>
-
-  <div class="divider"></div>
-  <p class="hint">Partida de teste: <a href="#" id="fillTest">00000000-…-0099</a></p>
-</div>
-
-<script>
-  const links = {
-    linkTempo: 'mesario-tempo.html',
-    linkStats: 'mesario-stats.html',
-    linkPlacar: 'placar.html'
-  };
-
-  function updateLinks() {
-    const id = document.getElementById('partidaId').value.trim();
-    Object.entries(links).forEach(([elId, page]) => {
-      document.getElementById(elId).href = `${page}?partidaId=${encodeURIComponent(id)}`;
-    });
-  }
-
-  document.getElementById('partidaId').addEventListener('input', updateLinks);
-  document.getElementById('fillTest').addEventListener('click', e => {
-    e.preventDefault();
-    document.getElementById('partidaId').value = '00000000-0000-0000-0000-000000000099';
-    updateLinks();
-  });
-
-  updateLinks();
-</script>
+  <header>
+    <h1>SisMaster</h1>
+    <p>Basquete Master — conteúdo público em breve.</p>
+  </header>
+  <nav>
+    <a href="/admin/">Gestão<small>Associações, temporadas, inscrições e jogos</small></a>
+    <a href="/arbitros/">Árbitros<small>Jogos do dia, súmula e mesa</small></a>
+  </nav>
+  <footer>SisMaster</footer>
 </body>
 </html>

@@ -2,8 +2,7 @@ using FluentValidation.Results;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using SisMaster.Core.DomainObjects;
-using SisMaster.WebApps.WebApi.Domain.Partida;
-using SisMaster.WebApps.WebApi.Domain.Time;
+using SisMaster.WebApps.WebApi.Domain.Sumula;
 using SisMaster.WebApps.WebApi.Hubs;
 using SisMaster.WebApps.WebApi.Hubs.Dtos;
 
@@ -11,17 +10,12 @@ namespace SisMaster.WebApps.WebApi.Application.Commands.Handlers;
 
 public class RegistrarEventoCommandHandler : IRequestHandler<RegistrarEventoCommand, ValidationResult>
 {
-    private readonly IPartidaRepository _partidaRepository;
-    private readonly ITimeRepository _timeRepository;
+    private readonly ISumulaRepository _sumulaRepository;
     private readonly IHubContext<SumulaHub> _hub;
 
-    public RegistrarEventoCommandHandler(
-        IPartidaRepository partidaRepository,
-        ITimeRepository timeRepository,
-        IHubContext<SumulaHub> hub)
+    public RegistrarEventoCommandHandler(ISumulaRepository sumulaRepository, IHubContext<SumulaHub> hub)
     {
-        _partidaRepository = partidaRepository;
-        _timeRepository = timeRepository;
+        _sumulaRepository = sumulaRepository;
         _hub = hub;
     }
 
@@ -29,42 +23,36 @@ public class RegistrarEventoCommandHandler : IRequestHandler<RegistrarEventoComm
     {
         if (!request.EhValido()) return request.ValidationResult;
 
-        var partida = await _partidaRepository.ObterPorIdAsync(request.PartidaId, cancellationToken);
-        if (partida is null)
+        var sumula = await _sumulaRepository.ObterPorIdAsync(request.PartidaId, cancellationToken);
+        if (sumula is null)
         {
-            request.ValidationResult.Errors.Add(new ValidationFailure("PartidaId", "Partida não encontrada"));
-            return request.ValidationResult;
-        }
-
-        var jogador = await _timeRepository.ObterJogadorPorIdAsync(request.JogadorId, cancellationToken);
-        if (jogador is null)
-        {
-            request.ValidationResult.Errors.Add(new ValidationFailure("JogadorId", "Jogador não encontrado"));
+            request.ValidationResult.Errors.Add(new ValidationFailure("PartidaId", "Súmula não encontrada"));
             return request.ValidationResult;
         }
 
         try
         {
-            var evento = partida.RegistrarEvento(request.JogadorId, jogador.TimeId, request.Tipo, request.TempoJogoSegundos);
+            // O jogador precisa estar relacionado nesta súmula.
+            var evento = sumula.RegistrarEvento(request.JogadorId, request.Tipo, request.TempoJogoSegundos);
 
-            _partidaRepository.AdicionarEvento(evento);
-            await _partidaRepository.UnitOfWork.Commit();
+            _sumulaRepository.AdicionarEvento(evento);
+            await _sumulaRepository.UnitOfWork.Commit();
 
             var dto = new EventoRegistradoDto
             {
                 EventoId = evento.Id,
-                PartidaId = partida.Id,
+                PartidaId = sumula.Id,
                 JogadorId = request.JogadorId,
                 Tipo = request.Tipo.ToString(),
-                PeriodoAtual = (int)partida.PeriodoAtual,
+                PeriodoAtual = (int)sumula.PeriodoAtual,
                 TempoJogoSegundos = request.TempoJogoSegundos,
-                PlacarCasa = partida.PlacarCasa,
-                PlacarVisitante = partida.PlacarVisitante,
-                FaltasCasa = partida.FaltasCasa,
-                FaltasVisitante = partida.FaltasVisitante
+                PlacarCasa = sumula.PlacarCasa,
+                PlacarVisitante = sumula.PlacarVisitante,
+                FaltasCasa = sumula.FaltasCasa,
+                FaltasVisitante = sumula.FaltasVisitante
             };
 
-            await _hub.Clients.Group($"partida-{partida.Id}")
+            await _hub.Clients.Group($"partida-{sumula.Id}")
                 .SendAsync("EventoRegistrado", dto, cancellationToken);
 
             return request.ValidationResult;

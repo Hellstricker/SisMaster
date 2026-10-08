@@ -260,7 +260,7 @@
   <span class="bottombar-status" id="statusPartida2">—</span>
 </div>
 
-<a class="back" href="index.html">← Início</a>
+<a class="back" href="/arbitros/">← Início</a>
 
 <script>
   const API = 'http://localhost:5200';
@@ -268,7 +268,7 @@
   const PARTIDA_ID = params.get('partidaId') || '';
 
   if (!PARTIDA_ID) {
-    document.body.innerHTML = '<div style="padding:40px;color:#ef4444;font-size:1.5rem;text-align:center">Partida ID não informado.<br><a style="color:#f97316" href="index.html">Voltar</a></div>';
+    document.body.innerHTML = '<div style="padding:40px;color:#ef4444;font-size:1.5rem;text-align:center">Partida ID não informado.<br><a style="color:#f97316" href="/arbitros/">Voltar</a></div>';
   }
 
   let clockState = null;
@@ -323,7 +323,10 @@
     document.getElementById('periodoLabel').textContent = periodLabel(ev.periodoAtual);
   });
 
-  connection.on('CronometroAtualizado', cron => updateClock(cron));
+  connection.on('CronometroAtualizado', cron => {
+    updateClock(cron);
+    if (cron.periodoAtual) document.getElementById('periodoLabel').textContent = periodLabel(cron.periodoAtual);
+  });
 
   connection.onreconnecting(() => setStatus(false));
   connection.onreconnected(() => setStatus(true));
@@ -414,7 +417,7 @@
   }
 
   function statusLabel(s) {
-    return { NaoIniciada: 'Não Iniciada', EmAndamento: 'Em Andamento', Intervalo: 'Intervalo', Encerrada: 'Encerrada' }[s] || s || '';
+    return { EmPreparacao: 'Em preparação', Preparada: 'Em preparação', NaoIniciada: 'Em preparação', EmAndamento: 'Em Andamento', Intervalo: 'Intervalo', Encerrada: 'Encerrada' }[s] || s || '';
   }
 </script>
 </body>

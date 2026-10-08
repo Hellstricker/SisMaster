@@ -1,14 +1,14 @@
 using Microsoft.AspNetCore.SignalR;
-using SisMaster.WebApps.WebApi.Domain.Partida;
+using SisMaster.WebApps.WebApi.Domain.Sumula;
 using SisMaster.WebApps.WebApi.Hubs.Dtos;
 
 namespace SisMaster.WebApps.WebApi.Hubs;
 
 public class SumulaHub : Hub
 {
-    private readonly IPartidaRepository _partidaRepository;
+    private readonly ISumulaRepository _partidaRepository;
 
-    public SumulaHub(IPartidaRepository partidaRepository)
+    public SumulaHub(ISumulaRepository partidaRepository)
     {
         _partidaRepository = partidaRepository;
     }
@@ -121,7 +121,15 @@ public class SumulaHub : Hub
         await Clients.Group($"partida-{partidaId}").SendAsync("CronometroAtualizado", MapCronometroDto(partida));
     }
 
-    private static CronometroDto MapCronometroDto(Partida partida) => new()
+    /// <summary>Quem está em quadra em cada time (ids dos jogadores da súmula).</summary>
+    public static object MapQuadra(Sumula partida) => new
+    {
+        PartidaId = partida.Id,
+        Casa = partida.QuadraDo(partida.TimeDoLado(LadoTime.Casa)),
+        Visitante = partida.QuadraDo(partida.TimeDoLado(LadoTime.Visitante))
+    };
+
+    private static CronometroDto MapCronometroDto(Sumula partida) => new()
     {
         PartidaId = partida.Id,
         Ativo = partida.CronometroAtivo,
@@ -140,7 +148,7 @@ public class SumulaHub : Hub
         PeriodoAtual = (int)partida.PeriodoAtual
     };
 
-    private static EstadoPartidaDto MapEstadoDto(Partida partida)
+    private static EstadoPartidaDto MapEstadoDto(Sumula partida)
     {
         var ultimo = partida.Eventos.LastOrDefault();
         return new EstadoPartidaDto

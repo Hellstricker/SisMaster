@@ -255,7 +255,7 @@
 <div class="topbar">
   <div class="topbar-left">
     <div class="topbar-brand">SisMaster</div>
-    <a class="back-link" href="index.html">← Voltar</a>
+    <a class="back-link" href="/arbitros/">← Voltar</a>
   </div>
   <div class="mini-placar">
     <div class="mini-team home">
@@ -331,7 +331,7 @@
   const PARTIDA_ID = params.get('partidaId') || '';
 
   if (!PARTIDA_ID) {
-    document.body.innerHTML = '<div style="padding:40px;color:#ef4444;font-size:1.2rem">⚠ Partida ID não informado. <a style="color:#f97316" href="index.html">Voltar</a></div>';
+    document.body.innerHTML = '<div style="padding:40px;color:#ef4444;font-size:1.2rem">⚠ Partida ID não informado. <a style="color:#f97316" href="/arbitros/">Voltar</a></div>';
   }
 
   let clockState = null;
@@ -350,7 +350,14 @@
 
   connection.on('EstadoAtual', state => { updateScore(state); updateClock(state.cronometro); });
   connection.on('EventoRegistrado', ev => updateScore(ev));
-  connection.on('CronometroAtualizado', cron => updateClock(cron));
+  connection.on('CronometroAtualizado', cron => {
+    updateClock(cron);
+    if (cron.periodoAtual) {
+      const lbl = periodLabel(cron.periodoAtual);
+      document.getElementById('periodoLabel').textContent = lbl + ' Período';
+      document.getElementById('periodoNum').textContent   = lbl;
+    }
+  });
   connection.onreconnecting(() => setConn(false));
   connection.onreconnected(() => setConn(true));
 

@@ -1,7 +1,7 @@
 using FluentValidation;
 using FluentValidation.Results;
 using SisMaster.Core.Messages;
-using SisMaster.WebApps.WebApi.Domain.Partida.Enums;
+using SisMaster.WebApps.WebApi.Domain.Sumula.Enums;
 
 namespace SisMaster.WebApps.WebApi.Application.Commands;
 

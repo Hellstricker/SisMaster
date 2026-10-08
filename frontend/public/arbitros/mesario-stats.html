@@ -167,6 +167,37 @@
     .confirm-box p { font-size: .9rem; color: var(--text); }
     .confirm-box .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
+    /* ── Quadra / substituição / rodízio ── */
+    .player-item.banco { opacity: .55; }
+    .player-item .marca { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+    .tag-q { font-size: .55rem; font-weight: 700; letter-spacing: .06em; padding: 1px 5px; border-radius: 3px; background: rgba(34,197,94,.15); color: var(--home); }
+    .tag-c { font-size: .55rem; font-weight: 800; padding: 1px 5px; border-radius: 3px; background: var(--brand); color: #fff; }
+    .cat-teal .action-btn { border-color: rgba(20,184,166,.3); background: rgba(20,184,166,.06); }
+    .cat-teal .action-btn:hover { background: rgba(20,184,166,.18); }
+    .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; width: 94%; max-width: 640px; max-height: 90vh; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+    .modal-box h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; letter-spacing: 1px; text-transform: uppercase; }
+    .lados { display: flex; gap: 8px; }
+    .lado-btn { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-weight: 700; }
+    .lado-btn.sel { border-color: var(--brand); background: rgba(249,115,22,.12); }
+    .sub-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .sub-cols h4 { font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .opt { display: flex; gap: 8px; align-items: center; padding: 7px 8px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 4px; cursor: pointer; font-size: .8rem; }
+    .opt.sel { border-color: var(--brand); background: rgba(249,115,22,.1); }
+    .opt .n { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; min-width: 26px; text-align: right; color: var(--muted); }
+    .sub-info { font-size: .68rem; color: var(--muted); }
+    .grade { width: 100%; border-collapse: collapse; font-size: .75rem; }
+    .grade th { font-size: .6rem; color: var(--muted); padding: 4px; text-align: center; border-bottom: 1px solid var(--border); }
+    .grade td { padding: 5px 4px; text-align: center; border-bottom: 1px dashed var(--border); }
+    .grade td.l, .grade th.l { text-align: left; }
+    .ce { display: inline-flex; width: 26px; height: 20px; align-items: center; justify-content: center; border-radius: 4px; font-size: .65rem; font-weight: 700; }
+    .ce.Completo { background: rgba(34,197,94,.18); color: var(--home); }
+    .ce.Fora { background: rgba(59,130,246,.18); color: var(--away); }
+    .ce.Parcial { background: rgba(245,158,11,.18); color: var(--shot); }
+    .ce.fut, .ce.Ausente { background: var(--surface); color: var(--muted); }
+    .ok-tag { font-size: .6rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: rgba(34,197,94,.15); color: var(--home); }
+    .no-tag { font-size: .6rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: rgba(245,158,11,.15); color: var(--shot); }
+    .resumo-rod { font-size: .72rem; color: var(--text); margin: 4px 0 10px; }
+
     /* ── Toast ── */
     .toast { position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--home); color: #fff; font-size: .78rem; font-weight: 600; padding: 8px 20px; border-radius: 6px; transition: transform .25s; z-index: 100; pointer-events: none; }
     .toast.err  { background: var(--danger); }
@@ -178,6 +209,35 @@
   </style>
 </head>
 <body>
+
+<!-- Substituição -->
+<div class="overlay" id="subOverlay" hidden>
+  <div class="modal-box">
+    <h3>Substituição</h3>
+    <div class="lados" id="subLados"></div>
+    <div class="sub-cols">
+      <div><h4>Sai (em quadra)</h4><div id="subSai"></div></div>
+      <div><h4>Entra (banco)</h4><div id="subEntra"></div></div>
+    </div>
+    <div class="sub-info" id="subInfo"></div>
+    <div class="confirm-actions" style="justify-content:space-between">
+      <button class="btn btn-outline" id="btnDesfazerSub" onclick="desfazerSubstituicao()">↩ Desfazer a última</button>
+      <span style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="document.getElementById('subOverlay').hidden=true">Fechar</button>
+        <button class="btn btn-confirm" id="btnConfirmarSub" onclick="confirmarSubstituicao()">✓ Substituir</button>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Rodízio -->
+<div class="overlay" id="rodOverlay" hidden>
+  <div class="modal-box">
+    <h3>Rodízio</h3>
+    <div id="rodCorpo"></div>
+    <div class="confirm-actions"><button class="btn btn-outline" onclick="document.getElementById('rodOverlay').hidden=true">Fechar</button></div>
+  </div>
+</div>
 
 <!-- Confirm overlay — desfazer -->
 <div class="overlay" id="undoOverlay" hidden>
@@ -193,7 +253,7 @@
 <div class="topbar">
   <div class="topbar-left">
     <div class="topbar-brand">SisMaster</div>
-    <a class="back-link" href="index.html">← Voltar</a>
+    <a class="back-link" href="/arbitros/">← Voltar</a>
   </div>
   <div class="mini-placar">
     <div class="mini-team home">
@@ -261,6 +321,14 @@
       </div>
     </div>
 
+    <div class="category cat-teal">
+      <div class="cat-label"><span class="cat-dot" style="background:#14b8a6"></span>Quadra e rodízio</div>
+      <div class="action-grid">
+        <button class="action-btn" onclick="abrirSubstituicao()">Substituição</button>
+        <button class="action-btn" onclick="abrirRodizio()">Rodízio</button>
+      </div>
+    </div>
+
     <div class="category cat-purple">
       <div class="cat-label"><span class="cat-dot" style="background:var(--purple)"></span>Falta Grave</div>
       <div class="action-grid">
@@ -302,7 +370,7 @@
   const PARTIDA_ID = params.get('partidaId') || '';
 
   if (!PARTIDA_ID) {
-    document.body.innerHTML = '<div style="padding:40px;color:#ef4444;font-size:1.2rem">⚠ Partida ID não informado. <a style="color:#f97316" href="index.html">Voltar</a></div>';
+    document.body.innerHTML = '<div style="padding:40px;color:#ef4444;font-size:1.2rem">⚠ Partida ID não informado. <a style="color:#f97316" href="/arbitros/">Voltar</a></div>';
   }
 
   let selectedTipo      = null;
@@ -313,6 +381,10 @@
   let nomeCasaVal = '—', nomeVisitVal = '—';
   let clockState  = null;
   let tickInterval = null;
+  let rodizio = null;          // quadra/rodízio dos dois times (GET /rodizio)
+  let tempoRestante = 0;       // segundos que o relógio mostra agora
+  let periodoVisto = null;
+  let subLado = 'casa', subSai = null, subEntra = null;
 
   // ── SignalR ──────────────────────────────────────────────────────
   const connection = new signalR.HubConnectionBuilder()
@@ -336,7 +408,16 @@
     toast('Evento registrado!');
   });
 
-  connection.on('CronometroAtualizado', cron => updateClock(cron));
+  connection.on('CronometroAtualizado', cron => {
+    updateClock(cron);
+    // O rodízio muda quando um período termina: recarrega ao avançar.
+    if (cron.periodoAtual && periodoVisto !== null && cron.periodoAtual !== periodoVisto) loadRodizio();
+    if (cron.periodoAtual) periodoVisto = cron.periodoAtual;
+  });
+  connection.on('QuadraAtualizada', () => loadRodizio());
+  // Atleta acrescentado depois do início do jogo: atualiza a lista de jogadores e o rodízio.
+  connection.on('RelacaoAtualizada', async () => { await loadPlayers(); await loadRodizio(); });
+  connection.on('SumulaEncerrada', () => loadRodizio());
   connection.onreconnecting(() => setConn(false));
   connection.onreconnected(() => setConn(true));
 
@@ -345,6 +426,7 @@
       setConn(true);
       await connection.invoke('EntrarComoMesarioStats', PARTIDA_ID);
       await loadPlayers();
+      await loadRodizio();
     })
     .catch(() => setConn(false));
 
@@ -381,6 +463,7 @@
 
   function renderClock(sec) {
     const s = Math.ceil(sec);
+    tempoRestante = s;
     document.getElementById('clockLabel').textContent = `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
   }
 
@@ -411,8 +494,10 @@
       list.appendChild(h);
       jogadores.forEach(j => {
         const el = document.createElement('div');
-        el.className = 'player-item';
-        el.innerHTML = `<span class="player-num">#${j.numero}</span><span class="player-nome">${j.nome}</span>`;
+        const info = infoJogador(j.id);
+        el.className = 'player-item' + (info && !info.emQuadra ? ' banco' : '');
+        el.innerHTML = `<span class="player-num">#${j.numero}</span><span class="player-nome">${j.nome}</span>` +
+          `<span class="marca">${info?.emQuadra ? '<span class="tag-q">QUADRA</span>' : ''}${info?.capitao ? '<span class="tag-c">C</span>' : ''}</span>`;
         el.onclick = () => selectJogador(j.id, `#${j.numero} ${j.nome} (${label})`, el);
         list.appendChild(el);
       });
@@ -477,6 +562,102 @@
         toast((err?.errors?.messages?.[0]) || 'Erro ao registrar evento', true);
       }
     } catch { toast('Erro de comunicação', true); }
+  }
+
+  // ── Quadra, substituição e rodízio ────────────────────────────────
+  async function loadRodizio() {
+    try {
+      const r = await fetch(`${API}/api/partidas/${PARTIDA_ID}/rodizio`);
+      if (!r.ok) return;
+      rodizio = await r.json();
+      periodoVisto = rodizio.periodo;
+      buildPlayerList();
+      if (!document.getElementById('subOverlay').hidden) renderSubstituicao();
+      if (!document.getElementById('rodOverlay').hidden) renderRodizio();
+    } catch {}
+  }
+
+  function infoJogador(id) {
+    if (!rodizio) return null;
+    const todos = [...rodizio.casa.jogadores, ...rodizio.visitante.jogadores];
+    return todos.find(j => j.id.toLowerCase() === String(id).toLowerCase()) || null;
+  }
+
+  function abrirSubstituicao() {
+    subSai = null; subEntra = null;
+    document.getElementById('subOverlay').hidden = false;
+    renderSubstituicao();
+  }
+
+  function renderSubstituicao() {
+    if (!rodizio) return;
+    const lado = subLado === 'casa' ? rodizio.casa : rodizio.visitante;
+    const nomes = { casa: rodizio.casa.nome, visitante: rodizio.visitante.nome };
+    document.getElementById('subLados').innerHTML = ['casa', 'visitante'].map(l =>
+      `<button class="lado-btn ${subLado === l ? 'sel' : ''}" onclick="escolherLado('${l}')">${nomes[l]}</button>`).join('');
+    const opt = (j, tipo) =>
+      `<div class="opt ${(tipo === 'sai' ? subSai : subEntra) === j.id ? 'sel' : ''}" onclick="escolher('${tipo}','${j.id}')"><span class="n">#${j.numero}</span>${j.nome}${j.capitao ? ' <span class="tag-c">C</span>' : ''}</div>`;
+    const emQuadra = lado.jogadores.filter(j => j.emQuadra);
+    const completa = emQuadra.length >= 5;
+    const semSaida = completa ? '' :
+      `<div class="opt ${subSai === 'nenhum' ? 'sel' : ''}" onclick="escolher('sai','nenhum')"><span class="n">—</span>Ninguém: completar a quadra (${emQuadra.length} de 5 em quadra)</div>`;
+    document.getElementById('subSai').innerHTML = semSaida + emQuadra.map(j => opt(j, 'sai')).join('');
+    document.getElementById('subEntra').innerHTML = lado.jogadores.filter(j => !j.emQuadra).map(j => opt(j, 'entra')).join('') || '<div class="sub-info">Ninguém no banco.</div>';
+    document.getElementById('subInfo').textContent = rodizio.relogioNoInicio
+      ? 'Relógio parado no início do período: a troca vale como início do ' + rodizio.periodo + 'º período.'
+      : 'Relógio já correu neste período: a troca vale no meio do período (os dois ficam com o período parcial no rodízio).';
+    document.getElementById('btnConfirmarSub').disabled = !(subSai && subEntra);
+  }
+
+  function escolherLado(l) { subLado = l; subSai = null; subEntra = null; renderSubstituicao(); }
+  function escolher(tipo, id) { if (tipo === 'sai') subSai = id; else subEntra = id; renderSubstituicao(); }
+
+  async function confirmarSubstituicao() {
+    if (!subSai || !subEntra) return;
+    try {
+      const r = await fetch(`${API}/api/partidas/${PARTIDA_ID}/substituicoes`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jogadorSaiId: subSai === 'nenhum' ? null : subSai, jogadorEntraId: subEntra, tempoJogoSegundos: tempoRestante })
+      });
+      if (r.ok) { toast('Substituição registrada!'); subSai = null; subEntra = null; await loadRodizio(); }
+      else { const err = await r.json().catch(() => ({})); toast((err?.errors?.messages?.[0]) || 'Erro ao substituir', true); }
+    } catch { toast('Erro de comunicação', true); }
+  }
+
+  async function desfazerSubstituicao() {
+    try {
+      const r = await fetch(`${API}/api/partidas/${PARTIDA_ID}/substituicoes/ultima`, { method: 'DELETE' });
+      if (r.ok) { toast('Substituição desfeita!'); await loadRodizio(); }
+      else { const err = await r.json().catch(() => ({})); toast((err?.errors?.messages?.[0]) || 'Erro ao desfazer', true); }
+    } catch { toast('Erro de comunicação', true); }
+  }
+
+  function abrirRodizio() {
+    document.getElementById('rodOverlay').hidden = false;
+    renderRodizio();
+  }
+
+  function renderRodizio() {
+    if (!rodizio) { document.getElementById('rodCorpo').textContent = 'Carregando...'; return; }
+    const enc = rodizio.periodosEncerrados;
+    const bloco = lado => {
+      const cabP = [1, 2, 3, 4].map(p => `<th>${p}º</th>`).join('');
+      const linhas = lado.jogadores.map(j => {
+        const cels = [1, 2, 3, 4].map(p => {
+          const e = j.periodos[p - 1];
+          return e ? `<td><span class="ce ${e}">${({ Completo: 'Q', Fora: 'F', Parcial: '½', Ausente: '–' })[e]}</span></td>` : '<td><span class="ce fut">·</span></td>';
+        }).join('');
+        return `<tr><td class="l"><b>#${j.numero}</b> ${j.nome}${j.capitao ? ' <span class="tag-c">C</span>' : ''}${j.emQuadra ? ' <span class="tag-q">QUADRA</span>' : ''}</td>${cels}<td>${j.completosEmQuadra}</td><td>${j.completosFora}</td><td>${lado.exigeRodizio ? (j.cumpre ? '<span class="ok-tag">cumpre</span>' : '<span class="no-tag">falta</span>') : '—'}</td></tr>`;
+      }).join('');
+      const resumo = lado.exigeRodizio
+        ? `<b>${lado.cumprem} de ${lado.relacionados}</b> cumpriram o rodízio até agora${rodizio.valorBonificacaoPorAtleta > 0 ? ' · bonificação prevista: <b>' + lado.bonificacaoPrevista + '</b> ponto(s)' : ''}.`
+        : `Menos de 7 relacionados: o rodízio não é exigido e não há bonificação.`;
+      return `<h4 style="margin-top:8px">${lado.nome}</h4><div class="resumo-rod">${resumo}</div>
+        <table class="grade"><thead><tr><th class="l">Atleta</th>${cabP}<th>Q</th><th>F</th><th>Rodízio</th></tr></thead><tbody>${linhas}</tbody></table>`;
+    };
+    document.getElementById('rodCorpo').innerHTML =
+      `<div class="sub-info">Mínimo da categoria: ${rodizio.minimoPeriodosEmQuadra} período(s) completo(s) em quadra e ${rodizio.minimoPeriodosForaQuadra} fora. Contam só os períodos normais já encerrados (${enc} de 4). Q = completo em quadra · F = completo fora · ½ = parcial.</div>` +
+      bloco(rodizio.casa) + bloco(rodizio.visitante);
   }
 
   // ── Desfazer ─────────────────────────────────────────────────────

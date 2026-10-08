@@ -1,0 +1,30 @@
+.colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 820px) { .colunas { grid-template-columns: 1fr; } }
+.time { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.timeNome { margin: 0 0 2px; font-size: 16px; color: var(--text-primary); }
+.lado { font-weight: 400; font-size: 12px; color: var(--text-secondary); }
+.contador { font-size: 12px; margin-bottom: 8px; }
+.contOk { color: var(--pill-active-text); }
+.contAviso { color: #b45309; }
+.contRuim { color: var(--pill-inactive-text); }
+[data-theme="dark"] .contAviso { color: #fcd34d; }
+.comissao { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.comissao label { display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; }
+.ferramentas { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.atleta { display: grid; grid-template-columns: 26px 1fr 64px 40px 40px; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px dashed var(--border); }
+.atleta:last-child { border-bottom: 0; }
+.cabecalho { font-size: 11px; color: var(--text-secondary); border-bottom: 1px solid var(--border); text-align: center; }
+.cabecalho span:nth-child(2) { text-align: left; }
+.atleta input[type="checkbox"], .atleta input[type="radio"] { width: auto; justify-self: center; }
+.nomeAtleta { font-weight: 600; font-size: 13px; color: var(--text-primary); }
+.fora { opacity: 0.6; }
+.camisa {
+  width: 100%; text-align: center; height: 30px; border: 1px solid var(--border-input); border-radius: 7px; background: var(--bg-input);
+  color: var(--text-primary); font-size: 14px; min-width: 0;
+}
+.camisa:disabled { opacity: 0.5; }
+.camisaErro { border-color: var(--pill-inactive-text); outline: 1px solid var(--pill-inactive-text); }
+.erroLinha { grid-column: 2 / -1; font-size: 11px; color: var(--pill-inactive-text); }
+.link { display: inline-flex; align-items: center; text-decoration: none; }
+
+.tagChegada { grid-column: 2 / -1; font-size: 11px; color: var(--text-secondary); }
