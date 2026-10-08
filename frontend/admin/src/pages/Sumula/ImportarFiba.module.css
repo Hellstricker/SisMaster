@@ -1,0 +1,51 @@
+.passos { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; font-size: 12px; }
+.passo { padding: 3px 12px; border-radius: 999px; background: var(--badge-bg); color: var(--badge-text); }
+.passoAtual { background: var(--accent); color: var(--accent-text); }
+.passoFeito { background: var(--pill-active-bg); color: var(--pill-active-text); }
+
+.cartao { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+.cartao h3 { margin: 0 0 8px; font-size: 15px; color: var(--text-primary); }
+
+.linhaCodigo { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.linhaCodigo input { min-width: 0; }
+.check { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; font-size: 13px; color: var(--text-primary); }
+
+.bannerErro { background: var(--pill-inactive-bg); color: var(--pill-inactive-text); }
+.lista { margin: 6px 0 0 18px; padding: 0; }
+.lista li { margin: 2px 0; }
+.dicaBanner { font-size: 12px; margin-top: 6px; }
+
+.placar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; text-align: center; }
+.eq { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.eq small { display: block; font-size: 11px; font-weight: 400; color: var(--text-secondary); }
+.pts { font-size: 30px; font-weight: 800; letter-spacing: 2px; color: var(--text-primary); }
+.confOk { font-size: 12px; margin-top: 2px; color: var(--pill-active-text); }
+.confRuim { font-size: 12px; margin-top: 2px; color: var(--pill-inactive-text); }
+
+.colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 820px) { .colunas { grid-template-columns: 1fr; } }
+
+.tabela { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--text-primary); }
+.tabela th { font-size: 11px; color: var(--text-secondary); text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); padding: 4px 6px; }
+.tabela td { padding: 5px 6px; border-bottom: 1px dashed var(--border); vertical-align: top; }
+.tabela tr:last-child td { border-bottom: 0; }
+.n { text-align: center !important; }
+.linhaErro td { background: var(--pill-inactive-bg); }
+.linhaAviso td { background: #fef3c7; }
+[data-theme="dark"] .linhaAviso td { background: #78350f; }
+.st_ok { color: var(--pill-active-text); font-size: 12px; }
+.st_bad { color: var(--pill-inactive-text); font-size: 12px; }
+.st_warn { color: #b45309; font-size: 12px; }
+[data-theme="dark"] .st_warn { color: #fcd34d; }
+
+.tag { display: inline-block; border-radius: 4px; padding: 1px 7px; font-size: 11px; font-weight: 400; background: #e0e7ff; color: #4338ca; }
+[data-theme="dark"] .tag { background: #312e81; color: #c7d2fe; }
+
+.resumo { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); }
+.resumo b { display: block; font-size: 18px; color: var(--text-primary); }
+
+.acoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 6px; }
+
+.detalhes { margin-top: 8px; }
+.detalhes summary { cursor: pointer; font-size: 13px; color: var(--accent); }
+.detalhes table { margin-top: 8px; }
