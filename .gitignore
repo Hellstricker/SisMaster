@@ -58,3 +58,11 @@ desktop.ini
 
 # Logs
 *.log
+
+# Segredos locais
+.env
+.env.*
+!.env.example
+
+# Documentação local (não vai para o GitHub)
+documents/
