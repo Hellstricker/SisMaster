@@ -1,0 +1,38 @@
+.secao { margin-bottom: 1.5rem; }
+.secaoTitulo { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 0 0 8px; }
+.secaoTitulo small { font-size: 12px; font-weight: 400; color: var(--text-secondary); margin-left: 6px; }
+
+.vagas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; }
+.vaga { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px dashed var(--border); }
+.pos { width: 30px; color: var(--text-secondary); font-size: 12px; flex-shrink: 0; }
+.equipe { color: var(--text-primary); display: inline-flex; align-items: center; gap: 6px; }
+.referencia { color: var(--text-secondary); font-style: italic; }
+.cor { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+.grupos { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.grupo { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--bg-card); }
+.grupoNome { margin: 0 0 6px; font-size: 14px; color: var(--text-primary); }
+
+.rodada { margin-bottom: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 4px 12px; background: var(--bg-card); }
+.rodada summary { cursor: pointer; font-weight: 600; padding: 6px 0; color: var(--text-primary); }
+.tabela { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+.tabela td { padding: 6px 8px; border-top: 1px solid var(--border); vertical-align: middle; font-size: 13px; color: var(--text-primary); }
+.num { color: var(--text-secondary); width: 56px; }
+.tagGrupo { font-size: 11px; border-radius: 4px; padding: 1px 6px; background: var(--badge-bg); color: var(--badge-text); white-space: nowrap; }
+.confrontoCel { display: grid; grid-template-columns: 1fr 24px 1fr; gap: 6px; align-items: center; }
+.casa { text-align: right; }
+.x { color: var(--text-secondary); text-align: center; }
+.quando { color: var(--text-secondary); font-size: 12px; }
+
+.confronto { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background: var(--bg-card); }
+.confrontoTopo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--text-primary); }
+.aDireita { margin-left: auto; }
+.versus { display: grid; grid-template-columns: 1fr 28px 1fr; gap: 6px; align-items: center; margin-top: 8px; font-size: 14px; }
+.versus .origem:first-child { text-align: right; }
+.origem { color: var(--text-primary); }
+.serie { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.jogoSerie {
+  border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 12px; display: flex; gap: 8px;
+  align-items: center; flex-wrap: wrap; color: var(--text-primary);
+}
+.opcional { border-style: dashed; color: var(--text-secondary); }

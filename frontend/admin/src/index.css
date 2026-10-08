@@ -1,0 +1,120 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  /* surfaces */
+  --bg-page:   #f1f5f9;
+  --bg-card:   #ffffff;
+  --bg-input:  #ffffff;
+  --bg-modal:  #ffffff;
+  --bg-overlay: rgba(0, 0, 0, 0.40);
+
+  /* text */
+  --text-primary:   #0f172a;
+  --text-secondary: #64748b;
+  --text-muted:     #94a3b8;
+
+  /* borders */
+  --border:       #e2e8f0;
+  --border-input: #cbd5e1;
+  --border-focus: #6366f1;
+
+  /* accent (button primary) */
+  --accent:       #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-text:  #ffffff;
+
+  /* badge */
+  --badge-bg:    #e2e8f0;
+  --badge-text:  #475569;
+
+  /* card hover */
+  --card-hover-border: #c7d2fe;
+  --card-hover-shadow: 0 1px 6px rgba(0,0,0,.07);
+
+  /* pills */
+  --pill-active-bg:    #dcfce7;
+  --pill-active-text:  #15803d;
+  --pill-inactive-bg:  #fee2e2;
+  --pill-inactive-text:#b91c1c;
+
+  /* btn secondary */
+  --btn-sec-bg:     #ffffff;
+  --btn-sec-border: #cbd5e1;
+  --btn-sec-text:   #374151;
+  --btn-sec-hover:  #f8fafc;
+
+  /* btn toggle */
+  --btn-toggle-border: #cbd5e1;
+  --btn-toggle-text:   #374151;
+  --btn-toggle-hover:  #f1f5f9;
+
+  /* theme toggle */
+  --theme-btn-bg:     #e2e8f0;
+  --theme-btn-text:   #475569;
+  --theme-btn-hover:  #cbd5e1;
+}
+
+[data-theme="dark"] {
+  --bg-page:   #0f172a;
+  --bg-card:   #1e293b;
+  --bg-input:  #1e293b;
+  --bg-modal:  #1e293b;
+  --bg-overlay: rgba(0, 0, 0, 0.60);
+
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+
+  --border:       #334155;
+  --border-input: #475569;
+  --border-focus: #818cf8;
+
+  --accent:       #6366f1;
+  --accent-hover: #818cf8;
+  --accent-text:  #ffffff;
+
+  --badge-bg:    #334155;
+  --badge-text:  #94a3b8;
+
+  --card-hover-border: #6366f1;
+  --card-hover-shadow: 0 1px 6px rgba(0,0,0,.30);
+
+  --pill-active-bg:    #14532d;
+  --pill-active-text:  #86efac;
+  --pill-inactive-bg:  #450a0a;
+  --pill-inactive-text:#fca5a5;
+
+  --btn-sec-bg:     #1e293b;
+  --btn-sec-border: #475569;
+  --btn-sec-text:   #cbd5e1;
+  --btn-sec-hover:  #293548;
+
+  --btn-toggle-border: #475569;
+  --btn-toggle-text:   #94a3b8;
+  --btn-toggle-hover:  #293548;
+
+  --theme-btn-bg:    #1e293b;
+  --theme-btn-text:  #94a3b8;
+  --theme-btn-hover: #293548;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s, color 0.2s;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 500; color: var(--text-primary); }
+p { margin: 0; }
+button { font-family: inherit; font-size: 14px; cursor: pointer; }
+input, select { font-family: inherit; }

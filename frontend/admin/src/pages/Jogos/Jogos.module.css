@@ -1,0 +1,72 @@
+.filtros {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;
+}
+.f { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--text-secondary); min-width: 130px; }
+.f select, .f input { height: 34px; font-size: 13px; }
+.cresce { flex: 1; min-width: 160px; }
+.check { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--text-primary); height: 34px; }
+.seg { display: inline-flex; border: 1px solid var(--border-input); border-radius: 8px; overflow: hidden; height: 34px; }
+.seg button { border: 0; background: var(--bg-card); color: var(--text-primary); padding: 0 12px; cursor: pointer; font-size: 13px; }
+.segOn { background: var(--accent) !important; color: var(--accent-text) !important; }
+
+.cartao { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px; overflow: hidden; }
+.dia { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--badge-bg); font-weight: 700; color: var(--text-primary); }
+.dia small { font-weight: 400; color: var(--text-secondary); }
+.semData { background: #fef3c7; color: #b45309; }
+.semData small { color: inherit; }
+[data-theme="dark"] .semData { background: #78350f; color: #fcd34d; }
+.local { padding: 5px 14px; background: #e0e7ff; color: #4338ca; font-size: 12px; font-weight: 600; border-top: 1px solid var(--border); }
+[data-theme="dark"] .local { background: #312e81; color: #c7d2fe; }
+
+.tabela { width: 100%; border-collapse: collapse; }
+.tabela td { padding: 7px 10px; border-top: 1px solid var(--border); vertical-align: middle; font-size: 13px; color: var(--text-primary); }
+.sel { width: 30px; padding-right: 0 !important; }
+.hora { width: 64px; font-weight: 700; }
+.num { width: 50px; color: var(--text-secondary); }
+.acoes { width: 84px; text-align: right; }
+.par { display: grid; grid-template-columns: 1fr 34px 18px 34px 1fr; gap: 4px; align-items: center; text-align: center; }
+.a { text-align: right; }
+.b { text-align: left; }
+.x { color: var(--text-secondary); }
+.placar { font-weight: 700; }
+.ref { font-style: italic; color: var(--text-secondary); }
+.venc { font-weight: 700; }
+.tag { display: inline-block; border-radius: 4px; padding: 1px 7px; font-size: 11px; background: #e0e7ff; color: #4338ca; white-space: nowrap; }
+[data-theme="dark"] .tag { background: #312e81; color: #c7d2fe; }
+.tagCat { display: inline-block; border-radius: 4px; padding: 1px 7px; font-size: 11px; font-weight: 600; background: var(--badge-bg); color: var(--badge-text); white-space: nowrap; }
+.opcional { font-size: 11px; color: var(--text-secondary); }
+
+.barra {
+  position: sticky; bottom: 12px; display: flex; align-items: center; gap: 12px; background: var(--bg-card); color: var(--text-primary);
+  border: 1px solid var(--border-focus); border-radius: 10px; padding: 10px 16px; margin-top: 12px; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+.avisoLote { background: #fef3c7; color: #b45309; border-radius: 6px; padding: 6px 10px; font-size: 12px; margin-top: 8px; }
+[data-theme="dark"] .avisoLote { background: #78350f; color: #fcd34d; }
+
+/* ---- Tela 10: detalhe do jogo ---- */
+.cartaoJogo { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+.placarGrande { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; text-align: center; }
+.eqNome { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+.eqRef { font-size: 15px; font-weight: 400; font-style: italic; color: var(--text-secondary); }
+.pts { font-size: 30px; font-weight: 800; letter-spacing: 2px; color: var(--text-primary); }
+.metaJogo { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 10px; align-items: center; }
+.grade2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media (max-width: 820px) { .grade2 { grid-template-columns: 1fr; } }
+.cartaoInfo { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+.grade2 .cartaoInfo { margin-bottom: 0; }
+.cartaoInfo h3 { margin: 0 0 8px; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; }
+.cartaoInfo p { margin: 0 0 8px; font-size: 13px; color: var(--text-primary); }
+.kv { display: grid; grid-template-columns: 90px 1fr; gap: 4px 10px; font-size: 13px; margin: 0; color: var(--text-primary); }
+.kv dt { color: var(--text-secondary); }
+.kv dd { margin: 0; }
+.resumoTime { padding: 6px 0; border-top: 1px dashed var(--border); font-size: 13px; color: var(--text-primary); }
+.resumoTime:first-of-type { border-top: 0; }
+.acoesSumula { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+.link { display: inline-flex; align-items: center; text-decoration: none; height: 34px; }
+.stPreparada { background: #e0e7ff; color: #4338ca; }
+[data-theme="dark"] .stPreparada { background: #312e81; color: #c7d2fe; }
+.radio { display: flex; gap: 8px; align-items: center; margin: 6px 0; font-size: 14px; color: var(--text-primary); }
+
+.previaLinha { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.previaOrdem { display: inline-flex; gap: 4px; flex-shrink: 0; }

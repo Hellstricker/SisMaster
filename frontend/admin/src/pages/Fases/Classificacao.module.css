@@ -1,0 +1,42 @@
+.card { border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); padding: 14px 16px; margin-bottom: 14px; }
+.cardTitulo { margin: 0 0 8px; font-size: 15px; font-weight: 600; color: var(--text-primary); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.grupos { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.scroll { overflow-x: auto; }
+.tabela { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--text-primary); }
+.tabela th { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-align: center; padding: 6px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tabela td { padding: 7px 6px; text-align: center; border-bottom: 1px dashed var(--border); }
+.tabela tr:last-child td { border-bottom: 0; }
+.tabela .esq { text-align: left; }
+.pos { width: 38px; font-weight: 700; color: var(--text-secondary); }
+.direto td:first-child { box-shadow: inset 3px 0 0 #15803d; }
+.direto .pos { color: #15803d; }
+.melhor td:first-child { box-shadow: inset 3px 0 0 #b45309; }
+.pontos { background: rgba(99, 102, 241, 0.07); }
+.total { font-weight: 800; font-size: 15px; }
+.cor { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.referencia { font-style: italic; color: var(--text-secondary); }
+.sorteio { display: inline-block; margin-left: 6px; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 600; background: #fef3c7; color: #b45309; }
+[data-theme="dark"] .sorteio { background: #78350f; color: #fcd34d; }
+.seq { display: inline-flex; gap: 2px; }
+.seq i { font-style: normal; width: 16px; height: 16px; border-radius: 3px; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.seqV { background: var(--pill-active-bg); color: var(--pill-active-text); }
+.seqD { background: #fee2e2; color: #b91c1c; }
+[data-theme="dark"] .seqD { background: #7f1d1d; color: #fca5a5; }
+.legenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); margin-top: 10px; }
+.legenda span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+.lgDireto::before { background: #15803d; }
+.lgMelhor::before { background: #b45309; }
+.confrontos { display: grid; gap: 10px; }
+.confronto { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.confrontoTopo { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+.lado { display: grid; grid-template-columns: 1fr 40px; align-items: center; padding: 3px 0; font-size: 14px; color: var(--text-primary); }
+.venceu { font-weight: 700; }
+.placarSerie { text-align: center; font-size: 18px; font-weight: 700; }
+.jogosSerie { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.chipJogo { border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; font-size: 11px; color: var(--text-secondary); }
+.opcional { border-style: dashed; }
+.dispensado { opacity: 0.5; text-decoration: line-through; }
+.zero { color: var(--text-secondary); opacity: 0.6; }
+
+.sorteioLinha { display: grid; grid-template-columns: 32px 1fr auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--border); color: var(--text-primary); }
+.sorteioAcoes { display: flex; gap: 6px; }
