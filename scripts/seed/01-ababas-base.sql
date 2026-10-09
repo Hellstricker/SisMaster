@@ -1,0 +1,7 @@
+SET NOCOUNT ON;
+-- Seed base da ABABAS (sem dados pessoais): associacao, categorias e locais.
+-- Gerado por scripts/seed/exportar-seed.ps1. Idempotente: so insere o que ainda nao existe (pelo Id).
+IF NOT EXISTS (SELECT 1 FROM Associacoes WHERE Id = 'C1D1DB91-22EF-464A-B774-A2EEA4FB0D74') INSERT INTO Associacoes (Id, Nome, Uf, Ativa, Sigla) VALUES ('C1D1DB91-22EF-464A-B774-A2EEA4FB0D74', N'Associação Baiana de Amigos do Basquete', N'BA', 1, N'ABABAS');
+IF NOT EXISTS (SELECT 1 FROM Categorias WHERE Id = '3635713C-DB2B-4C86-A913-8A98609ABC25') INSERT INTO Categorias (Id, Nome, AssociacaoId, IdadeMinima, MinimoPeriodosEmQuadra, MinimoPeriodosForaQuadra, Sexo, AceitaAbaixoIdadeMinima) VALUES ('3635713C-DB2B-4C86-A913-8A98609ABC25', N'M40+', 'C1D1DB91-22EF-464A-B774-A2EEA4FB0D74', 40, 1, 1, N'Masculino', 0);
+IF NOT EXISTS (SELECT 1 FROM Categorias WHERE Id = 'A2B657D7-9FF3-4196-8A82-938718CCCC52') INSERT INTO Categorias (Id, Nome, AssociacaoId, IdadeMinima, MinimoPeriodosEmQuadra, MinimoPeriodosForaQuadra, Sexo, AceitaAbaixoIdadeMinima) VALUES ('A2B657D7-9FF3-4196-8A82-938718CCCC52', N'M55+', 'C1D1DB91-22EF-464A-B774-A2EEA4FB0D74', 55, 1, 1, NULL, 1);
+IF NOT EXISTS (SELECT 1 FROM Locais WHERE Id = '167FFA10-3C91-4118-B9E3-23072F35E707') INSERT INTO Locais (Id, AssociacaoId, Nome, Cidade, Estado) VALUES ('167FFA10-3C91-4118-B9E3-23072F35E707', 'C1D1DB91-22EF-464A-B774-A2EEA4FB0D74', N'Associação Atletica da Bahia', N'Salvador', N'BA');
