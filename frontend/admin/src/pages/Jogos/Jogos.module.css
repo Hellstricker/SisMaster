@@ -70,3 +70,13 @@
 
 .previaLinha { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .previaOrdem { display: inline-flex; gap: 4px; flex-shrink: 0; }
+
+.bloqueioAgenda { background: #fee2e2; color: #b91c1c; border-radius: 6px; padding: 6px 10px; font-size: 12px; margin-top: 8px; }
+[data-theme="dark"] .bloqueioAgenda { background: #7f1d1d; color: #fca5a5; }
+.alertaAtleta { display: inline-block; margin-left: 6px; border-radius: 4px; padding: 1px 7px; font-size: 11px; background: #fef3c7; color: #b45309; cursor: help; white-space: nowrap; }
+[data-theme="dark"] .alertaAtleta { background: #78350f; color: #fcd34d; }
+
+.formato { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer; font-size: 13px; color: var(--text-primary); }
+.formatoSel { border-color: var(--accent, #4f46e5); }
+.formato input { margin-top: 3px; }
+.formato small { display: block; color: var(--text-secondary); font-size: 12px; }

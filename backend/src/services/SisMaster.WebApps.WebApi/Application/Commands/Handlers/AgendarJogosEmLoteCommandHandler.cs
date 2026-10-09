@@ -1,6 +1,7 @@
 using FluentValidation.Results;
 using MediatR;
 using SisMaster.Core.DomainObjects;
+using SisMaster.WebApps.WebApi.Application.Services;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
 using SisMaster.WebApps.WebApi.Domain.Jogos;
 
@@ -11,9 +12,12 @@ public class AgendarJogosEmLoteCommandHandler : IRequestHandler<AgendarJogosEmLo
     private readonly IJogoRepository _jogoRepository;
     private readonly ITemporadaRepository _temporadaRepository;
     private readonly ILocalRepository _localRepository;
+    private readonly ConferenciaDeAgendaServico _conferencia;
 
-    public AgendarJogosEmLoteCommandHandler(IJogoRepository jogoRepository, ITemporadaRepository temporadaRepository, ILocalRepository localRepository)
+    public AgendarJogosEmLoteCommandHandler(IJogoRepository jogoRepository, ITemporadaRepository temporadaRepository, ILocalRepository localRepository,
+        ConferenciaDeAgendaServico conferencia)
     {
+        _conferencia = conferencia;
         _jogoRepository = jogoRepository;
         _temporadaRepository = temporadaRepository;
         _localRepository = localRepository;
@@ -50,13 +54,26 @@ public class AgendarJogosEmLoteCommandHandler : IRequestHandler<AgendarJogosEmLo
             var jogos = ids.Select(id => encontrados.First(j => j.Id == id)).ToList();
 
             var inicio = request.HoraInicial.ToTimeSpan();
+            var horarios = new List<TimeOnly>();
             for (var i = 0; i < jogos.Count; i++)
             {
                 var hora = inicio + TimeSpan.FromMinutes(request.IntervaloMinutos * i);
                 if (hora >= TimeSpan.FromDays(1))
                     throw new DomainException("Os horários passam da meia-noite: reduza o intervalo ou o número de jogos");
-                jogos[i].Agendar(request.Data, TimeOnly.FromTimeSpan(hora), request.LocalId);
+                horarios.Add(TimeOnly.FromTimeSpan(hora));
             }
+
+            // Tudo ou nada: se algum jogo do lote conflitar (local ou equipe), nenhum é agendado.
+            var conferencia = await _conferencia.ConferirAsync(temporada.Id,
+                jogos.Select((j, i) => new AgendaProposta(j.Id, request.Data, horarios[i], request.LocalId)).ToList(), cancellationToken);
+            if (!conferencia.Ok)
+            {
+                foreach (var b in conferencia.Bloqueios) request.ValidationResult.Errors.Add(new ValidationFailure(string.Empty, b));
+                return request.ValidationResult;
+            }
+
+            for (var i = 0; i < jogos.Count; i++)
+                jogos[i].Agendar(request.Data, horarios[i], request.LocalId);
 
             await _jogoRepository.UnitOfWork.Commit();
             return request.ValidationResult;

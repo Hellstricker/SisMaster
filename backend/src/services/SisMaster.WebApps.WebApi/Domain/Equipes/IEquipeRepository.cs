@@ -1,4 +1,5 @@
 using SisMaster.Core.Data;
+using SisMaster.WebApps.WebApi.Domain.Jogos;
 using SisMaster.WebApps.WebApi.Domain.Participantes;
 
 namespace SisMaster.WebApps.WebApi.Domain.Equipes;
@@ -19,6 +20,9 @@ public interface IEquipeRepository : IRepository<Equipe>
 
     /// <summary>Atletas do elenco da equipe com o nome da pessoa (somente leitura), por nome.</summary>
     Task<IReadOnlyList<AtletaDoElenco>> ObterElencoAsync(Guid equipeId, CancellationToken ct = default);
+
+    /// <summary>Nome de cada equipe da temporada e as pessoas do elenco (somente leitura), para conferir a agenda.</summary>
+    Task<ElencosDaTemporada> ObterElencosAsync(Guid temporadaId, CancellationToken ct = default);
 
     Task<bool> ExisteNomeNaTemporadaAsync(Guid temporadaId, string nome, Guid? ignorarEquipeId, CancellationToken ct = default);
     Task<bool> AtletaExisteParaAsync(Guid inscricaoCategoriaId, CancellationToken ct = default);

@@ -19,6 +19,8 @@ import {
   obterDetalheFase,
 } from '../../api/jogos';
 import DataInput, { dataValida, ddmmParaIso } from '../../components/DataInput/DataInput';
+import { AvisosDeAgenda } from '../Jogos/ConflitosDeAgenda';
+import { useConferenciaDeAgenda } from '../Jogos/useConferenciaDeAgenda';
 import base from './Fases.module.css';
 import styles from './DetalheFase.module.css';
 
@@ -280,6 +282,7 @@ export default function DetalheFase() {
           jogo={modal.jogo}
           titulo={modal.titulo}
           associacaoId={dados.associacaoId}
+          temporadaId={dados.temporada.id}
           onFechar={() => setModal(null)}
           onSalvo={async () => { setModal(null); setAviso({ texto: 'Jogo agendado.', erro: false }); await carregar(); }}
         />
@@ -358,8 +361,8 @@ function NomeEquipe({ equipe, texto }: { equipe: EquipeResumo | null; texto: str
   );
 }
 
-function Casca({ titulo, erro, salvando, onConfirmar, onFechar, children }: {
-  titulo: string; erro: string; salvando: boolean; onConfirmar: () => void; onFechar: () => void; children: ReactNode;
+function Casca({ titulo, erro, salvando, bloqueado = false, onConfirmar, onFechar, children }: {
+  titulo: string; erro: string; salvando: boolean; bloqueado?: boolean; onConfirmar: () => void; onFechar: () => void; children: ReactNode;
 }) {
   return (
     <div className={base.overlay} onMouseDown={e => { if (e.target === e.currentTarget) onFechar(); }}>
@@ -369,7 +372,7 @@ function Casca({ titulo, erro, salvando, onConfirmar, onFechar, children }: {
         {erro && <p className={base.fieldErro}>{erro}</p>}
         <div className={base.modalFooter}>
           <button type="button" className={base.btnSecondary} onClick={onFechar} disabled={salvando}>Cancelar</button>
-          <button type="button" className={base.btnPrimary} onClick={onConfirmar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+          <button type="button" className={base.btnPrimary} onClick={onConfirmar} disabled={salvando || bloqueado}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </div>
     </div>
@@ -387,8 +390,8 @@ export interface JogoAgendavel {
 
 const NOVO_LOCAL = '__novo';
 
-export function ModalAgendar({ jogo, titulo, associacaoId, onFechar, onSalvo }: {
-  jogo: JogoAgendavel; titulo: string; associacaoId: string; onFechar: () => void; onSalvo: () => Promise<void>;
+export function ModalAgendar({ jogo, titulo, associacaoId, temporadaId, onFechar, onSalvo }: {
+  jogo: JogoAgendavel; titulo: string; associacaoId: string; temporadaId: string; onFechar: () => void; onSalvo: () => Promise<void>;
 }) {
   const [data, setData] = useState(dataBr(jogo.data));
   const [hora, setHora] = useState(horaCurta(jogo.hora));
@@ -399,6 +402,14 @@ export function ModalAgendar({ jogo, titulo, associacaoId, onFechar, onSalvo }: 
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => { listarLocais(associacaoId).then(setLocais).catch(() => setErro('Não foi possível carregar os locais.')); }, [associacaoId]);
+
+  // Conflitos de local e de equipe bloqueiam; o aviso de atleta só informa. Um local novo ainda não existe: nada a conferir.
+  const itens = useMemo(() => (
+    jogo.id && dataValida(data) && hora && localId !== NOVO_LOCAL
+      ? [{ jogoId: jogo.id, data: ddmmParaIso(data), hora, localId: localId || null }]
+      : null
+  ), [jogo.id, data, hora, localId]);
+  const conferencia = useConferenciaDeAgenda(temporadaId, itens);
 
   async function salvar() {
     setErro('');
@@ -424,7 +435,7 @@ export function ModalAgendar({ jogo, titulo, associacaoId, onFechar, onSalvo }: 
   }
 
   return (
-    <Casca titulo={`Agendar jogo #${jogo.numero}`} erro={erro} salvando={salvando} onConfirmar={salvar} onFechar={onFechar}>
+    <Casca titulo={`Agendar jogo #${jogo.numero}`} erro={erro} salvando={salvando} bloqueado={conferencia.bloqueios.length > 0} onConfirmar={salvar} onFechar={onFechar}>
       <p className={base.modalTexto}>{titulo}</p>
       <div className={base.linha2}>
         <div className={base.field}><label htmlFor="ag-data">Data</label><DataInput id="ag-data" value={data} onChange={setData} anoMin={2000} anoMax={2100} /></div>
@@ -447,6 +458,7 @@ export function ModalAgendar({ jogo, titulo, associacaoId, onFechar, onSalvo }: 
           </div>
         </div>
       )}
+      <AvisosDeAgenda bloqueios={conferencia.bloqueios} avisos={conferencia.avisos} />
       <p className={base.dica}>Locais são cadastrados uma vez e reaproveitados entre jogos (inclusive rodadas em outras cidades). Deixe em branco para limpar.</p>
     </Casca>
   );

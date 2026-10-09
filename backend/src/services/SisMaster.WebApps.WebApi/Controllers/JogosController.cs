@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using SisMaster.Core.Communications;
 using SisMaster.WebApps.WebApi.Application.Commands;
 using SisMaster.WebApps.WebApi.Application.Queries;
+using SisMaster.WebApps.WebApi.Application.Services;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
 using SisMaster.WebApps.WebApi.Domain.Jogos;
 using SisMaster.WebApi.Core.Controllers;
@@ -20,10 +21,12 @@ public class JogosController : MainController
     private readonly JogosDaTemporadaQuery _jogosQuery;
     private readonly DetalheJogoQuery _detalheQuery;
     private readonly PreparoSumulaQuery _preparoQuery;
+    private readonly ConferenciaDeAgendaServico _conferencia;
 
     public JogosController(IMediatorHandler mediator, ILocalRepository localRepository, IAssociacaoRepository associacaoRepository,
-        JogosDaTemporadaQuery jogosQuery, DetalheJogoQuery detalheQuery, PreparoSumulaQuery preparoQuery)
+        JogosDaTemporadaQuery jogosQuery, DetalheJogoQuery detalheQuery, PreparoSumulaQuery preparoQuery, ConferenciaDeAgendaServico conferencia)
     {
+        _conferencia = conferencia;
         _mediator = mediator;
         _localRepository = localRepository;
         _associacaoRepository = associacaoRepository;
@@ -102,6 +105,24 @@ public class JogosController : MainController
         var lista = await _jogosQuery.ExecutarAsync(temporadaId, ct);
         return lista is null ? NotFound() : CustomResponse(lista);
     }
+
+    /// <summary>
+    /// Confere, sem gravar, os conflitos de uma agenda proposta: <c>bloqueios</c> (local ocupado, equipe em dois jogos) impedem
+    /// salvar; <c>avisos</c> (atleta em duas equipes) só informam. A tela usa para mostrar antes de salvar.
+    /// </summary>
+    [Authorize(Policy = Politicas.Gestao)]
+    [HttpPost("temporadas/{temporadaId:guid}/jogos/conferir-agenda")]
+    public async Task<ActionResult> ConferirAgenda(Guid temporadaId, [FromBody] ConferirAgendaRequest request, CancellationToken ct)
+    {
+        if (request.Itens is not { Count: > 0 and <= 200 })
+            return BadRequest("Informe de 1 a 200 jogos");
+        var resultado = await _conferencia.ConferirAsync(temporadaId,
+            request.Itens.Select(i => new AgendaProposta(i.JogoId, i.Data, i.Hora, i.LocalId)).ToList(), ct);
+        return CustomResponse(new { resultado.Ok, resultado.Bloqueios, resultado.Avisos, DuracaoPresumidaMinutos = ConferenciaDeAgenda.DuracaoMinutos });
+    }
+
+    public sealed record ConferirAgendaRequest(List<ConferirAgendaItem> Itens);
+    public sealed record ConferirAgendaItem(Guid JogoId, DateOnly? Data, TimeOnly? Hora, Guid? LocalId);
 
     /// <summary>Agenda vários jogos no mesmo dia, com horários em sequência.</summary>
     [Authorize(Policy = Politicas.Gestao)]

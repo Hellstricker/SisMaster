@@ -1,4 +1,4 @@
-import { enviar, obter } from './http';
+import { enviar, enviarComResposta, obter } from './http';
 import type { DistribuicaoEquipes, StatusFase, TipoFase } from './fases';
 
 export type TipoReferencia = 'Equipe' | 'Colocacao' | 'Vencedor' | 'Perdedor';
@@ -199,6 +199,8 @@ export interface JogoLista {
   status: StatusJogo;
   placarCasa: number | null;
   placarVisitante: number | null;
+  /** O mesmo atleta em duas equipes com jogos sobrepostos (só aviso). */
+  avisoAtleta: string | null;
 }
 
 export interface JogosDaTemporada {
@@ -206,6 +208,7 @@ export interface JogosDaTemporada {
   ano: number;
   status: string;
   associacaoId: string;
+  campeonatoNome: string;
   tabelaGerada: boolean;
   categorias: { id: string; nome: string }[];
   fases: { id: string; nome: string; ordem: number; temporadaCategoriaId: string }[];
@@ -450,4 +453,26 @@ export function obterClassificacaoFase(faseId: string): Promise<ClassificacaoFas
 /** Registra o sorteio da diretoria para um empate sem critério (ids das vagas, da melhor para a pior colocação). */
 export function definirSorteio(faseId: string, grupoOrdem: number | null, ordem: string[]): Promise<void> {
   return enviar('PUT', `/api/fases/${faseId}/sorteio`, { grupoOrdem, ordem }, 'Erro ao registrar o sorteio');
+}
+
+/** Um jogo como ficaria depois de agendado (data yyyy-MM-dd, hora HH:mm). */
+export interface ItemDeAgenda {
+  jogoId: string;
+  data: string | null;
+  hora: string | null;
+  localId: string | null;
+}
+
+export interface ResultadoDaConferencia {
+  ok: boolean;
+  /** Impedem salvar: local ocupado e equipe em dois jogos com menos de 90 min. */
+  bloqueios: string[];
+  /** Só informam: o mesmo atleta em duas equipes com jogos sobrepostos. */
+  avisos: string[];
+  duracaoPresumidaMinutos: number;
+}
+
+/** Confere, sem gravar, os conflitos de uma agenda proposta. */
+export function conferirAgenda(temporadaId: string, itens: ItemDeAgenda[]): Promise<ResultadoDaConferencia> {
+  return enviarComResposta<ResultadoDaConferencia>('POST', `/api/temporadas/${temporadaId}/jogos/conferir-agenda`, { itens }, 'Erro ao conferir a agenda');
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SisMaster.Core.Data;
 using SisMaster.WebApps.WebApi.Domain.Equipes;
+using SisMaster.WebApps.WebApi.Domain.Jogos;
 using SisMaster.WebApps.WebApi.Domain.Participantes;
 using SisMaster.WebApps.WebApi.Domain.Sumula.Enums;
 
@@ -56,6 +57,21 @@ public class EquipeRepository : IEquipeRepository
             .Select(a => new { a.Id, a.InscricaoCategoria.Inscricao.Pessoa.Nome })
             .ToListAsync(ct);
         return linhas.OrderBy(l => l.Nome).Select(l => new AtletaDoElenco(l.Id, l.Nome)).ToList();
+    }
+
+    public async Task<ElencosDaTemporada> ObterElencosAsync(Guid temporadaId, CancellationToken ct = default)
+    {
+        var nomes = await _context.Equipes.AsNoTracking()
+            .Where(e => e.TemporadaCategoria.TemporadaId == temporadaId)
+            .ToDictionaryAsync(e => e.Id, e => e.Nome, ct);
+        var ids = nomes.Keys.ToList();
+        var linhas = await _context.Atletas.AsNoTracking()
+            .Where(a => ids.Contains(a.EquipeId))
+            .Select(a => new { a.EquipeId, a.InscricaoCategoria.Inscricao.PessoaId, a.InscricaoCategoria.Inscricao.Pessoa.Nome })
+            .ToListAsync(ct);
+        var pessoas = linhas.GroupBy(l => l.EquipeId).ToDictionary(
+            g => g.Key, g => (IReadOnlyList<PessoaDoElenco>)g.Select(l => new PessoaDoElenco(l.PessoaId, l.Nome)).ToList());
+        return new ElencosDaTemporada(nomes, pessoas);
     }
 
     public async Task<bool> ExisteNomeNaTemporadaAsync(Guid temporadaId, string nome, Guid? ignorarEquipeId, CancellationToken ct = default) =>

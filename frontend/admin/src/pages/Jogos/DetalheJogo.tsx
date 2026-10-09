@@ -223,6 +223,7 @@ export default function DetalheJogo() {
           jogo={dados}
           titulo={`${dados.casa.texto} × ${dados.visitante.texto} · ${dados.categoria.nome}`}
           associacaoId={dados.associacaoId}
+          temporadaId={dados.temporada.id}
           onFechar={() => setAgendando(false)}
           onSalvo={async () => { setAgendando(false); setAviso({ texto: 'Jogo agendado.', erro: false }); await carregar(); }}
         />

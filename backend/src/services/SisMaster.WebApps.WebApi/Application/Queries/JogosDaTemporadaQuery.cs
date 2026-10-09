@@ -36,6 +36,7 @@ public class JogosDaTemporadaQuery
         var jogos = await _jogoRepository.ListarPorTemporadaAsync(temporadaId, ct);
 
         var texto = new TextoDeReferencia(equipes, fases, confrontos);
+        var avisosDeAtleta = await AvisosDeAtletaAsync(temporadaId, jogos, equipes, ct);
         var faseDe = fases.ToDictionary(f => f.Id);
         var categorias = temporada.Categorias.ToDictionary(c => c.Id);
         var confrontoDe = confrontos.ToDictionary(c => c.Id);
@@ -53,6 +54,7 @@ public class JogosDaTemporadaQuery
             temporada.Ano,
             temporada.Status,
             AssociacaoId = temporada.Campeonato.AssociacaoId,
+            CampeonatoNome = temporada.Campeonato.Nome,
             TabelaGerada = temporada.TabelaJogosGerada,
             Categorias = temporada.Categorias.OrderBy(c => c.Nome).Select(c => new { c.Id, c.Nome }),
             Fases = fases.Select(f => new { f.Id, f.Nome, f.Ordem, f.TemporadaCategoriaId }),
@@ -78,9 +80,36 @@ public class JogosDaTemporadaQuery
                     Local = j.Local is null ? null : new { j.Local.Id, j.Local.Nome, j.Local.Cidade, j.Local.Estado },
                     j.Status,
                     j.PlacarCasa,
-                    j.PlacarVisitante
+                    j.PlacarVisitante,
+                    // O mesmo atleta em duas equipes com jogos sobrepostos (só aviso; local e equipe nunca chegam a ser gravados).
+                    AvisoAtleta = avisosDeAtleta.GetValueOrDefault(j.Id)
                 };
             })
         };
+    }
+
+    /// <summary>Por jogo agendado e ainda não terminado, o primeiro aviso de atleta em dois jogos sobrepostos (se houver).</summary>
+    private async Task<Dictionary<Guid, string>> AvisosDeAtletaAsync(Guid temporadaId, IReadOnlyList<Jogo> jogos, IReadOnlyList<Equipe> equipes, CancellationToken ct)
+    {
+        var resultado = new Dictionary<Guid, string>();
+        var pendentes = jogos
+            .Where(j => j.Data is not null && j.Hora is not null && j.Status is StatusJogo.Agendado or StatusJogo.EmAndamento)
+            .Select(j => new JogoNaAgenda(j.Id, j.TemporadaId, j.Numero, j.Casa.EquipeId, j.Visitante.EquipeId, j.Data, j.Hora, j.LocalId, j.Local?.Nome))
+            .ToList();
+        if (pendentes.Count < 2) return resultado;
+
+        var elencos = await _equipeRepository.ObterElencosAsync(temporadaId, ct);
+        string Descrever(JogoNaAgenda x)
+        {
+            string Lado(Guid? e) => e is { } id ? elencos.NomesDasEquipes.GetValueOrDefault(id, "?") : "a definir";
+            return $"#{x.Numero} {Lado(x.CasaEquipeId)} × {Lado(x.VisitanteEquipeId)}";
+        }
+
+        foreach (var jogo in pendentes)
+        {
+            var aviso = ConferenciaDeAgenda.Conferir([jogo], pendentes.Where(o => o.Id != jogo.Id).ToList(), elencos, Descrever).Avisos.FirstOrDefault();
+            if (aviso is not null) resultado[jogo.Id] = aviso;
+        }
+        return resultado;
     }
 }

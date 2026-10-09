@@ -12,24 +12,15 @@ import {
 import DataInput, { dataValida, ddmmParaIso } from '../../components/DataInput/DataInput';
 import { ModalAgendar } from '../Fases/DetalheFase';
 import base from '../Fases/Fases.module.css';
+import { AvisosDeAgenda } from './ConflitosDeAgenda';
+import { ImprimirTabelaModal } from './ImprimirTabela';
+import { STATUS_ROTULO, horaCurta, rotuloDia, rotuloLocal } from './formatacaoDeJogos';
 import styles from './Jogos.module.css';
+import { useConferenciaDeAgenda } from './useConferenciaDeAgenda';
 
-const STATUS_ROTULO: Record<StatusJogo, string> = {
-  Agendado: 'Agendado', EmAndamento: 'Em andamento', Encerrado: 'Encerrado', WO: 'W.O.', Dispensado: 'Dispensado',
-};
 const STATUS_ESTILO: Record<StatusJogo, string> = {
   Agendado: base.stPlanejada, EmAndamento: base.stEmAndamento, Encerrado: base.stEncerrada, WO: base.stEncerrada, Dispensado: base.stPlanejada,
 };
-const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-
-const rotuloLocal = (l: { nome: string; cidade: string; estado: string | null }) => `${l.nome} — ${l.cidade}${l.estado ? `/${l.estado}` : ''}`;
-const horaCurta = (h: string | null) => (h ? h.slice(0, 5) : '');
-
-function rotuloDia(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  return `${DIAS[new Date(y, m - 1, d).getDay()]}, ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
-}
-
 const minutosParaHora = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
 type Vista = 'data' | 'numero';
@@ -50,6 +41,7 @@ export default function JogosTemporada() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [agendando, setAgendando] = useState<JogoLista | null>(null);
   const [lote, setLote] = useState(false);
+  const [imprimindo, setImprimindo] = useState(false);
   const [aviso, setAviso] = useState<{ texto: string; erro: boolean } | null>(null);
 
   const carregar = useCallback(async () => {
@@ -172,6 +164,7 @@ export default function JogosTemporada() {
               <input className={base.input} placeholder="Buscar equipe…" value={filtro.busca} onChange={e => setFiltro({ ...filtro, busca: e.target.value })} />
             </label>
             <label className={styles.check}><input type="checkbox" checked={filtro.semData} onChange={e => setFiltro({ ...filtro, semData: e.target.checked })} /> Só sem data</label>
+            <button className={base.btnPrimary} onClick={() => setImprimindo(true)}>Imprimir / exportar…</button>
             <span className={styles.seg}>
               <button className={vista === 'data' ? styles.segOn : ''} onClick={() => setVista('data')}>Por data</button>
               <button className={vista === 'numero' ? styles.segOn : ''} onClick={() => setVista('numero')}>Por número</button>
@@ -224,6 +217,7 @@ export default function JogosTemporada() {
           jogo={agendando}
           titulo={`${agendando.casa.texto} × ${agendando.visitante.texto} · ${agendando.categoria.nome} · ${agendando.fase.nome}`}
           associacaoId={dados.associacaoId}
+          temporadaId={id}
           onFechar={() => setAgendando(null)}
           onSalvo={async () => { setAgendando(null); setAviso({ texto: 'Jogo agendado.', erro: false }); await carregar(); }}
         />
@@ -234,11 +228,12 @@ export default function JogosTemporada() {
           temporadaId={id}
           associacaoId={dados.associacaoId}
           selecionados={selecionadosOrdenados}
-          todos={jogos}
           onFechar={() => setLote(false)}
           onSalvo={async n => { setLote(false); setSelecionados(new Set()); setAviso({ texto: `${n} jogos agendados.`, erro: false }); await carregar(); }}
         />
       )}
+
+      {imprimindo && <ImprimirTabelaModal dados={dados} onFechar={() => setImprimindo(false)} onAviso={texto => setAviso({ texto, erro: false })} />}
 
       {aviso && <div className={`${base.toast} ${aviso.erro ? base.toastErro : ''}`} role="status">{aviso.texto}</div>}
     </div>
@@ -268,6 +263,7 @@ function Linha({ j, marcado, onMarcar, onAgendar }: { j: JogoLista; marcado: boo
         <span className={styles.tagCat}>{j.categoria.nome}</span>{' '}
         <span className={styles.tag}>{j.fase.nome} · {j.etiqueta}</span>
         {j.opcional && <span className={styles.opcional}> se necessário</span>}
+        {j.avisoAtleta && <span className={styles.alertaAtleta} title={j.avisoAtleta}>⚠ atleta em 2 jogos</span>}
       </td>
       <td><span className={`${base.status} ${STATUS_ESTILO[j.status]}`}>{STATUS_ROTULO[j.status]}</span></td>
       <td className={styles.acoes}><button className={`${base.btnSecondary} ${base.btnSm}`} disabled={!pode} onClick={onAgendar}>Agendar</button></td>
@@ -285,8 +281,8 @@ function FragmentoLocal({ mostrar, local, children }: { mostrar: boolean; local:
   );
 }
 
-function ModalLote({ temporadaId, associacaoId, selecionados, todos, onFechar, onSalvo }: {
-  temporadaId: string; associacaoId: string; selecionados: JogoLista[]; todos: JogoLista[];
+function ModalLote({ temporadaId, associacaoId, selecionados, onFechar, onSalvo }: {
+  temporadaId: string; associacaoId: string; selecionados: JogoLista[];
   onFechar: () => void; onSalvo: (qtd: number) => Promise<void>;
 }) {
   const [data, setData] = useState('');
@@ -317,24 +313,13 @@ function ModalLote({ temporadaId, associacaoId, selecionados, todos, onFechar, o
     return ordenados.map((j, i) => ({ jogo: j, hora: minutosParaHora(h * 60 + m + i * Number(intervalo)) }));
   }, [ordenados, hora, intervalo]);
 
-  const avisos = useMemo(() => {
-    if (!dataValida(data, 2000, 2100)) return [];
-    const dia = ddmmParaIso(data);
-    const ids = new Set(selecionados.map(j => j.id));
-    const contagem = new Map<string, { nome: string; n: number }>();
-    const contar = (equipeId: string | null, nome: string) => {
-      if (!equipeId) return; // referências ainda não resolvidas não entram
-      contagem.set(equipeId, { nome, n: (contagem.get(equipeId)?.n ?? 0) + 1 });
-    };
-    for (const j of todos) if (j.data === dia && !ids.has(j.id)) { contar(j.casa.equipeId, j.casa.texto); contar(j.visitante.equipeId, j.visitante.texto); }
-    for (const j of ordenados) { contar(j.casa.equipeId, j.casa.texto); contar(j.visitante.equipeId, j.visitante.texto); }
-    const lista = [...contagem.values()].filter(c => c.n > 1).map(c => `${c.nome} jogaria mais de uma vez no dia`);
-    if (localId) {
-      for (const j of todos) if (j.data === dia && j.local?.id === localId && !ids.has(j.id) && plano.some(p => p.hora === horaCurta(j.hora)))
-        lista.push(`Já existe jogo às ${horaCurta(j.hora)} neste local (#${j.numero})`);
-    }
-    return [...new Set(lista)];
-  }, [data, localId, selecionados, ordenados, todos, plano]);
+  // Conflitos de local e de equipe bloqueiam (a API confere o lote inteiro: tudo ou nada); o aviso de atleta só informa.
+  const itens = useMemo(() => (
+    dataValida(data, 2000, 2100) && hora
+      ? plano.map(p => ({ jogoId: p.jogo.id, data: ddmmParaIso(data), hora: p.hora, localId: localId || null }))
+      : null
+  ), [data, hora, plano, localId]);
+  const conferencia = useConferenciaDeAgenda(temporadaId, itens);
 
   async function aplicar() {
     setErro('');
@@ -367,7 +352,7 @@ function ModalLote({ temporadaId, associacaoId, selecionados, todos, onFechar, o
           <div className={base.field}>
             <label htmlFor="lt-int">Intervalo entre jogos</label>
             <select id="lt-int" className={base.select} value={intervalo} onChange={e => setIntervalo(e.target.value)}>
-              {[30, 45, 60, 75, 90, 120].map(m => <option key={m} value={m}>{m} min</option>)}
+              {[90, 120, 150].map(m => <option key={m} value={m}>{m} min</option>)}
             </select>
           </div>
           <div className={base.field}>
@@ -392,11 +377,12 @@ function ModalLote({ temporadaId, associacaoId, selecionados, todos, onFechar, o
         {!naOrdemDaNumeracao && (
           <button type="button" className={`${base.btnSecondary} ${base.btnSm}`} onClick={() => setOrdenados(selecionados)}>Voltar à ordem da numeração</button>
         )}
-        {avisos.length > 0 && <div className={styles.avisoLote}><b>Atenção:</b>{avisos.map(a => <div key={a}>{a}</div>)}</div>}
+        <AvisosDeAgenda bloqueios={conferencia.bloqueios} avisos={conferencia.avisos} />
+        <p className={base.dica}>Cada jogo dura, em média, 90 minutos: por isso o intervalo mínimo é 90 min.</p>
         {erro && <p className={base.fieldErro}>{erro}</p>}
         <div className={base.modalFooter}>
           <button type="button" className={base.btnSecondary} onClick={onFechar} disabled={salvando}>Cancelar</button>
-          <button type="button" className={base.btnPrimary} onClick={aplicar} disabled={salvando}>{salvando ? 'Aplicando...' : 'Aplicar'}</button>
+          <button type="button" className={base.btnPrimary} onClick={aplicar} disabled={salvando || conferencia.bloqueios.length > 0}>{salvando ? 'Aplicando...' : 'Aplicar'}</button>
         </div>
       </div>
     </div>

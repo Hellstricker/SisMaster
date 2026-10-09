@@ -1,6 +1,7 @@
 using FluentValidation.Results;
 using MediatR;
 using SisMaster.Core.DomainObjects;
+using SisMaster.WebApps.WebApi.Application.Services;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
 using SisMaster.WebApps.WebApi.Domain.Jogos;
 
@@ -11,9 +12,12 @@ public class AgendarJogoCommandHandler : IRequestHandler<AgendarJogoCommand, Val
     private readonly IJogoRepository _jogoRepository;
     private readonly ITemporadaRepository _temporadaRepository;
     private readonly ILocalRepository _localRepository;
+    private readonly ConferenciaDeAgendaServico _conferencia;
 
-    public AgendarJogoCommandHandler(IJogoRepository jogoRepository, ITemporadaRepository temporadaRepository, ILocalRepository localRepository)
+    public AgendarJogoCommandHandler(IJogoRepository jogoRepository, ITemporadaRepository temporadaRepository, ILocalRepository localRepository,
+        ConferenciaDeAgendaServico conferencia)
     {
+        _conferencia = conferencia;
         _jogoRepository = jogoRepository;
         _temporadaRepository = temporadaRepository;
         _localRepository = localRepository;
@@ -47,6 +51,15 @@ public class AgendarJogoCommandHandler : IRequestHandler<AgendarJogoCommand, Val
                     request.ValidationResult.Errors.Add(new ValidationFailure(string.Empty, "Local não encontrado nesta associação"));
                     return request.ValidationResult;
                 }
+            }
+
+            // Conflito de local ou de equipe bloqueia; o aviso de atleta aparece na tela (conferir-agenda) e não impede salvar.
+            var conferencia = await _conferencia.ConferirAsync(temporada.Id,
+                [new AgendaProposta(jogo.Id, request.Data, request.Hora, request.LocalId)], cancellationToken);
+            if (!conferencia.Ok)
+            {
+                foreach (var b in conferencia.Bloqueios) request.ValidationResult.Errors.Add(new ValidationFailure(string.Empty, b));
+                return request.ValidationResult;
             }
 
             jogo.Agendar(request.Data, request.Hora, request.LocalId);
