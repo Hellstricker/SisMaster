@@ -10,11 +10,15 @@ import {
   excluirEquipe,
   obterEquipesDaTemporada,
   removerAtleta,
+  transferirAtleta,
 } from '../../api/equipes';
 import { formatarMoeda } from '../../utils/formatacao';
 import styles from './Equipes.module.css';
 
-type Modal = { tipo: 'form'; equipe: EquipeItem | null } | { tipo: 'excluir'; equipe: EquipeItem };
+type Modal =
+  | { tipo: 'form'; equipe: EquipeItem | null }
+  | { tipo: 'excluir'; equipe: EquipeItem }
+  | { tipo: 'transferir'; equipe: EquipeItem; atleta: AtletaItem };
 
 /**
  * Equipes da temporada: por categoria, atletas efetivados (sem equipe) entram em equipes da MESMA categoria.
@@ -136,8 +140,17 @@ export default function EquipesTemporada() {
                     {e.atletas.map(a => (
                       <li key={a.id}>
                         <span className={styles.nome}>{a.nome}</span>
+                        {a.equipesAnteriores.length > 0 && (
+                          <span className={styles.historico}>
+                            veio de {a.equipesAnteriores.map(h => `${h.equipeNome} (${h.jogos} jogo${h.jogos === 1 ? '' : 's'})`).join(' › ')}
+                          </span>
+                        )}
+                        {a.jogos > 0 && <span className={`${styles.selo} ${styles.seloJogos}`}>{a.jogos} jogo{a.jogos === 1 ? '' : 's'}</span>}
                         {a.saldoEmAberto != null && <span className={styles.selo} title={`Saldo em aberto: ${formatarMoeda(a.saldoEmAberto)}`}>saldo em aberto</span>}
-                        <button className={`${styles.btnSecondary} ${styles.btnSm}`} disabled={!liberado}
+                        <button className={`${styles.btnSecondary} ${styles.btnSm}`} disabled={!liberado || cat.equipes.length < 2}
+                          onClick={() => setModal({ tipo: 'transferir', equipe: e, atleta: a })}>Transferir</button>
+                        <button className={`${styles.btnSecondary} ${styles.btnSm}`} disabled={!liberado || a.jogos > 0}
+                          title={a.jogos > 0 ? 'Quem já jogou não pode ser removido; transfira para outra equipe.' : undefined}
                           onClick={() => acao(() => removerAtleta(e.id, a.id), `${a.nome} voltou para “Sem equipe”.`)}>Remover</button>
                       </li>
                     ))}
@@ -172,6 +185,23 @@ export default function EquipesTemporada() {
             await excluirEquipe(modal.equipe.id);
             setModal(null);
             setAviso({ texto: 'Equipe excluída.', erro: false });
+            await carregar();
+          }}
+        />
+      )}
+
+      {modal?.tipo === 'transferir' && cat && (
+        <TransferirAtletaModal
+          origem={modal.equipe}
+          atleta={modal.atleta}
+          equipes={cat.equipes}
+          onFechar={() => setModal(null)}
+          onConfirmar={async (destinoId, trocaId) => {
+            await transferirAtleta(modal.equipe.id, modal.atleta.id, destinoId, trocaId);
+            const destino = cat.equipes.find(q => q.id === destinoId);
+            const outro = trocaId ? destino?.atletas.find(x => x.id === trocaId)?.nome : null;
+            setModal(null);
+            setAviso({ texto: outro ? `${modal.atleta.nome} e ${outro} trocaram de equipe.` : `${modal.atleta.nome} foi para ${destino?.nome ?? 'a nova equipe'}.`, erro: false });
             await carregar();
           }}
         />
@@ -289,6 +319,78 @@ function ConfirmarExclusao({ equipe, onConfirmar, onFechar }: {
         <div className={styles.modalFooter}>
           <button className={styles.btnSecondary} onClick={onFechar} disabled={salvando}>Cancelar</button>
           <button className={`${styles.btnPrimary} ${styles.btnPerigoSolido}`} onClick={confirmar} disabled={salvando}>{salvando ? 'Excluindo...' : 'Excluir'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TransferirAtletaModal({ origem, atleta, equipes, onConfirmar, onFechar }: {
+  origem: EquipeItem;
+  atleta: AtletaItem;
+  equipes: EquipeItem[];
+  onConfirmar: (equipeDestinoId: string, atletaTrocaId?: string) => Promise<void>;
+  onFechar: () => void;
+}) {
+  const outras = equipes.filter(e => e.id !== origem.id);
+  const [destinoId, setDestinoId] = useState(outras[0]?.id ?? '');
+  const [modo, setModo] = useState<'simples' | 'troca'>('simples');
+  const [trocaId, setTrocaId] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  const candidatos = outras.find(e => e.id === destinoId)?.atletas ?? [];
+  const troca = modo === 'troca' ? candidatos.find(a => a.id === (trocaId || candidatos[0]?.id)) : undefined;
+  const comHistorico = atleta.jogos > 0 || (troca?.jogos ?? 0) > 0;
+
+  async function confirmar() {
+    if (!destinoId) { setErro('Escolha a equipe de destino.'); return; }
+    if (modo === 'troca' && !troca) { setErro('Escolha o atleta da outra equipe.'); return; }
+    setSalvando(true);
+    try {
+      await onConfirmar(destinoId, troca?.id);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao transferir.');
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className={styles.overlay} onMouseDown={e => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className={styles.modal}>
+        <h2 className={styles.modalTitulo}>Transferir atleta</h2>
+        <p className={styles.modalTexto}><b>{atleta.nome}</b> · hoje na equipe <b>{origem.nome}</b></p>
+        <div className={styles.field}>
+          <label htmlFor="tr-dest">Para a equipe</label>
+          <select id="tr-dest" className={styles.select} style={{ maxWidth: 'none' }} value={destinoId}
+            onChange={e => { setDestinoId(e.target.value); setTrocaId(''); setErro(''); }}>
+            {outras.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+          </select>
+        </div>
+        <label className={`${styles.opcao} ${modo === 'simples' ? styles.opcaoSel : ''}`}>
+          <input type="radio" name="modo" checked={modo === 'simples'} onChange={() => setModo('simples')} />
+          <span><b>Só mudar de equipe</b><small>Ele sai da equipe atual e entra na escolhida.</small></span>
+        </label>
+        <label className={`${styles.opcao} ${modo === 'troca' ? styles.opcaoSel : ''}`}>
+          <input type="radio" name="modo" checked={modo === 'troca'} onChange={() => setModo('troca')} />
+          <span>
+            <b>Trocar por um atleta da outra equipe</b>
+            <small>Os dois mudam de lado de uma só vez (cada equipe mantém o mesmo número de atletas).</small>
+            <select className={styles.select} disabled={modo !== 'troca' || candidatos.length === 0} value={troca?.id ?? ''}
+              onChange={e => setTrocaId(e.target.value)} aria-label="Atleta da outra equipe">
+              {candidatos.length === 0 ? <option value="">(equipe sem atletas)</option> : candidatos.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+            </select>
+          </span>
+        </label>
+        <div className={styles.infoBox}>
+          {comHistorico
+            ? <><b>Mudança com histórico.</b> Os jogos já feitos continuam na equipe de origem (súmulas e estatísticas não mudam). Dali em diante, o atleta joga pela nova equipe, e o histórico fica visível no elenco.</>
+            : <><b>Troca simples.</b> Nenhum jogo foi feito por este atleta; a mudança não deixa histórico.</>}
+        </div>
+        {erro && <p className={styles.fieldErro}>{erro}</p>}
+        <div className={styles.modalFooter}>
+          <button className={styles.btnSecondary} onClick={onFechar} disabled={salvando}>Cancelar</button>
+          <button className={styles.btnPrimary} onClick={confirmar} disabled={salvando}>{salvando ? 'Transferindo...' : 'Confirmar'}</button>
         </div>
       </div>
     </div>

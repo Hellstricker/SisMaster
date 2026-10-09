@@ -23,6 +23,15 @@ public interface IEquipeRepository : IRepository<Equipe>
     Task<bool> ExisteNomeNaTemporadaAsync(Guid temporadaId, string nome, Guid? ignorarEquipeId, CancellationToken ct = default);
     Task<bool> AtletaExisteParaAsync(Guid inscricaoCategoriaId, CancellationToken ct = default);
 
+    /// <summary>O atleta consta na relação de alguma súmula (qualquer status)?</summary>
+    Task<bool> AtletaApareceEmSumulaAsync(Guid atletaId, CancellationToken ct = default);
+
+    /// <summary>O atleta consta na relação de alguma súmula ainda não encerrada (em preparação ou em jogo)?</summary>
+    Task<bool> AtletaEstaEmSumulaEmAbertoAsync(Guid atletaId, CancellationToken ct = default);
+
+    /// <summary>Por atleta da temporada, os jogos já iniciados em que foi relacionado, por equipe do jogo (somente leitura).</summary>
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<ParticipacaoDoAtleta>>> ObterParticipacoesDaTemporadaAsync(Guid temporadaId, CancellationToken ct = default);
+
     void Adicionar(Equipe equipe);
     void Remover(Equipe equipe);
 
@@ -33,3 +42,6 @@ public interface IEquipeRepository : IRepository<Equipe>
 
 /// <summary>Um atleta do elenco para consulta (convocação da súmula).</summary>
 public sealed record AtletaDoElenco(Guid AtletaId, string Nome);
+
+/// <summary>Quantos jogos já iniciados o atleta teve pela equipe (nome da equipe como estava na súmula).</summary>
+public sealed record ParticipacaoDoAtleta(Guid EquipeId, string EquipeNome, int Jogos);

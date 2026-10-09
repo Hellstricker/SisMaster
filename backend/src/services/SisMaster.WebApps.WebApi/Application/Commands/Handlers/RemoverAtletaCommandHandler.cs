@@ -31,6 +31,9 @@ public class RemoverAtletaCommandHandler : IRequestHandler<RemoverAtletaCommand,
 
             equipe.TemporadaCategoria.Temporada.ValidarPermiteFormarEquipes();
 
+            if (await _repository.AtletaApareceEmSumulaAsync(request.AtletaId, cancellationToken))
+                throw new DomainException("O atleta já consta na súmula de um jogo e não pode ser removido do elenco; transfira para outra equipe");
+
             var atleta = equipe.RemoverAtleta(request.AtletaId);
             _repository.RemoverAtleta(atleta);
             await _repository.UnitOfWork.Commit();

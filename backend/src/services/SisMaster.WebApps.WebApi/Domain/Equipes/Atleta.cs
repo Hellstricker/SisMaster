@@ -21,4 +21,7 @@ public class Atleta : Entity
         EquipeId = equipeId;
         InscricaoCategoriaId = inscricaoCategoriaId;
     }
+
+    /// <summary>Muda o vínculo para outra equipe mantendo a identidade: as súmulas já feitas guardam a equipe de cada jogo.</summary>
+    internal void MudarDeEquipe(Guid equipeId) => EquipeId = equipeId;
 }

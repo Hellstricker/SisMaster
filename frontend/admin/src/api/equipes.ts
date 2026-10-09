@@ -9,6 +9,10 @@ export interface AtletaItem {
   perfil: PerfilPessoa;
   /** Saldo em aberto da cobrança final (aviso, não bloqueia). */
   saldoEmAberto: number | null;
+  /** Jogos já iniciados em que foi relacionado (quem já jogou não pode ser removido, só transferido). */
+  jogos: number;
+  /** Equipes pelas quais jogou antes da atual, com o número de jogos em cada uma. */
+  equipesAnteriores: { equipeId: string; equipeNome: string; jogos: number }[];
 }
 
 export interface EquipeItem {
@@ -55,4 +59,9 @@ export function adicionarAtleta(equipeId: string, inscricaoCategoriaId: string):
 
 export function removerAtleta(equipeId: string, atletaId: string): Promise<void> {
   return enviar('DELETE', `/api/equipes/${equipeId}/atletas/${atletaId}`, undefined, 'Erro ao remover atleta');
+}
+
+/** Passa o atleta para outra equipe da categoria; com atletaTrocaId, troca por um atleta da outra equipe. */
+export function transferirAtleta(equipeId: string, atletaId: string, equipeDestinoId: string, atletaTrocaId?: string): Promise<void> {
+  return enviar('POST', `/api/equipes/${equipeId}/atletas/${atletaId}/transferir`, { equipeDestinoId, atletaTrocaId: atletaTrocaId ?? null }, 'Erro ao transferir atleta');
 }

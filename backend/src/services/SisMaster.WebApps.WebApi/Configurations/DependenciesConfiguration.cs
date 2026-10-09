@@ -104,6 +104,7 @@ public static class DependenciesConfiguration
         services.AddScoped<IRequestHandler<ExcluirEquipeCommand, FluentValidation.Results.ValidationResult>, ExcluirEquipeCommandHandler>();
         services.AddScoped<IRequestHandler<AdicionarAtletaCommand, FluentValidation.Results.ValidationResult>, AdicionarAtletaCommandHandler>();
         services.AddScoped<IRequestHandler<RemoverAtletaCommand, FluentValidation.Results.ValidationResult>, RemoverAtletaCommandHandler>();
+        services.AddScoped<IRequestHandler<TransferirAtletaCommand, FluentValidation.Results.ValidationResult>, TransferirAtletaCommandHandler>();
         services.AddScoped<IRequestHandler<CriarFaseCommand, FluentValidation.Results.ValidationResult>, CriarFaseCommandHandler>();
         services.AddScoped<IRequestHandler<EditarFaseCommand, FluentValidation.Results.ValidationResult>, EditarFaseCommandHandler>();
         services.AddScoped<IRequestHandler<ExcluirFaseCommand, FluentValidation.Results.ValidationResult>, ExcluirFaseCommandHandler>();

@@ -52,6 +52,33 @@ public class Equipe : Entity, IAggregateRoot
         return atleta;
     }
 
+    /// <summary>Passa um atleta do elenco para outra equipe da mesma categoria.</summary>
+    public void TransferirAtletaPara(Equipe destino, Guid atletaId)
+    {
+        ValidarTransferencia(destino);
+        ObterAtleta(atletaId).MudarDeEquipe(destino.Id);
+    }
+
+    /// <summary>Troca um atleta desta equipe por um da outra, de uma só vez.</summary>
+    public void TrocarAtletaCom(Equipe outra, Guid atletaId, Guid atletaDaOutraId)
+    {
+        ValidarTransferencia(outra);
+        var meu = ObterAtleta(atletaId);
+        var dela = outra.ObterAtleta(atletaDaOutraId);
+        meu.MudarDeEquipe(outra.Id);
+        dela.MudarDeEquipe(Id);
+    }
+
+    private void ValidarTransferencia(Equipe outra)
+    {
+        if (outra.Id == Id) throw new DomainException("Escolha uma equipe diferente da atual");
+        if (outra.TemporadaCategoriaId != TemporadaCategoriaId)
+            throw new DomainException("O atleta só pode ir para uma equipe da mesma categoria");
+    }
+
+    private Atleta ObterAtleta(Guid atletaId) =>
+        _atletas.FirstOrDefault(a => a.Id == atletaId) ?? throw new DomainException("Atleta não encontrado nesta equipe");
+
     public Atleta RemoverAtleta(Guid atletaId)
     {
         var atleta = _atletas.FirstOrDefault(a => a.Id == atletaId)

@@ -27,15 +27,20 @@ public class EquipesController : MainController
     }
 
     /// <summary>Atleta/candidato a atleta exibido na tela. Id vazio = ainda sem equipe (só existe o pedido efetivado).</summary>
-    private sealed record AtletaItem(Guid Id, Guid InscricaoCategoriaId, string Nome, PerfilPessoa Perfil, decimal? SaldoEmAberto);
+    private sealed record AtletaItem(Guid Id, Guid InscricaoCategoriaId, string Nome, PerfilPessoa Perfil, decimal? SaldoEmAberto,
+        int Jogos, IReadOnlyList<ParticipacaoDoAtleta> EquipesAnteriores);
 
-    private static AtletaItem ProjetarAtleta(Guid id, InscricaoCategoria ic) => new(
+    private static AtletaItem ProjetarAtleta(Guid id, InscricaoCategoria ic,
+        IReadOnlyList<ParticipacaoDoAtleta>? participacoes = null, Guid? equipeAtualId = null) => new(
         id,
         ic.Id,
         ic.Inscricao.Pessoa.Nome,
         ic.Inscricao.Pessoa.Perfil,
         // Aviso (não bloqueante): cobrança final gerada e ainda com saldo em aberto na ficha.
-        ic.Inscricao.CobrancaGerada && (ic.Inscricao.Saldo ?? 0) > 0 ? ic.Inscricao.Saldo : null);
+        ic.Inscricao.CobrancaGerada && (ic.Inscricao.Saldo ?? 0) > 0 ? ic.Inscricao.Saldo : null,
+        // Jogos já iniciados em que foi relacionado (quem já jogou só pode ser transferido, não removido) e equipes pelas quais jogou antes.
+        participacoes?.Sum(p => p.Jogos) ?? 0,
+        participacoes?.Where(p => p.EquipeId != equipeAtualId).ToList() ?? []);
 
     /// <summary>Tudo que a tela precisa: por categoria, as equipes com elenco e os efetivados ainda sem equipe.</summary>
     [HttpGet("temporadas/{temporadaId:guid}/equipes")]
@@ -46,6 +51,7 @@ public class EquipesController : MainController
 
         var equipes = await _repository.ListarPorTemporadaAsync(temporadaId, ct);
         var semEquipe = await _repository.ListarEfetivadosSemEquipeAsync(temporadaId, ct);
+        var participacoes = await _repository.ObterParticipacoesDaTemporadaAsync(temporadaId, ct);
 
         var permiteFormar = temporada.Status is StatusTemporada.InscricoesEncerradas or StatusTemporada.EmAndamento;
         return CustomResponse(new
@@ -63,7 +69,7 @@ public class EquipesController : MainController
                     e.Id,
                     e.Nome,
                     e.Cor,
-                    Atletas = e.Atletas.Select(a => ProjetarAtleta(a.Id, a.InscricaoCategoria)).OrderBy(a => a.Nome)
+                    Atletas = e.Atletas.Select(a => ProjetarAtleta(a.Id, a.InscricaoCategoria, participacoes.GetValueOrDefault(a.Id), e.Id)).OrderBy(a => a.Nome)
                 }),
                 SemEquipe = semEquipe.Where(ic => ic.TemporadaCategoriaId == c.Id).Select(ic => ProjetarAtleta(Guid.Empty, ic))
             })
@@ -100,6 +106,17 @@ public class EquipesController : MainController
     public async Task<ActionResult> AdicionarAtleta(Guid id, [FromBody] AdicionarAtletaCommand command)
     {
         command.EquipeId = id;
+        var result = await _mediator.EnviarComando(command);
+        return CustomResponse(result);
+    }
+
+    /// <summary>Transfere o atleta para outra equipe da categoria ou, com <c>atletaTrocaId</c>, troca por um atleta dela.</summary>
+    [IdEh(Recurso.Equipe)]
+    [HttpPost("equipes/{id:guid}/atletas/{atletaId:guid}/transferir")]
+    public async Task<ActionResult> TransferirAtleta(Guid id, Guid atletaId, [FromBody] TransferirAtletaCommand command)
+    {
+        command.EquipeId = id;
+        command.AtletaId = atletaId;
         var result = await _mediator.EnviarComando(command);
         return CustomResponse(result);
     }

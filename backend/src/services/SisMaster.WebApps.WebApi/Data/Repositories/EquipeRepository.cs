@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SisMaster.Core.Data;
 using SisMaster.WebApps.WebApi.Domain.Equipes;
 using SisMaster.WebApps.WebApi.Domain.Participantes;
+using SisMaster.WebApps.WebApi.Domain.Sumula.Enums;
 
 namespace SisMaster.WebApps.WebApi.Data.Repositories;
 
@@ -65,6 +66,32 @@ public class EquipeRepository : IEquipeRepository
 
     public async Task<bool> AtletaExisteParaAsync(Guid inscricaoCategoriaId, CancellationToken ct = default) =>
         await _context.Atletas.AnyAsync(a => a.InscricaoCategoriaId == inscricaoCategoriaId, ct);
+
+    public async Task<bool> AtletaApareceEmSumulaAsync(Guid atletaId, CancellationToken ct = default) =>
+        await _context.SumulaJogadores.AnyAsync(j => j.AtletaId == atletaId, ct);
+
+    public async Task<bool> AtletaEstaEmSumulaEmAbertoAsync(Guid atletaId, CancellationToken ct = default) =>
+        await (from j in _context.SumulaJogadores
+               join t in _context.SumulaTimes on j.TimeId equals t.Id
+               join s in _context.Sumulas on t.SumulaId equals s.Id
+               where j.AtletaId == atletaId && s.Status != StatusSumula.Encerrada
+               select j.Id).AnyAsync(ct);
+
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<ParticipacaoDoAtleta>>> ObterParticipacoesDaTemporadaAsync(Guid temporadaId, CancellationToken ct = default)
+    {
+        var linhas = await (from j in _context.SumulaJogadores.AsNoTracking()
+                            join t in _context.SumulaTimes on j.TimeId equals t.Id
+                            join s in _context.Sumulas on t.SumulaId equals s.Id
+                            join a in _context.Atletas on j.AtletaId equals a.Id
+                            where a.InscricaoCategoria.Inscricao.TemporadaId == temporadaId && s.Status != StatusSumula.EmPreparacao
+                            group j by new { j.AtletaId, t.EquipeId, t.Nome } into g
+                            select new { g.Key.AtletaId, g.Key.EquipeId, g.Key.Nome, Jogos = g.Count() })
+            .ToListAsync(ct);
+
+        return linhas.GroupBy(l => l.AtletaId).ToDictionary(
+            g => g.Key,
+            g => (IReadOnlyList<ParticipacaoDoAtleta>)g.Select(l => new ParticipacaoDoAtleta(l.EquipeId, l.Nome, l.Jogos)).ToList());
+    }
 
     public void Adicionar(Equipe equipe) => _context.Equipes.Add(equipe);
     public void Remover(Equipe equipe) => _context.Equipes.Remove(equipe);

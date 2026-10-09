@@ -96,3 +96,14 @@
   padding: 8px 16px; border-radius: 8px; font-size: 13px; z-index: 99; max-width: 90vw;
 }
 .toastErro { background: var(--pill-inactive-text); color: #fff; }
+
+.historico { font-size: 11px; color: var(--text-secondary); }
+.selo.seloJogos { background: #e0e7ff; color: #4338ca; }
+[data-theme="dark"] .selo.seloJogos { background: #312e81; color: #c7d2fe; }
+.opcao { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer; font-size: 13px; color: var(--text-primary); }
+.opcaoSel { border-color: var(--accent, #4f46e5); }
+.opcao input[type=radio] { margin-top: 3px; }
+.opcao small { display: block; color: var(--text-secondary); font-size: 12px; }
+.opcao .select { margin-top: 6px; max-width: none; width: 100%; }
+.infoBox { background: #e0e7ff; color: #4338ca; border-radius: 6px; padding: 8px 10px; font-size: 12px; margin-top: 8px; }
+[data-theme="dark"] .infoBox { background: #312e81; color: #c7d2fe; }
