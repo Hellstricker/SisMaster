@@ -14,6 +14,16 @@ public sealed class CaptadorDeEmail : IEnviadorDeEmail
         return Task.CompletedTask;
     }
 
+    /// <summary>Lê o link de redefinição do último e-mail enviado a <paramref name="email"/>: devolve e-mail e token já decodificados.</summary>
+    public (string Email, string Token) LinkEnviadoPara(string email)
+    {
+        string corpo;
+        lock (Enviados) corpo = Enviados.Last(e => e.Para == email).Corpo;
+        var linha = corpo.Split('\n').Single(l => l.Contains("/redefinir-senha?")).Trim();
+        var consulta = System.Web.HttpUtility.ParseQueryString(new Uri(linha).Query);
+        return (consulta["email"]!, consulta["token"]!);
+    }
+
     public string SenhaEnviadaPara(string email)
     {
         string corpo;

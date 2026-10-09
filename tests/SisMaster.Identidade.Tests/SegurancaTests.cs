@@ -24,7 +24,7 @@ public class SegurancaTests
         var publicas = acoes.Where(a => a.EndpointMetadata.OfType<IAllowAnonymous>().Any())
             .Select(a => a.AttributeRouteInfo?.Template).ToList();
 
-        publicas.Should().BeEquivalentTo(["api/identidade/autenticar", "api/identidade/esqueci-senha"]);
+        publicas.Should().BeEquivalentTo(["api/identidade/autenticar", "api/identidade/esqueci-senha", "api/identidade/redefinir-senha"]);
         acoes.Should().NotBeEmpty();
     }
 

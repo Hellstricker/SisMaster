@@ -42,6 +42,9 @@ namespace SisMaster.Identidade.Api.Configurations
             .AddPasswordValidator<SenhaComLetraValidator>()
             .AddDefaultTokenProviders();
 
+            // Link de recuperação de senha: vale por 1 hora.
+            services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = TimeSpan.FromHours(1));
+
             services.AddJwtConfiguration(configuration);
             services.AddEmail(configuration);
             services.AddAutorizacaoSisMaster();

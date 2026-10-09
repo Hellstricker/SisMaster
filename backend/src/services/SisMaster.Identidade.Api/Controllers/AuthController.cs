@@ -27,12 +27,14 @@ public class AuthController : MainController
     private readonly JwtSettings _jwtSettings;
     private readonly IEnviadorDeEmail _email;
     private readonly ILogger<AuthController> _log;
+    private readonly IConfiguration _configuracao;
 
     public AuthController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, IOptions<JwtSettings> jwtSettings,
-        IEnviadorDeEmail email, ILogger<AuthController> log)
+        IEnviadorDeEmail email, ILogger<AuthController> log, IConfiguration configuracao)
     {
         _email = email;
         _log = log;
+        _configuracao = configuracao;
         _userManager = userManager;
         _signInManager = signInManager;
         _jwtSettings = jwtSettings.Value;
@@ -78,9 +80,10 @@ public class AuthController : MainController
     }
 
     /// <summary>
-    /// "Esqueci minha senha": envia uma senha temporária ao e-mail da conta (troca obrigatória no próximo acesso).
+    /// "Esqueci minha senha": envia ao e-mail da conta um link de uso único (válido por 1 hora) para definir uma nova senha.
+    /// A senha atual NÃO é alterada: quem só conhece o e-mail de outra pessoa não consegue tirá-la do sistema.
     /// A resposta é sempre a mesma, exista ou não a conta, e há um intervalo mínimo entre pedidos da mesma conta,
-    /// para que ninguém use isto para descobrir e-mails nem para derrubar o acesso de outra pessoa a cada instante.
+    /// para ninguém descobrir e-mails cadastrados nem lotar a caixa de outra pessoa.
     /// </summary>
     [AllowAnonymous]
     [EnableRateLimiting("login")]
@@ -99,7 +102,43 @@ public class AuthController : MainController
             if (liberado) await RecuperarAsync(user, claims, agora);
         }
 
-        return CustomResponse(new { mensagem = "Se o e-mail estiver cadastrado, enviamos uma senha temporária para ele." });
+        return CustomResponse(new { mensagem = "Se o e-mail estiver cadastrado, enviamos um link para definir uma nova senha." });
+    }
+
+    /// <summary>
+    /// Conclui a recuperação: com o link recebido por e-mail (e-mail + token) a pessoa define a nova senha.
+    /// Libera conta bloqueada e tira a marca de senha temporária. Link inválido, vencido ou já usado dá sempre a mesma mensagem.
+    /// </summary>
+    [AllowAnonymous]
+    [EnableRateLimiting("login")]
+    [HttpPost("redefinir-senha")]
+    public async Task<IActionResult> RedefinirSenha([FromBody] RedefinirSenha model)
+    {
+        if (!ModelState.IsValid) return CustomResponse(ModelState);
+
+        const string linkInvalido = "Este link é inválido ou já venceu. Peça um novo em \"Esqueci minha senha\".";
+        var user = await _userManager.FindByEmailAsync(model.Email!.Trim());
+        if (user is null || await Desativado(user))
+        {
+            AdicionarErro(linkInvalido);
+            return CustomResponse();
+        }
+
+        var resultado = await _userManager.ResetPasswordAsync(user, model.Token!, model.NovaSenha!);
+        if (!resultado.Succeeded)
+        {
+            // Erros da regra de senha (tamanho, letra e número) a pessoa precisa ler; os de token viram a mensagem única.
+            var daSenha = resultado.Errors.Where(e => !e.Code.StartsWith("InvalidToken")).Select(e => e.Description).ToArray();
+            if (daSenha.Length > 0) AdicionarErros(daSenha); else AdicionarErro(linkInvalido);
+            return CustomResponse();
+        }
+
+        foreach (var marca in (await _userManager.GetClaimsAsync(user)).Where(c => c.Type is TiposDeClaim.TrocarSenha or TiposDeClaim.RecuperacaoEm).ToList())
+            await _userManager.RemoveClaimAsync(user, marca);
+        await _userManager.SetLockoutEndDateAsync(user, null);
+        await _userManager.ResetAccessFailedCountAsync(user);
+
+        return CustomResponse(new { mensagem = "Senha alterada. Entre com a nova senha." });
     }
 
     /// <summary>Intervalo mínimo entre dois pedidos de recuperação da mesma conta.</summary>
@@ -107,21 +146,19 @@ public class AuthController : MainController
 
     private async Task RecuperarAsync(IdentityUser user, IList<Claim> claims, long agora)
     {
-        var senha = UsuariosController.GerarSenhaTemporaria();
         var ficha = await _userManager.GeneratePasswordResetTokenAsync(user);
-        if (!(await _userManager.ResetPasswordAsync(user, ficha, senha)).Succeeded) return;
-
-        foreach (var antiga in claims.Where(c => c.Type is TiposDeClaim.TrocarSenha or TiposDeClaim.RecuperacaoEm).ToList())
+        foreach (var antiga in claims.Where(c => c.Type == TiposDeClaim.RecuperacaoEm).ToList())
             await _userManager.RemoveClaimAsync(user, antiga);
-        await _userManager.AddClaimsAsync(user, [new Claim(TiposDeClaim.TrocarSenha, "1"), new Claim(TiposDeClaim.RecuperacaoEm, agora.ToString())]);
-        await _userManager.SetLockoutEndDateAsync(user, null);
-        await _userManager.ResetAccessFailedCountAsync(user);
+        await _userManager.AddClaimAsync(user, new Claim(TiposDeClaim.RecuperacaoEm, agora.ToString()));
+
+        var raiz = (_configuracao["App:UrlPublica"] ?? "http://localhost:3000").TrimEnd('/');
+        var link = $"{raiz}/admin/redefinir-senha?email={Uri.EscapeDataString(user.Email!)}&token={Uri.EscapeDataString(ficha)}";
 
         try
         {
-            await _email.EnviarAsync(user.Email!, "Recuperação de acesso ao SisMaster",
-                $"Recebemos um pedido de recuperação de senha para {user.Email}.\n\nSenha temporária: {senha}\n\n" +
-                "Entre com ela e o sistema pedirá para você definir a sua própria senha. Se não foi você, avise um administrador.");
+            await _email.EnviarAsync(user.Email!, "Recuperação de senha do SisMaster",
+                $"Recebemos um pedido para redefinir a senha de {user.Email}.\n\nPara definir uma nova senha, abra o link abaixo (vale por 1 hora e só pode ser usado uma vez):\n\n{link}\n\n" +
+                "Se não foi você quem pediu, ignore este e-mail: a sua senha atual continua valendo e nada foi alterado.");
         }
         catch (Exception ex)
         {

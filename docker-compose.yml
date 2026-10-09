@@ -41,6 +41,8 @@ services:
       Email__Usuario: "${SMTP_USER:-}"
       Email__Senha: "${SMTP_PASSWORD:-}"
       Email__Remetente: "${SMTP_FROM:-}"
+      # Endereço público do sistema, usado no link do e-mail de recuperação de senha.
+      App__UrlPublica: "${APP_URL:-http://localhost:3000}"
     depends_on:
       sqlserver:
         condition: service_healthy

@@ -88,7 +88,15 @@ export async function entrar(email: string, senha: string): Promise<Sessao> {
   return receber(res, 'Não foi possível entrar. Tente de novo.');
 }
 
-/** Pede a senha temporária por e-mail. A resposta é a mesma exista ou não a conta (a API não revela quais e-mails têm conta). */
+/** Define a nova senha com o link recebido por e-mail (e-mail + código). Não inicia sessão: a pessoa entra em seguida. */
+export async function redefinirSenha(email: string, token: string, novaSenha: string): Promise<void> {
+  const res = await fetch(`${BASE}/api/identidade/redefinir-senha`, {
+    method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ email, token, novaSenha }),
+  });
+  if (!res.ok) throw await lerErro(res, 'Não foi possível definir a nova senha. Tente de novo.');
+}
+
+/** Pede o link de redefinição de senha por e-mail. A resposta é a mesma exista ou não a conta (a API não revela quais e-mails têm conta). */
 export async function esqueciSenha(email: string): Promise<void> {
   const res = await fetch(`${BASE}/api/identidade/esqueci-senha`, {
     method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ email }),

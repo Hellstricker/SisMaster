@@ -3,6 +3,7 @@ import { AuthProvider, RequerGestao, RequerLogin } from './auth/AuthContext';
 import Login from './pages/Acesso/Login';
 import MinhaConta from './pages/Acesso/MinhaConta';
 import Usuarios from './pages/Acesso/Usuarios';
+import RedefinirSenha from './pages/Acesso/RedefinirSenha';
 import { ThemeContext } from './contexts/ThemeContext';
 import { useTheme } from './hooks/useTheme';
 import AppLayout from './components/Layout/AppLayout';
@@ -35,6 +36,7 @@ export default function App() {
             // Área do árbitro: só os jogos agendados e a súmula (nada de inscrições, financeiro ou cadastros).
             <Routes>
               <Route path="/entrar" element={<Login />} />
+              <Route path="/redefinir-senha" element={<RedefinirSenha />} />
               <Route element={<RequerLogin />}>
                 <Route element={<AppLayout />}>
                   <Route path="/minha-conta" element={<MinhaConta />} />
@@ -47,6 +49,7 @@ export default function App() {
           ) : (
             <Routes>
               <Route path="/entrar" element={<Login />} />
+              <Route path="/redefinir-senha" element={<RedefinirSenha />} />
               <Route element={<RequerLogin />}>
                 <Route element={<AppLayout />}>
                   <Route path="/minha-conta" element={<MinhaConta />} />

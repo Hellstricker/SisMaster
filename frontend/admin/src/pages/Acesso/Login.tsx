@@ -46,7 +46,7 @@ export default function Login() {
 
   async function recuperar() {
     setErro('');
-    if (!/\S+@\S+\.\S+/.test(email)) { setErro('Informe o seu e-mail acima para receber a senha temporária.'); return; }
+    if (!/\S+@\S+\.\S+/.test(email)) { setErro('Informe o seu e-mail acima para receber o link.'); return; }
     setPedido('enviando');
     try {
       await esqueciSenha(email.trim());
@@ -88,13 +88,13 @@ export default function Login() {
           {esqueci && (
             <div className={`${styles.aviso} ${styles.info}`} style={{ marginTop: 12, marginBottom: 0 }}>
               {pedido === 'enviado'
-                ? 'Se o e-mail estiver cadastrado, enviamos uma senha temporária para ele. Entre com ela e defina a sua senha. Você pode pedir de novo depois de 10 minutos.'
+                ? 'Se o e-mail estiver cadastrado, enviamos um link para definir uma nova senha. Ele vale por 1 hora. Se não chegar, confira o spam e peça de novo depois de 10 minutos.'
                 : (
                   <>
-                    Informe o seu e-mail no campo acima e peça uma senha temporária. Ela chega por e-mail e deve ser trocada ao entrar.
+                    Informe o seu e-mail no campo acima e peça o link para criar uma nova senha. Ele chega por e-mail; a sua senha atual só muda quando você concluir o processo.
                     <div style={{ marginTop: 8 }}>
                       <button type="button" className={styles.botao} onClick={recuperar} disabled={pedido === 'enviando'}>
-                        {pedido === 'enviando' ? 'Enviando…' : 'Enviar senha temporária'}
+                        {pedido === 'enviando' ? 'Enviando…' : 'Enviar link por e-mail'}
                       </button>
                     </div>
                   </>
