@@ -39,6 +39,8 @@ export interface TemporadaDetalhe {
   status: string;
   dataInicioInscricoes: string;
   dataFimInscricoes: string;
+  dataInicioCompeticao: string | null;
+  dataFimCompeticao: string | null;
   inscricoesHabilitadas: boolean;
   valorBonificacaoPorAtleta: number;
   taxaInscricao: number | null;
@@ -84,5 +86,50 @@ export function alterarInscricoesHabilitadas(campeonatoId: string, temporadaId: 
     `/api/campeonatos/${campeonatoId}/temporadas/${temporadaId}/inscricoes-habilitadas`,
     { habilitadas },
     'Erro ao alterar as inscrições',
+  );
+}
+
+/** Números da temporada para a tela de detalhe (GET /api/temporadas/:id/resumo). */
+export interface ResumoTemporada {
+  fichas: number;
+  pedidosPendentes: number;
+  /** Por categoria da temporada (id da TemporadaCategoria): pedidos (inclusive recusados) e quantos estão pendentes. */
+  categorias: Record<string, { pedidos: number; pendentes: number }>;
+  equipesPorCategoria: Record<string, number>;
+  fasesPorCategoria: Record<string, number>;
+  equipes: number;
+  fases: number;
+  jogosTotal: number;
+  jogosEmAberto: number;
+  cobranca: {
+    geradaEm: string | null;
+    fichasComCobranca: number;
+    fichasSemCobranca: number;
+    previsto: number;
+    recebido: number;
+  };
+}
+
+export function obterResumo(temporadaId: string): Promise<ResumoTemporada> {
+  return obter<ResumoTemporada>(`/api/temporadas/${temporadaId}/resumo`, 'Erro ao carregar o resumo da temporada');
+}
+
+export interface DatasDaTemporada {
+  dataInicioInscricoes: string;
+  dataFimInscricoes: string;
+  dataInicioCompeticao?: string;
+  dataFimCompeticao?: string;
+}
+
+export function alterarDatas(temporadaId: string, datas: DatasDaTemporada): Promise<void> {
+  return enviar('PATCH', `/api/temporadas/${temporadaId}/datas`, datas, 'Erro ao salvar as datas');
+}
+
+export function configurarBonificacao(campeonatoId: string, temporadaId: string, valorPorAtleta: number): Promise<void> {
+  return enviar(
+    'PATCH',
+    `/api/campeonatos/${campeonatoId}/temporadas/${temporadaId}/bonificacao`,
+    { valorPorAtleta },
+    'Erro ao salvar a bonificação',
   );
 }

@@ -44,8 +44,8 @@ export default function DetalheCampeonato() {
   const [erroNome, setErroNome] = useState('');
 
   const anoAtual = new Date().getFullYear();
-  const [form, setForm] = useState({ ano: String(anoAtual), dataInicio: '', dataFim: '' });
-  const [formErros, setFormErros] = useState({ ano: '', dataInicio: '', dataFim: '' });
+  const [form, setForm] = useState({ ano: String(anoAtual), dataInicio: '', dataFim: '', compInicio: '', compFim: '' });
+  const [formErros, setFormErros] = useState({ ano: '', dataInicio: '', dataFim: '', compInicio: '', compFim: '' });
   const anoRef = useRef<HTMLInputElement>(null);
 
   async function carregar() {
@@ -65,14 +65,14 @@ export default function DetalheCampeonato() {
 
   useEffect(() => {
     if (modalAberto) {
-      setForm({ ano: String(anoAtual), dataInicio: '', dataFim: '' });
-      setFormErros({ ano: '', dataInicio: '', dataFim: '' });
+      setForm({ ano: String(anoAtual), dataInicio: '', dataFim: '', compInicio: '', compFim: '' });
+      setFormErros({ ano: '', dataInicio: '', dataFim: '', compInicio: '', compFim: '' });
       setTimeout(() => anoRef.current?.focus(), 50);
     }
   }, [modalAberto]);
 
   function validar() {
-    const erros = { ano: '', dataInicio: '', dataFim: '' };
+    const erros = { ano: '', dataInicio: '', dataFim: '', compInicio: '', compFim: '' };
     const anoNum = Number(form.ano);
     if (!anoNum || anoNum < 2000 || anoNum > 2100) erros.ano = 'Ano inválido.';
     if (!dataValida(form.dataInicio)) erros.dataInicio = 'Data inválida (DD/MM/AAAA).';
@@ -81,8 +81,13 @@ export default function DetalheCampeonato() {
       if (ddmmParaIso(form.dataFim) <= ddmmParaIso(form.dataInicio))
         erros.dataFim = 'Data fim deve ser posterior à data início.';
     }
+    // datas da competição: opcionais; se preenchidas, precisam ser válidas e não podem terminar antes de começar
+    if (form.compInicio && !dataValida(form.compInicio)) erros.compInicio = 'Data inválida (DD/MM/AAAA).';
+    if (form.compFim && !dataValida(form.compFim)) erros.compFim = 'Data inválida (DD/MM/AAAA).';
+    if (dataValida(form.compInicio) && dataValida(form.compFim) && ddmmParaIso(form.compFim) < ddmmParaIso(form.compInicio))
+      erros.compFim = 'O fim da competição não pode ser antes do início.';
     setFormErros(erros);
-    return !erros.ano && !erros.dataInicio && !erros.dataFim;
+    return !erros.ano && !erros.dataInicio && !erros.dataFim && !erros.compInicio && !erros.compFim;
   }
 
   async function salvar() {
@@ -93,6 +98,8 @@ export default function DetalheCampeonato() {
         ano: Number(form.ano),
         dataInicioInscricoes: ddmmParaIso(form.dataInicio),
         dataFimInscricoes: ddmmParaIso(form.dataFim),
+        dataInicioCompeticao: dataValida(form.compInicio) ? ddmmParaIso(form.compInicio) : undefined,
+        dataFimCompeticao: dataValida(form.compFim) ? ddmmParaIso(form.compFim) : undefined,
       });
       setModalAberto(false);
       await carregar();
@@ -177,6 +184,7 @@ export default function DetalheCampeonato() {
                   <div className={styles.tempAno}>{t.ano}</div>
                   <div className={styles.tempDatas}>
                     Inscrições: {formatarData(t.dataInicioInscricoes)} – {formatarData(t.dataFimInscricoes)}
+                    {t.dataInicioCompeticao && ` · Competição: ${formatarData(t.dataInicioCompeticao)}${t.dataFimCompeticao ? ` – ${formatarData(t.dataFimCompeticao)}` : ''}`}
                   </div>
                 </div>
                 <div className={styles.tempActions}>
@@ -263,6 +271,25 @@ export default function DetalheCampeonato() {
                   onChange={v => { setForm(p => ({ ...p, dataFim: v })); setFormErros(p => ({ ...p, dataFim: '' })); }}
                 />
                 {formErros.dataFim && <span className={styles.fieldErro}>{formErros.dataFim}</span>}
+              </div>
+            </div>
+
+            <div className={styles.fieldsRow}>
+              <div className={styles.field}>
+                <label htmlFor="temp-comp-inicio">Início da competição <small>(opcional)</small></label>
+                <DataInput anoMin={2000} anoMax={2100} id="temp-comp-inicio"
+                  value={form.compInicio}
+                  onChange={v => { setForm(p => ({ ...p, compInicio: v })); setFormErros(p => ({ ...p, compInicio: '' })); }}
+                />
+                {formErros.compInicio && <span className={styles.fieldErro}>{formErros.compInicio}</span>}
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="temp-comp-fim">Fim da competição <small>(opcional)</small></label>
+                <DataInput anoMin={2000} anoMax={2100} id="temp-comp-fim"
+                  value={form.compFim}
+                  onChange={v => { setForm(p => ({ ...p, compFim: v })); setFormErros(p => ({ ...p, compFim: '' })); }}
+                />
+                {formErros.compFim && <span className={styles.fieldErro}>{formErros.compFim}</span>}
               </div>
             </div>
 

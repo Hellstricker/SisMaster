@@ -54,6 +54,9 @@ public class InscricaoRepository : IInscricaoRepository
             && c.Inscricao.PessoaId == pessoaId
             && c.Status != StatusInscricaoCategoria.Recusada, ct);
 
+    public async Task<bool> ExisteCobrancaGeradaAsync(Guid temporadaId, CancellationToken ct = default) =>
+        await _context.Inscricoes.AnyAsync(i => i.TemporadaId == temporadaId && i.CobrancaGeradaEm != null, ct);
+
     public void Adicionar(Inscricao inscricao) => _context.Inscricoes.Add(inscricao);
 
     // Filho novo de agregado já carregado: Add explícito (ver nota sobre DbSet.Update/Modified).

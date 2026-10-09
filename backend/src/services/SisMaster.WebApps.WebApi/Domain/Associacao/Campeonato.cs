@@ -31,9 +31,10 @@ public class Campeonato : Entity
         Nome = nome.Trim();
     }
 
-    public Temporada AdicionarTemporada(int ano, DateTime dataInicioInscricoes, DateTime dataFimInscricoes)
+    public Temporada AdicionarTemporada(int ano, DateTime dataInicioInscricoes, DateTime dataFimInscricoes,
+        DateTime? dataInicioCompeticao = null, DateTime? dataFimCompeticao = null)
     {
-        var temporada = new Temporada(Id, ano, dataInicioInscricoes, dataFimInscricoes);
+        var temporada = new Temporada(Id, ano, dataInicioInscricoes, dataFimInscricoes, dataInicioCompeticao, dataFimCompeticao);
         _temporadas.Add(temporada);
         return temporada;
     }

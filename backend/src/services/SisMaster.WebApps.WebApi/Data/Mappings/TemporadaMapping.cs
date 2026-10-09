@@ -16,6 +16,8 @@ public class TemporadaMapping : IEntityTypeConfiguration<Temporada>
         builder.Property(t => t.Status).IsRequired();
         builder.Property(t => t.DataInicioInscricoes).IsRequired();
         builder.Property(t => t.DataFimInscricoes).IsRequired();
+        builder.Property(t => t.DataInicioCompeticao);
+        builder.Property(t => t.DataFimCompeticao);
         builder.Property(t => t.InscricoesHabilitadas).IsRequired();
         builder.Ignore(t => t.CadastroFasesEncerrado);
         builder.Ignore(t => t.TabelaJogosGerada);

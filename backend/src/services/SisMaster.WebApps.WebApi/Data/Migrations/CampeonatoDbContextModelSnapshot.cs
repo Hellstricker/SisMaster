@@ -159,7 +159,13 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.Property<Guid>("CampeonatoId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("DataFimCompeticao")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("DataFimInscricoes")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DataInicioCompeticao")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("DataInicioInscricoes")

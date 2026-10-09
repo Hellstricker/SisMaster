@@ -109,6 +109,7 @@ public class InscricoesController : MainController
     [HttpPost("inscricoes")]
     public async Task<ActionResult> Enviar([FromBody] EnviarInscricaoCommand command)
     {
+        command.PelaDiretoria = true; // esta rota é da gestão (política Gestao); a inscrição pública terá rota própria
         var result = await _mediator.EnviarComando(command);
         return CustomResponse(result);
     }

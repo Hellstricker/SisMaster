@@ -66,6 +66,10 @@ public class JogoRepository : IJogoRepository
     public async Task<bool> ExistemJogosNaTemporadaAsync(Guid temporadaId, CancellationToken ct = default) =>
         await _context.Jogos.AnyAsync(j => j.TemporadaId == temporadaId, ct);
 
+    public async Task<int> ContarEmAbertoDaTemporadaAsync(Guid temporadaId, CancellationToken ct = default) =>
+        await _context.Jogos.CountAsync(j => j.TemporadaId == temporadaId
+            && (j.Status == StatusJogo.Agendado || j.Status == StatusJogo.EmAndamento), ct);
+
     public async Task<IReadOnlyDictionary<Guid, List<StatusJogo>>> StatusPorFaseAsync(Guid temporadaId, CancellationToken ct = default)
     {
         var linhas = await _context.Jogos.AsNoTracking()

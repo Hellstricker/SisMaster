@@ -9,6 +9,10 @@ public class EnviarInscricaoCommand : Command
 {
     public Guid TemporadaId { get; set; }
 
+    /// <summary>Definido pelo servidor (nunca pelo cliente): a diretoria inscreve mesmo com as inscrições encerradas.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool PelaDiretoria { get; set; }
+
     // Pessoa (reconhecida pelo CPF; se já existir, os dados cadastrados são mantidos)
     public string Nome { get; set; } = string.Empty;
     public string Cpf { get; set; } = string.Empty;

@@ -10,6 +10,8 @@ public class CriarTemporadaCommand : Command
     public int Ano { get; set; }
     public DateTime DataInicioInscricoes { get; set; }
     public DateTime DataFimInscricoes { get; set; }
+    public DateTime? DataInicioCompeticao { get; set; }
+    public DateTime? DataFimCompeticao { get; set; }
 
     public override bool EhValido()
     {
@@ -28,5 +30,9 @@ public class CriarTemporadaCommandValidation : AbstractValidator<CriarTemporadaC
         RuleFor(c => c.DataFimInscricoes)
             .NotEmpty().WithMessage("Data fim das inscrições é obrigatória")
             .GreaterThan(c => c.DataInicioInscricoes).WithMessage("Data fim deve ser posterior à data início");
+        RuleFor(c => c.DataFimCompeticao)
+            .GreaterThanOrEqualTo(c => c.DataInicioCompeticao!.Value)
+            .When(c => c.DataInicioCompeticao.HasValue && c.DataFimCompeticao.HasValue)
+            .WithMessage("A data de fim da competição não pode ser anterior à de início");
     }
 }

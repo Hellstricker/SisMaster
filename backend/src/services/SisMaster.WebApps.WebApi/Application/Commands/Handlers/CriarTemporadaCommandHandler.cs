@@ -27,7 +27,8 @@ public class CriarTemporadaCommandHandler : IRequestHandler<CriarTemporadaComman
                 return request.ValidationResult;
             }
 
-            var temporada = campeonato.AdicionarTemporada(request.Ano, request.DataInicioInscricoes, request.DataFimInscricoes);
+            var temporada = campeonato.AdicionarTemporada(request.Ano, request.DataInicioInscricoes, request.DataFimInscricoes,
+                request.DataInicioCompeticao, request.DataFimCompeticao);
             _repository.AdicionarTemporada(temporada);
             await _repository.UnitOfWork.Commit();
 

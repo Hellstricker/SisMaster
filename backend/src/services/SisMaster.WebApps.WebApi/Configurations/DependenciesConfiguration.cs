@@ -55,6 +55,7 @@ public static class DependenciesConfiguration
         services.AddScoped<JogosDoArbitroQuery>();
         services.AddScoped<JogosDaTemporadaQuery>();
         services.AddScoped<DetalheJogoQuery>();
+        services.AddScoped<ResumoDaTemporadaQuery>();
         services.AddScoped<PreparoSumulaQuery>();
         services.AddScoped<ImportacaoFibaPreviaQuery>();
         services.AddHttpClient<IFibaLiveStatsClient, FibaLiveStatsClient>(c =>

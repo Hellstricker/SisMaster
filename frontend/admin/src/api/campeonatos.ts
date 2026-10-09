@@ -12,6 +12,9 @@ export interface Temporada {
   status: StatusTemporada;
   dataInicioInscricoes: string;
   dataFimInscricoes: string;
+  /** Datas de realização do campeonato (opcionais). */
+  dataInicioCompeticao?: string | null;
+  dataFimCompeticao?: string | null;
 }
 
 export interface CampeonatoDetalhe {
@@ -42,7 +45,7 @@ export async function editarCampeonato(campeonatoId: string, body: { nome: strin
 
 export async function criarTemporada(
   campeonatoId: string,
-  body: { ano: number; dataInicioInscricoes: string; dataFimInscricoes: string }
+  body: { ano: number; dataInicioInscricoes: string; dataFimInscricoes: string; dataInicioCompeticao?: string; dataFimCompeticao?: string }
 ): Promise<void> {
   const res = await fetch(`${BASE}/api/campeonatos/${campeonatoId}/temporadas`, {
     method: 'POST',

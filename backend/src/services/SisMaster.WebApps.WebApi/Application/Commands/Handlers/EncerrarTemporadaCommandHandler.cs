@@ -2,16 +2,19 @@ using FluentValidation.Results;
 using MediatR;
 using SisMaster.Core.DomainObjects;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
+using SisMaster.WebApps.WebApi.Domain.Jogos;
 
 namespace SisMaster.WebApps.WebApi.Application.Commands.Handlers;
 
 public class EncerrarTemporadaCommandHandler : IRequestHandler<EncerrarTemporadaCommand, ValidationResult>
 {
     private readonly ICampeonatoRepository _repository;
+    private readonly IJogoRepository _jogoRepository;
 
-    public EncerrarTemporadaCommandHandler(ICampeonatoRepository repository)
+    public EncerrarTemporadaCommandHandler(ICampeonatoRepository repository, IJogoRepository jogoRepository)
     {
         _repository = repository;
+        _jogoRepository = jogoRepository;
     }
 
     public async Task<ValidationResult> Handle(EncerrarTemporadaCommand request, CancellationToken cancellationToken)
@@ -34,7 +37,8 @@ public class EncerrarTemporadaCommandHandler : IRequestHandler<EncerrarTemporada
                 return request.ValidationResult;
             }
 
-            temporada.Encerrar();
+            var emAberto = await _jogoRepository.ContarEmAbertoDaTemporadaAsync(temporada.Id, cancellationToken);
+            temporada.Encerrar(emAberto);
             await _repository.UnitOfWork.Commit();
 
             return request.ValidationResult;

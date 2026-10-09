@@ -4,6 +4,7 @@ using SisMaster.WebApps.WebApi.Seguranca;
 using Microsoft.AspNetCore.Mvc;
 using SisMaster.Core.Communications;
 using SisMaster.WebApps.WebApi.Application.Commands;
+using SisMaster.WebApps.WebApi.Application.Queries;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
 using SisMaster.WebApi.Core.Controllers;
 
@@ -16,11 +17,13 @@ public class TemporadasController : MainController
 {
     private readonly IMediatorHandler _mediator;
     private readonly ITemporadaRepository _repository;
+    private readonly ResumoDaTemporadaQuery _resumo;
 
-    public TemporadasController(IMediatorHandler mediator, ITemporadaRepository repository)
+    public TemporadasController(IMediatorHandler mediator, ITemporadaRepository repository, ResumoDaTemporadaQuery resumo)
     {
         _mediator = mediator;
         _repository = repository;
+        _resumo = resumo;
     }
 
     [HttpGet("{id:guid}")]
@@ -37,6 +40,8 @@ public class TemporadasController : MainController
             t.Status,
             DataInicioInscricoes = t.DataInicioInscricoes.ToString("yyyy-MM-dd"),
             DataFimInscricoes = t.DataFimInscricoes.ToString("yyyy-MM-dd"),
+            DataInicioCompeticao = t.DataInicioCompeticao?.ToString("yyyy-MM-dd"),
+            DataFimCompeticao = t.DataFimCompeticao?.ToString("yyyy-MM-dd"),
             t.InscricoesHabilitadas,
             t.ValorBonificacaoPorAtleta,
             t.TaxaInscricao,
@@ -63,6 +68,22 @@ public class TemporadasController : MainController
                 tc.Valor
             })
         });
+    }
+
+    /// <summary>Números para a tela de detalhe: fichas, pedidos pendentes, uso de cada categoria, jogos em aberto e cobranças.</summary>
+    [HttpGet("{id:guid}/resumo")]
+    public async Task<ActionResult> Resumo(Guid id, CancellationToken ct)
+    {
+        if (await _repository.ObterPorIdAsync(id, ct) is null) return NotFound();
+        return CustomResponse(await _resumo.ExecutarAsync(id, ct));
+    }
+
+    [HttpPatch("{id:guid}/datas")]
+    public async Task<ActionResult> AlterarDatas(Guid id, [FromBody] AlterarDatasTemporadaCommand command, CancellationToken ct)
+    {
+        command.TemporadaId = id;
+        var result = await _mediator.EnviarComando(command);
+        return CustomResponse(result);
     }
 
     [HttpPatch("{id:guid}/taxa-inscricao")]

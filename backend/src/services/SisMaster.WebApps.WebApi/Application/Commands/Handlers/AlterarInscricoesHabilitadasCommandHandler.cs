@@ -2,16 +2,19 @@ using FluentValidation.Results;
 using MediatR;
 using SisMaster.Core.DomainObjects;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
+using SisMaster.WebApps.WebApi.Domain.Participantes;
 
 namespace SisMaster.WebApps.WebApi.Application.Commands.Handlers;
 
 public class AlterarInscricoesHabilitadasCommandHandler : IRequestHandler<AlterarInscricoesHabilitadasCommand, ValidationResult>
 {
     private readonly ICampeonatoRepository _repository;
+    private readonly IInscricaoRepository _inscricaoRepository;
 
-    public AlterarInscricoesHabilitadasCommandHandler(ICampeonatoRepository repository)
+    public AlterarInscricoesHabilitadasCommandHandler(ICampeonatoRepository repository, IInscricaoRepository inscricaoRepository)
     {
         _repository = repository;
+        _inscricaoRepository = inscricaoRepository;
     }
 
     public async Task<ValidationResult> Handle(AlterarInscricoesHabilitadasCommand request, CancellationToken cancellationToken)
@@ -34,7 +37,8 @@ public class AlterarInscricoesHabilitadasCommandHandler : IRequestHandler<Altera
                 return request.ValidationResult;
             }
 
-            temporada.AlterarInscricoesHabilitadas(request.Habilitadas);
+            var cobrancasGeradas = request.Habilitadas && await _inscricaoRepository.ExisteCobrancaGeradaAsync(temporada.Id, cancellationToken);
+            temporada.AlterarInscricoesHabilitadas(request.Habilitadas, cobrancasGeradas);
             await _repository.UnitOfWork.Commit();
 
             return request.ValidationResult;

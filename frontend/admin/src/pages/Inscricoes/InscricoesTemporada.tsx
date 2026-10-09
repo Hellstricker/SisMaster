@@ -255,7 +255,7 @@ export default function InscricoesTemporada() {
           {temporada.categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
         <input className={`${styles.input} ${styles.busca}`} placeholder="Buscar por nome ou CPF" value={busca} onChange={e => setBusca(e.target.value)} />
-        <button className={`${styles.btnPrimary} ${styles.btnNova}`} disabled={!habilitadas} onClick={() => setModal({ tipo: 'nova' })} title={habilitadas ? '' : 'Inscrições desabilitadas'}>
+        <button className={`${styles.btnPrimary} ${styles.btnNova}`} disabled={encerrada} onClick={() => setModal({ tipo: 'nova' })} title={encerrada ? 'Temporada encerrada' : habilitadas ? '' : 'Inscrição pela diretoria: vale mesmo com as inscrições encerradas'}>
           + Nova inscrição
         </button>
       </div>

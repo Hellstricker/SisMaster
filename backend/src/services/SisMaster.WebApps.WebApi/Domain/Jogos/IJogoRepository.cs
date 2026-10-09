@@ -47,6 +47,9 @@ public interface IJogoRepository : IRepository<Jogo>
 
     Task<bool> ExistemJogosNaTemporadaAsync(Guid temporadaId, CancellationToken ct = default);
 
+    /// <summary>Jogos agendados ou em andamento da temporada (impedem encerrá-la).</summary>
+    Task<int> ContarEmAbertoDaTemporadaAsync(Guid temporadaId, CancellationToken ct = default);
+
     /// <summary>Status dos jogos de cada fase da temporada (para derivar o status da fase).</summary>
     Task<IReadOnlyDictionary<Guid, List<StatusJogo>>> StatusPorFaseAsync(Guid temporadaId, CancellationToken ct = default);
 

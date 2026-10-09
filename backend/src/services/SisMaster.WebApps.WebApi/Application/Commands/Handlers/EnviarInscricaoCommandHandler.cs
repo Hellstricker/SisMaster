@@ -36,7 +36,8 @@ public class EnviarInscricaoCommandHandler : IRequestHandler<EnviarInscricaoComm
                 return request.ValidationResult;
             }
 
-            temporada.ValidarAceitaInscricoes();
+            if (request.PelaDiretoria) temporada.ValidarAceitaInscricaoDaDiretoria();
+            else temporada.ValidarAceitaInscricoes();
 
             var categorias = new List<TemporadaCategoria>();
             foreach (var id in request.TemporadaCategoriaIds.Distinct())

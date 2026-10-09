@@ -21,6 +21,9 @@ public interface IInscricaoRepository : IRepository<Inscricao>
     /// <summary>Existe pedido da pessoa nesta categoria que não tenha sido recusado?</summary>
     Task<bool> ExisteAtivaAsync(Guid pessoaId, Guid temporadaCategoriaId, CancellationToken ct = default);
 
+    /// <summary>Alguma ficha da temporada já teve a cobrança gerada?</summary>
+    Task<bool> ExisteCobrancaGeradaAsync(Guid temporadaId, CancellationToken ct = default);
+
     void Adicionar(Inscricao inscricao);
     void AdicionarPagamento(PagamentoInscricao pagamento);
 }

@@ -32,6 +32,14 @@ public class GerarCobrancasCommandHandler : IRequestHandler<GerarCobrancasComman
 
             temporada.ValidarPodeGerarCobranca();
 
+            var categoriasSemValor = temporada.Categorias.Where(c => c.Valor is null).Select(c => c.Nome).Order().ToList();
+            if (categoriasSemValor.Count > 0)
+            {
+                request.ValidationResult.Errors.Add(new ValidationFailure(string.Empty,
+                    $"Defina o valor de todas as categorias antes de gerar as cobranças: {string.Join(", ", categoriasSemValor)}"));
+                return request.ValidationResult;
+            }
+
             var fichas = await _inscricaoRepository.ListarPorTemporadaAsync(temporada.Id, cancellationToken);
             var cobrancas = new List<(Inscricao Ficha, decimal Total, decimal Desconto)>();
             var semValor = new SortedSet<string>();

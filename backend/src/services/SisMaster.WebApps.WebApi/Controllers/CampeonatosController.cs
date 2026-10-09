@@ -42,6 +42,8 @@ public class CampeonatosController : MainController
                     t.Status,
                     DataInicioInscricoes = t.DataInicioInscricoes.ToString("yyyy-MM-dd"),
                     DataFimInscricoes = t.DataFimInscricoes.ToString("yyyy-MM-dd"),
+                    DataInicioCompeticao = t.DataInicioCompeticao?.ToString("yyyy-MM-dd"),
+                    DataFimCompeticao = t.DataFimCompeticao?.ToString("yyyy-MM-dd"),
                     t.InscricoesHabilitadas,
                     t.ValorBonificacaoPorAtleta
                 })

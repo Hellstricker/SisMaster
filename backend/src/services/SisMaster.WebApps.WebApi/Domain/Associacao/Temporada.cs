@@ -10,6 +10,10 @@ public class Temporada : Entity
     public DateTime DataInicioInscricoes { get; private set; }
     public DateTime DataFimInscricoes { get; private set; }
 
+    /// <summary>Datas de realização do campeonato. Opcionais: a temporada funciona sem elas.</summary>
+    public DateTime? DataInicioCompeticao { get; private set; }
+    public DateTime? DataFimCompeticao { get; private set; }
+
     /// <summary>Liga/desliga a aceitação de inscrições, independente do Status (exceto temporada encerrada).</summary>
     public bool InscricoesHabilitadas { get; private set; }
 
@@ -41,16 +45,20 @@ public class Temporada : Entity
 
     protected Temporada() { }
 
-    public Temporada(Guid campeonatoId, int ano, DateTime dataInicioInscricoes, DateTime dataFimInscricoes)
+    public Temporada(Guid campeonatoId, int ano, DateTime dataInicioInscricoes, DateTime dataFimInscricoes,
+        DateTime? dataInicioCompeticao = null, DateTime? dataFimCompeticao = null)
     {
         Validacoes.ValidarMinimoMaximo(ano, 2000, 2100, "Ano inválido para a temporada");
         if (dataFimInscricoes <= dataInicioInscricoes)
             throw new DomainException("Data fim das inscrições deve ser posterior à data início");
+        ValidarDatasDaCompeticao(dataInicioCompeticao, dataFimCompeticao);
 
         CampeonatoId = campeonatoId;
         Ano = ano;
         DataInicioInscricoes = dataInicioInscricoes;
         DataFimInscricoes = dataFimInscricoes;
+        DataInicioCompeticao = dataInicioCompeticao;
+        DataFimCompeticao = dataFimCompeticao;
         Status = StatusTemporada.InscricoesAbertas;
         InscricoesHabilitadas = true;
     }
@@ -67,13 +75,20 @@ public class Temporada : Entity
     {
         if (Status != StatusTemporada.InscricoesEncerradas)
             throw new DomainException("Temporada só pode ser iniciada após encerrar as inscrições");
+        if (!TabelaJogosGerada)
+            throw new DomainException("Gere a tabela de jogos antes de iniciar a temporada");
         Status = StatusTemporada.EmAndamento;
     }
 
-    public void Encerrar()
+    /// <param name="jogosEmAberto">Jogos agendados ou em andamento: a temporada só encerra com todos os jogos decididos.</param>
+    public void Encerrar(int jogosEmAberto)
     {
         if (Status != StatusTemporada.EmAndamento)
             throw new DomainException("Temporada só pode ser encerrada se estiver em andamento");
+        if (jogosEmAberto > 0)
+            throw new DomainException(jogosEmAberto == 1
+                ? "Há 1 jogo ainda não encerrado. Encerre, registre o W.O. ou dispense o jogo antes de encerrar a temporada"
+                : $"Há {jogosEmAberto} jogos ainda não encerrados. Encerre, registre o W.O. ou dispense os jogos antes de encerrar a temporada");
         Status = StatusTemporada.Encerrada;
         InscricoesHabilitadas = false;
     }
@@ -135,16 +150,46 @@ public class Temporada : Entity
         CadastroFasesEncerradoEm = null;
     }
 
+    /// <summary>Muda a janela de inscrições e as datas (opcionais) de realização do campeonato.</summary>
+    public void AlterarDatas(DateTime inicioInscricoes, DateTime fimInscricoes, DateTime? inicioCompeticao, DateTime? fimCompeticao)
+    {
+        if (Status == StatusTemporada.Encerrada)
+            throw new DomainException("Temporada encerrada não aceita alteração de datas");
+        if (fimInscricoes <= inicioInscricoes)
+            throw new DomainException("Data fim das inscrições deve ser posterior à data início");
+        ValidarDatasDaCompeticao(inicioCompeticao, fimCompeticao);
+        DataInicioInscricoes = inicioInscricoes;
+        DataFimInscricoes = fimInscricoes;
+        DataInicioCompeticao = inicioCompeticao;
+        DataFimCompeticao = fimCompeticao;
+    }
+
+    private static void ValidarDatasDaCompeticao(DateTime? inicio, DateTime? fim)
+    {
+        if (inicio is not null && fim is not null && fim < inicio)
+            throw new DomainException("A data de fim da competição não pode ser anterior à de início");
+    }
+
     public void ValidarAceitaInscricoes()
     {
         if (!InscricoesHabilitadas)
             throw new DomainException("As inscrições desta temporada não estão habilitadas");
     }
 
-    public void AlterarInscricoesHabilitadas(bool habilitadas)
+    /// <summary>A diretoria pode inscrever alguém mesmo com as inscrições encerradas ou desabilitadas; só não em temporada encerrada.</summary>
+    public void ValidarAceitaInscricaoDaDiretoria()
+    {
+        if (Status == StatusTemporada.Encerrada)
+            throw new DomainException("Temporada encerrada não aceita inscrições");
+    }
+
+    /// <param name="cobrancasGeradas">Com cobranças já geradas não se reabre a inscrição (a diretoria ainda pode inscrever por conta própria).</param>
+    public void AlterarInscricoesHabilitadas(bool habilitadas, bool cobrancasGeradas = false)
     {
         if (Status == StatusTemporada.Encerrada)
             throw new DomainException("Temporada encerrada não aceita alteração de inscrições");
+        if (habilitadas && cobrancasGeradas)
+            throw new DomainException("Com as cobranças geradas não é possível reabrir as inscrições. Para incluir alguém, use a inscrição pela diretoria");
         InscricoesHabilitadas = habilitadas;
     }
 
