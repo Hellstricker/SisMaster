@@ -35,11 +35,23 @@ public class ApiConfigurationTests
     public void AddDependenciesConfiguration_DeveRegistrarIMediatorHandler()
     {
         var services = new ServiceCollection();
-        var configuration = new ConfigurationBuilder().Build();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:CampeonatoConnection"] = "Server=localhost;Database=Teste;User Id=sa;Password=x;TrustServerCertificate=True" })
+            .Build();
 
         services.AddDependenciesConfiguration(configuration);
 
         var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(SisMaster.Core.Communications.IMediatorHandler));
         Assert.NotNull(descriptor);
+    }
+
+    [Fact]
+    public void AddDependenciesConfiguration_SemConnectionString_DeveFalharComMensagemClara()
+    {
+        var services = new ServiceCollection();
+        var configuration = new ConfigurationBuilder().Build();
+
+        var ex = Assert.Throws<InvalidOperationException>(() => services.AddDependenciesConfiguration(configuration));
+        Assert.Contains("ConnectionStrings__CampeonatoConnection", ex.Message);
     }
 }

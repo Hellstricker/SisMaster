@@ -28,8 +28,13 @@ public static class DependenciesConfiguration
         services.AddScoped<INotificationHandler<DomainNotification>, DomainNotificationHandler>();
 
         // DbContext
-        services.AddDbContext<CampeonatoDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("CampeonatoConnection")));
+        var connectionString = configuration.GetConnectionString("CampeonatoConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new InvalidOperationException(
+                "Connection string do banco não configurada. Defina a variável ConnectionStrings__CampeonatoConnection " +
+                "(no Docker ela vem do .env; fora dele, use scripts/api-dev.ps1).");
+
+        services.AddDbContext<CampeonatoDbContext>(options => options.UseSqlServer(connectionString));
 
         // Repositories
         services.AddScoped<IAssociacaoRepository, AssociacaoRepository>();
