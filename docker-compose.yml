@@ -20,6 +20,31 @@ services:
       retries: 10
       start_period: 20s
 
+  identidade-api:
+    build:
+      context: ./backend/src
+      dockerfile: services/SisMaster.Identidade.Api/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-sismaster}-identidade-api
+    # Sem porta publicada: só o nginx (e a rede do Docker) alcança. O front acessa por /api/identidade.
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=${IDENTIDADE_DB_NAME:-SisMasterIdentidade};User Id=sa;Password=${SA_PASSWORD:?Defina SA_PASSWORD no arquivo .env};MultipleActiveResultSets=true;TrustServerCertificate=True"
+      JwtSettings__Segredo: "${JWT_SEGREDO:?Defina JWT_SEGREDO no arquivo .env (mínimo 32 caracteres)}"
+      # Administrador inicial: criado só se ainda não existir nenhum usuário. Troca de senha obrigatória no primeiro acesso.
+      Bootstrap__AdminEmail: "${ADMIN_EMAIL:-}"
+      Bootstrap__AdminNome: "${ADMIN_NOME:-Administrador}"
+      Bootstrap__AdminSenha: "${ADMIN_SENHA_INICIAL:-}"
+      # E-mail das senhas temporárias. Sem SMTP_HOST, nada é enviado (só vai para o log) e as contas novas ficam sem como entrar.
+      Email__Provedor: "${EMAIL_PROVEDOR:-Log}"
+      Email__Host: "${SMTP_HOST:-}"
+      Email__Porta: "${SMTP_PORT:-587}"
+      Email__Usuario: "${SMTP_USER:-}"
+      Email__Senha: "${SMTP_PASSWORD:-}"
+      Email__Remetente: "${SMTP_FROM:-}"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
   campeonato-api:
     build:
       context: ./backend/src
@@ -29,6 +54,7 @@ services:
       - "${API_PORT:-5200}:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
+      JwtSettings__Segredo: "${JWT_SEGREDO:?Defina JWT_SEGREDO no arquivo .env (mínimo 32 caracteres)}"
       ConnectionStrings__CampeonatoConnection: "Server=sqlserver,1433;Database=${DB_NAME:-SisMaster};User Id=sa;Password=${SA_PASSWORD:?Defina SA_PASSWORD no arquivo .env};MultipleActiveResultSets=true;TrustServerCertificate=True"
     depends_on:
       sqlserver:
@@ -42,6 +68,7 @@ services:
       - "${FRONT_PORT:-3000}:80"
     depends_on:
       - campeonato-api
+      - identidade-api
 
 volumes:
   sqlserver_data:

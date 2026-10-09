@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
+using SisMaster.WebApi.Core.Autorizacao;
+using SisMaster.WebApps.WebApi.Seguranca;
 using Microsoft.AspNetCore.Mvc;
 using SisMaster.Core.Communications;
 using SisMaster.WebApps.WebApi.Application.Commands;
@@ -7,6 +10,8 @@ using SisMaster.WebApi.Core.Controllers;
 namespace SisMaster.WebApps.WebApi.Controllers;
 
 [Route("api/temporadas")]
+[Authorize(Policy = Politicas.Gestao)]
+[IdEh(Recurso.Temporada)]
 public class TemporadasController : MainController
 {
     private readonly IMediatorHandler _mediator;

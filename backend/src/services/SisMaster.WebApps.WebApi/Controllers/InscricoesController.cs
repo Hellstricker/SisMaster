@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
+using SisMaster.WebApi.Core.Autorizacao;
+using SisMaster.WebApps.WebApi.Seguranca;
 using Microsoft.AspNetCore.Mvc;
 using SisMaster.Core.Communications;
 using SisMaster.WebApps.WebApi.Application.Commands;
@@ -8,6 +11,7 @@ using SisMaster.WebApi.Core.Controllers;
 namespace SisMaster.WebApps.WebApi.Controllers;
 
 [Route("api")]
+[Authorize(Policy = Politicas.Gestao)]
 public class InscricoesController : MainController
 {
     private readonly IMediatorHandler _mediator;
@@ -109,6 +113,7 @@ public class InscricoesController : MainController
         return CustomResponse(result);
     }
 
+    [IdEh(Recurso.InscricaoCategoria)]
     [HttpPatch("inscricoes-categorias/{id:guid}/aprovar")]
     public async Task<ActionResult> Aprovar(Guid id, [FromBody] AprovarInscricaoCategoriaCommand command)
     {
@@ -117,6 +122,7 @@ public class InscricoesController : MainController
         return CustomResponse(result);
     }
 
+    [IdEh(Recurso.InscricaoCategoria)]
     [HttpPatch("inscricoes-categorias/{id:guid}/recusar")]
     public async Task<ActionResult> Recusar(Guid id, [FromBody] RecusarInscricaoCategoriaCommand command)
     {

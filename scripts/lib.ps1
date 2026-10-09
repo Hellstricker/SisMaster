@@ -34,17 +34,26 @@ function Subir-StackTeste([string]$projeto = 'sismaster-teste', [int]$portaFront
     $env:FRONT_PORT = "$portaFront"; $env:API_PORT = "$portaApi"; $env:DB_PORT = "$portaDb"
     $env:DB_NAME = 'SisMasterTeste'
     $env:SA_PASSWORD = 'Teste#Verif2026x'          # descartavel; o volume e apagado ao final
+    # Acesso (login) do ambiente de teste: tudo descartavel, existe so enquanto o ambiente existir.
+    $env:JWT_SEGREDO = 'segredo-de-teste-descartavel-0123456789abcdef'
+    $env:ADMIN_EMAIL = 'admin@teste.local'; $env:ADMIN_NOME = 'Admin Teste'; $env:ADMIN_SENHA_INICIAL = 'Teste#Admin2026'
     Push-Location $script:Raiz
     try {
         Executar 'docker' @('compose', '--progress', 'quiet', 'down', '-v', '--remove-orphans')   # garante banco vazio
         Executar 'docker' @('compose', '--progress', 'quiet', 'up', '-d', '--build')
     } finally { Pop-Location }
-    $url = "http://localhost:$portaApi/api/associacoes"
-    for ($i = 0; $i -lt 60; $i++) {
-        try { if ((Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 5).StatusCode -eq 200) { return } } catch { }
+    # Pronto = o login do administrador de teste funciona (Identidade, banco e migrations de pe) e a API de campeonatos responde.
+    $login = "http://localhost:$portaFront/api/identidade/autenticar"
+    $corpo = @{ email = $env:ADMIN_EMAIL; password = $env:ADMIN_SENHA_INICIAL } | ConvertTo-Json
+    for ($i = 0; $i -lt 80; $i++) {
+        try {
+            $r = Invoke-RestMethod -Uri $login -Method Post -Body $corpo -ContentType application/json -TimeoutSec 5
+            $h = @{ Authorization = "Bearer $($r.accessToken)" }
+            if ((Invoke-WebRequest -Uri "http://localhost:$portaApi/api/associacoes" -Headers $h -UseBasicParsing -TimeoutSec 5).StatusCode -eq 200) { return }
+        } catch { }
         Start-Sleep -Seconds 3
     }
-    throw "A API de teste nao respondeu em $url"
+    throw "O ambiente de teste nao ficou pronto (login em $login)"
 }
 
 function Parar-StackTeste {

@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
+using SisMaster.WebApi.Core.Autorizacao;
+using SisMaster.WebApps.WebApi.Seguranca;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -16,6 +19,7 @@ namespace SisMaster.WebApps.WebApi.Controllers;
 // "/api/partidas" é o contrato que as telas estáticas do mesário e do placar usam; "/api/sumulas" é o nome novo.
 [Route("api/partidas")]
 [Route("api/sumulas")]
+[IdEh(Recurso.Sumula)]
 public class SumulasController : MainController
 {
     private readonly IMediatorHandler _mediator;
@@ -35,6 +39,7 @@ public class SumulasController : MainController
         _hub = hub;
     }
 
+    [AllowAnonymous]
     [HttpGet("{id:guid}/placar")]
     public async Task<ActionResult> ObterPlacar(Guid id, CancellationToken ct)
     {
@@ -72,6 +77,7 @@ public class SumulasController : MainController
         });
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     [HttpGet("{id:guid}/sumula")]
     public async Task<ActionResult> ObterSumula(Guid id, CancellationToken ct)
     {
@@ -105,6 +111,7 @@ public class SumulasController : MainController
         });
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     [HttpPost("{id:guid}/encerrar")]
     public async Task<ActionResult> Encerrar(Guid id)
     {
@@ -112,6 +119,7 @@ public class SumulasController : MainController
         return CustomResponse(result);
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     [HttpPost("{id:guid}/eventos")]
     public async Task<ActionResult> RegistrarEvento(Guid id, [FromBody] RegistrarEventoCommand command, CancellationToken ct)
     {
@@ -121,6 +129,7 @@ public class SumulasController : MainController
     }
 
     /// <summary>Quadra, banco e rodízio de cada time (mesário de estatísticas), derivados das substituições.</summary>
+    [Authorize(Policy = Politicas.Arbitragem)]
     [HttpGet("{id:guid}/rodizio")]
     public async Task<ActionResult> Rodizio(Guid id, CancellationToken ct)
     {
@@ -129,6 +138,7 @@ public class SumulasController : MainController
     }
 
     /// <summary>Prévia da importação das estatísticas do FIBA LiveStats nesta súmula (não grava nada).</summary>
+    [Authorize(Policy = Politicas.Gestao)]
     [HttpPost("{id:guid}/importacao-fiba/previa")]
     public async Task<ActionResult> PreviaImportacaoFiba(
         Guid id, [FromBody] PreviaImportacaoFibaRequest request, [FromServices] ImportacaoFibaPreviaQuery query, CancellationToken ct)
@@ -152,6 +162,7 @@ public class SumulasController : MainController
     public sealed record PreviaImportacaoFibaRequest(string? Codigo, bool InverterLados = false);
 
     /// <summary>Substitui os dados da súmula pelos do jogo importado do FIBA LiveStats e encerra o jogo (só se a conferência fechar).</summary>
+    [Authorize(Policy = Politicas.Gestao)]
     [HttpPost("{id:guid}/importacao-fiba")]
     public async Task<ActionResult> ImportarFiba(Guid id, [FromBody] ImportarFibaCommand command)
     {
@@ -161,6 +172,7 @@ public class SumulasController : MainController
     }
 
     /// <summary>Acrescenta um atleta do elenco à súmula depois do início do jogo (chegou atrasado).</summary>
+    [Authorize(Policy = Politicas.Arbitragem)]
     [HttpPost("{id:guid}/relacionados")]
     public async Task<ActionResult> AcrescentarAtleta(Guid id, [FromBody] AcrescentarAtletaNaSumulaCommand command)
     {
@@ -169,6 +181,7 @@ public class SumulasController : MainController
         return CustomResponse(result);
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     [HttpPost("{id:guid}/substituicoes")]
     public async Task<ActionResult> RegistrarSubstituicao(Guid id, [FromBody] RegistrarSubstituicaoCommand command)
     {
@@ -177,6 +190,7 @@ public class SumulasController : MainController
         return CustomResponse(result);
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     [HttpDelete("{id:guid}/substituicoes/ultima")]
     public async Task<ActionResult> DesfazerUltimaSubstituicao(Guid id)
     {
@@ -184,6 +198,7 @@ public class SumulasController : MainController
         return CustomResponse(result);
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     [HttpDelete("{id:guid}/eventos/ultimo")]
     public async Task<ActionResult> DesfazerUltimoEvento(Guid id, CancellationToken ct)
     {
@@ -253,6 +268,7 @@ public class SumulasController : MainController
         }
     }
 
+    [AllowAnonymous]
     [HttpGet("{id:guid}/jogadores")]
     public async Task<ActionResult> ListarJogadoresDaPartida(Guid id, CancellationToken ct)
     {

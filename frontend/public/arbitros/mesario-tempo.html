@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SisMaster — Mesário de Tempo</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+  <script src="auth.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500;600&display=swap">
   <style>
     :root {
@@ -326,7 +327,8 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const API = 'http://localhost:5200';
+  const API = ''; // mesma origem: o nginx encaminha /api e /hubs
+  if (!SisMasterAuth.exigirLogin()) throw new Error('sem sessão');
   const params = new URLSearchParams(location.search);
   const PARTIDA_ID = params.get('partidaId') || '';
 
@@ -343,7 +345,8 @@
   const connection = new signalR.HubConnectionBuilder()
     .withUrl(`${API}/hubs/sumula?partidaId=${PARTIDA_ID}`, {
       skipNegotiation: true,
-      transport: signalR.HttpTransportType.WebSockets
+      transport: signalR.HttpTransportType.WebSockets,
+      accessTokenFactory: () => SisMasterAuth.token()
     })
     .withAutomaticReconnect()
     .build();
@@ -387,7 +390,7 @@
 
   async function loadTeamNames() {
     try {
-      const r = await fetch(`${API}/api/partidas/${PARTIDA_ID}/jogadores`);
+      const r = await SisMasterAuth.fetch(`${API}/api/partidas/${PARTIDA_ID}/jogadores`);
       if (!r.ok) return;
       const d = await r.json();
       nomeCasaVal  = d.timeCasa?.sigla        || d.timeCasa?.nome        || 'Casa';

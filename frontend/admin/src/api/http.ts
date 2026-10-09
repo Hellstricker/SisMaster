@@ -3,6 +3,7 @@ export const BASE = import.meta.env.VITE_API_URL ?? '';
 /** Extrai a primeira mensagem de erro da API (ValidationProblemDetails: errors.messages[]). */
 export async function lerErro(res: Response, padrao: string): Promise<Error> {
   const json = await res.json().catch(() => ({}));
+  if (res.status === 403) return new Error(typeof json?.title === 'string' ? json.title : 'Você não tem permissão para esta ação.');
   const errors = json?.errors ?? json?.Errors;
   const lista: unknown = Array.isArray(errors) ? errors : errors?.messages ?? (errors ? Object.values(errors).flat() : []);
   const primeira = Array.isArray(lista) ? lista[0] : undefined;

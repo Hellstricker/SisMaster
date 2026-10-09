@@ -14,6 +14,7 @@ builder.Configuration
 
 builder.Services
     .AddApiConfiguration(builder.Configuration)
+    .AddSegurancaConfiguration(builder.Configuration)
     .AddSwaggerConfiguration()
     .AddDependenciesConfiguration(builder.Configuration);
 
@@ -30,3 +31,6 @@ app.UseSwaggerConfiguration()
    .UseApiConfiguration();
 
 app.Run();
+
+/// <summary>Necessário para os testes de integração (WebApplicationFactory).</summary>
+public partial class Program;

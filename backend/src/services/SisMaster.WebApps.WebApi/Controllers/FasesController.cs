@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
+using SisMaster.WebApi.Core.Autorizacao;
+using SisMaster.WebApps.WebApi.Seguranca;
 using Microsoft.AspNetCore.Mvc;
 using SisMaster.Core.Communications;
 using SisMaster.WebApps.WebApi.Application.Commands;
@@ -11,6 +14,7 @@ using SisMaster.WebApi.Core.Controllers;
 namespace SisMaster.WebApps.WebApi.Controllers;
 
 [Route("api")]
+[Authorize(Policy = Politicas.Gestao)]
 public class FasesController : MainController
 {
     private readonly IMediatorHandler _mediator;
@@ -34,6 +38,7 @@ public class FasesController : MainController
     }
 
     /// <summary>Detalhe da fase (Tela 8): estrutura, vagas/grupos, confrontos e jogos (ou a prévia, antes de gerar a tabela).</summary>
+    [IdEh(Recurso.Fase)]
     [HttpGet("fases/{id:guid}")]
     public async Task<ActionResult> Detalhar(Guid id, CancellationToken ct)
     {
@@ -42,6 +47,7 @@ public class FasesController : MainController
     }
 
     /// <summary>Classificação da fase (Tela 12), calculada dos jogos encerrados: tabela, grupos ou séries do mata-mata.</summary>
+    [IdEh(Recurso.Fase)]
     [HttpGet("fases/{id:guid}/classificacao")]
     public async Task<ActionResult> Classificar(Guid id, CancellationToken ct)
     {
@@ -50,6 +56,7 @@ public class FasesController : MainController
     }
 
     /// <summary>Distribuição manual: o grupo de cada vaga da fase (na ordem das vagas), até a tabela de jogos ser gerada.</summary>
+    [IdEh(Recurso.Fase)]
     [HttpPut("fases/{id:guid}/distribuicao-manual")]
     public async Task<ActionResult> DefinirDistribuicaoManual(Guid id, [FromBody] DefinirDistribuicaoManualCommand command)
     {
@@ -59,6 +66,7 @@ public class FasesController : MainController
     }
 
     /// <summary>Registra o sorteio da diretoria para um empate sem critério na classificação (fase inteira ou grupo).</summary>
+    [IdEh(Recurso.Fase)]
     [HttpPut("fases/{id:guid}/sorteio")]
     public async Task<ActionResult> DefinirSorteio(Guid id, [FromBody] DefinirSorteioCommand command)
     {
@@ -68,6 +76,7 @@ public class FasesController : MainController
     }
 
     /// <summary>Cria ou substitui o confronto <paramref name="numero"/> da fase de mata-mata (cruzamento entre duas origens).</summary>
+    [IdEh(Recurso.Fase)]
     [HttpPut("fases/{id:guid}/confrontos/{numero:int}")]
     public async Task<ActionResult> DefinirConfronto(Guid id, int numero, [FromBody] DefinirConfrontoCommand command)
     {
@@ -136,6 +145,7 @@ public class FasesController : MainController
         return CustomResponse(result);
     }
 
+    [IdEh(Recurso.Fase)]
     [HttpPatch("fases/{id:guid}")]
     public async Task<ActionResult> Editar(Guid id, [FromBody] EditarFaseCommand command)
     {
@@ -144,6 +154,7 @@ public class FasesController : MainController
         return CustomResponse(result);
     }
 
+    [IdEh(Recurso.Fase)]
     [HttpDelete("fases/{id:guid}")]
     public async Task<ActionResult> Excluir(Guid id)
     {
@@ -151,6 +162,7 @@ public class FasesController : MainController
         return CustomResponse(result);
     }
 
+    [IdEh(Recurso.Fase)]
     [HttpPatch("fases/{id:guid}/mover")]
     public async Task<ActionResult> Mover(Guid id, [FromBody] MoverFaseCommand command)
     {

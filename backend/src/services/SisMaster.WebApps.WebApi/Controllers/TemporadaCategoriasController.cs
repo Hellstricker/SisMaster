@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
+using SisMaster.WebApi.Core.Autorizacao;
+using SisMaster.WebApps.WebApi.Seguranca;
 using Microsoft.AspNetCore.Mvc;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
 using SisMaster.WebApi.Core.Controllers;
@@ -5,6 +8,8 @@ using SisMaster.WebApi.Core.Controllers;
 namespace SisMaster.WebApps.WebApi.Controllers;
 
 [Route("api/temporadas-categorias")]
+[Authorize(Policy = Politicas.Gestao)]
+[IdEh(Recurso.TemporadaCategoria)]
 public class TemporadaCategoriasController : MainController
 {
     private readonly ITemporadaRepository _repository;

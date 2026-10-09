@@ -40,7 +40,7 @@ try {
     }
 
     Passo '3/6 dotnet test'
-    Executar 'dotnet' @('test', 'tests/SisMaster.WebApps.Tests', '--nologo')
+    Executar 'dotnet' @('test', 'backend/SisMaster.slnx', '--nologo')
 
     Passo '4/6 front: npm ci + build + lint'
     Push-Location 'frontend/admin'
@@ -52,8 +52,13 @@ try {
 
     if ($stackNoAr) {
         Passo '5/6 API e front no ar (banco vazio, migrations aplicadas)'
-        $r = Invoke-WebRequest -Uri 'http://localhost:3300/api/associacoes' -UseBasicParsing
-        if ($r.StatusCode -ne 200) { throw "GET /api/associacoes via nginx devolveu $($r.StatusCode)" }
+        # sem login a API recusa (401); com o login do administrador de teste responde
+        $semToken = try { (Invoke-WebRequest -Uri 'http://localhost:3300/api/associacoes' -UseBasicParsing).StatusCode } catch { [int]$_.Exception.Response.StatusCode }
+        if ($semToken -ne 401) { throw "GET /api/associacoes sem login devolveu $semToken (esperado 401)" }
+        $corpo = @{ email = $env:ADMIN_EMAIL; password = $env:ADMIN_SENHA_INICIAL } | ConvertTo-Json
+        $login = Invoke-RestMethod -Uri 'http://localhost:3300/api/identidade/autenticar' -Method Post -Body $corpo -ContentType 'application/json'
+        $r = Invoke-WebRequest -Uri 'http://localhost:3300/api/associacoes' -Headers @{ Authorization = "Bearer $($login.accessToken)" } -UseBasicParsing
+        if ($r.StatusCode -ne 200) { throw "GET /api/associacoes com login devolveu $($r.StatusCode)" }
         $p = Invoke-WebRequest -Uri 'http://localhost:3300/admin/' -UseBasicParsing
         if ($p.StatusCode -ne 200) { throw "/admin/ devolveu $($p.StatusCode)" }
         Write-Host 'OK.'
@@ -61,6 +66,7 @@ try {
         if (-not $SemE2E -and (Test-Path (Join-Path $script:Raiz 'e2e/package.json'))) {
             Passo '6/6 teste ponta a ponta (Playwright)'
             $env:E2E_BASE_URL = 'http://localhost:3300'
+            $env:E2E_ADMIN_EMAIL = $env:ADMIN_EMAIL; $env:E2E_ADMIN_SENHA_INICIAL = $env:ADMIN_SENHA_INICIAL
             Push-Location 'e2e'
             try {
                 if (-not (Test-Path 'node_modules')) { Executar 'npm' @('ci') }

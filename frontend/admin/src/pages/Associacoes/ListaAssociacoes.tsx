@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   type Associacao,
@@ -21,7 +21,6 @@ export default function ListaAssociacoes() {
   const [form, setForm] = useState({ nome: '', sigla: '', uf: '' });
   const [formErros, setFormErros] = useState({ nome: '', sigla: '', uf: '' });
   const [salvando, setSalvando] = useState(false);
-  const nomeRef = useRef<HTMLInputElement>(null);
 
   async function carregar() {
     try {
@@ -37,9 +36,6 @@ export default function ListaAssociacoes() {
 
   useEffect(() => { carregar(); }, []);
 
-  useEffect(() => {
-    if (modalAberto) setTimeout(() => nomeRef.current?.focus(), 50);
-  }, [modalAberto]);
 
   function fecharModal() {
     setModalAberto(false);
@@ -158,7 +154,7 @@ export default function ListaAssociacoes() {
               <label htmlFor="nome">Nome</label>
               <input
                 id="nome"
-                ref={nomeRef}
+                autoFocus
                 className={styles.input}
                 placeholder="Associação Basketball São Paulo"
                 value={form.nome}

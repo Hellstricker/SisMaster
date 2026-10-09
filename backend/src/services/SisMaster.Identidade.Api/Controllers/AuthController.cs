@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SisMaster.Identidade.Api.Models;
+using SisMaster.WebApi.Core.Autorizacao;
 using SisMaster.WebApi.Core.Controllers;
 using SisMaster.WebApi.Core.Identities;
 using System.IdentityModel.Tokens.Jwt;
@@ -11,139 +14,157 @@ using System.Text;
 
 namespace SisMaster.Identidade.Api.Controllers;
 
+/// <summary>
+/// Entrada no sistema. Não existe cadastro aberto: as contas são criadas por um administrador (gestão de usuários)
+/// ou pelo administrador inicial definido na configuração (Bootstrap).
+/// </summary>
 [Route("api/identidade")]
 public class AuthController : MainController
 {
     private readonly UserManager<IdentityUser> _userManager;
     private readonly SignInManager<IdentityUser> _signInManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
     private readonly JwtSettings _jwtSettings;
 
-
-    public AuthController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, RoleManager<IdentityRole> roleManager, IOptions<JwtSettings> jwtSettings)
+    public AuthController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, IOptions<JwtSettings> jwtSettings)
     {
         _userManager = userManager;
         _signInManager = signInManager;
-        _roleManager = roleManager;
         _jwtSettings = jwtSettings.Value;
     }
 
-    [HttpPost("nova-conta")]
-    public async Task<IActionResult> Registrar([FromBody] UsuarioRegistro model)
-    {
-        if (!ModelState.IsValid) return CustomResponse(ModelState);
-
-        var user = new IdentityUser
-        {
-            UserName = model.Email,
-            Email = model.Email,
-            EmailConfirmed = true
-        };
-
-        var result = await _userManager.CreateAsync(user, model.Password!);
-
-        if (result.Succeeded)
-        {
-            var roleExiste = await _roleManager.RoleExistsAsync(nameof(model.Perfil));
-            if (!roleExiste)
-            {
-              var roleResult = await _roleManager.CreateAsync(new IdentityRole(nameof(model.Perfil)));
-                if(!roleResult.Succeeded)
-                {
-                    AdicionarErros(roleResult.Errors.Select(e => e.Description).ToArray());
-                    await _userManager.DeleteAsync(user);
-                    return CustomResponse();
-                }
-            }
-            await _userManager.AddToRoleAsync(user, nameof(model.Perfil));
-            return CustomResponse(await GetJwt(model.Email!));
-        }
-
-        AdicionarErros(result.Errors.Select(e => e.Description).ToArray());
-        return CustomResponse();
-    }
-
+    /// <summary>Entra com e-mail e senha. Cinco erros seguidos bloqueiam a conta por 15 minutos.</summary>
+    [AllowAnonymous]
+    [EnableRateLimiting("login")]
     [HttpPost("autenticar")]
     public async Task<IActionResult> Autenticar([FromBody] UsuarioLogin model)
     {
         if (!ModelState.IsValid) return CustomResponse(ModelState);
 
-        var result = await _signInManager.PasswordSignInAsync(model.Email!, model.Password!, isPersistent: false, lockoutOnFailure: true);
+        var user = await _userManager.FindByEmailAsync(model.Email!);
 
-        if (result.Succeeded)
-            return CustomResponse(await GetJwt(model.Email!));
+        // Mensagem única para "não existe", "senha errada" e "desativada": não revela quais e-mails têm conta.
+        if (user is null)
+        {
+            AdicionarErro("E-mail ou senha incorretos.");
+            return CustomResponse();
+        }
+
+        if (await Desativado(user))
+        {
+            AdicionarErro("Esta conta está desativada. Fale com um administrador.");
+            return CustomResponse();
+        }
+
+        var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password!, lockoutOnFailure: true);
 
         if (result.IsLockedOut)
-            AdicionarErro("Usuário bloqueado");
-        else
-            AdicionarErro("Usuário ou senha inválidos");
-
-        return CustomResponse();
-    }
-
-    private async Task<UsuarioRespostaLogin> GetJwt(string email)
-    {
-        var user = await _userManager.FindByEmailAsync(email);
-        var claims = await _userManager.GetClaimsAsync(user!);
-
-        var identityClaims = await ObterClaimsDoUsuario(claims, user!);
-        var encodedToken = CodificarToken(identityClaims);
-
-        return ObterRespostaToken(encodedToken, user!, claims);
-    }
-
-    private async Task<ClaimsIdentity> ObterClaimsDoUsuario(ICollection<Claim> claims, IdentityUser user)
-    {
-        var roles = await _userManager.GetRolesAsync(user!);
-
-        claims.Add(new Claim(JwtRegisteredClaimNames.Sub, user!.Id.ToString()));
-        claims.Add(new Claim(JwtRegisteredClaimNames.Email, user!.Email!));
-        claims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
-        claims.Add(new Claim(JwtRegisteredClaimNames.Nbf, ToUnixEpocheDate(DateTime.UtcNow).ToString()));
-        claims.Add(new Claim(JwtRegisteredClaimNames.Iat, ToUnixEpocheDate(DateTime.Now).ToString(), ClaimValueTypes.Integer64));
-        claims.Add(new Claim("nome", user.UserName!));
-        claims.Add(new Claim("id", user.Id!));
-
-        foreach (var role in roles)
-            claims.Add(new Claim("role", role));
-
-        return new ClaimsIdentity(claims);
-    }
-
-    private string CodificarToken(ClaimsIdentity identityClaims)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_jwtSettings.Segredo!);
-
-        var token = tokenHandler.CreateToken(new SecurityTokenDescriptor()
         {
-            Subject = identityClaims,
-            Issuer = _jwtSettings.Emissor,
-            Audience = _jwtSettings.Audiencia,
-            Expires = DateTime.UtcNow.AddHours(_jwtSettings.HorasParaExpirar),
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        });
+            AdicionarErro("Acesso bloqueado por tentativas demais. Tente de novo em alguns minutos ou peça a um administrador para liberar.");
+            return CustomResponse();
+        }
+        if (!result.Succeeded)
+        {
+            AdicionarErro("E-mail ou senha incorretos.");
+            return CustomResponse();
+        }
 
-        return tokenHandler.WriteToken(token);
+        return CustomResponse(await GerarResposta(user));
     }
 
-    private UsuarioRespostaLogin ObterRespostaToken(string encodedToken, IdentityUser user, IEnumerable<Claim> claims)
+    /// <summary>Renova o token de quem já está autenticado (o front chama enquanto o administrador usa o sistema).</summary>
+    [Authorize]
+    [HttpPost("renovar")]
+    public async Task<IActionResult> Renovar()
     {
-        return new UsuarioRespostaLogin()
+        var id = User.FindFirstValue("sub");
+        var user = id is null ? null : await _userManager.FindByIdAsync(id);
+        if (user is null || await Desativado(user) || await _userManager.IsLockedOutAsync(user))
+            return Unauthorized();
+
+        return CustomResponse(await GerarResposta(user));
+    }
+
+    /// <summary>
+    /// A própria pessoa troca a senha (exige a atual). Tira a marca de "senha temporária" e devolve um token novo, sem a marca.
+    /// </summary>
+    [Authorize]
+    [HttpPost("trocar-senha")]
+    public async Task<IActionResult> TrocarSenha([FromBody] TrocarSenha model)
+    {
+        if (!ModelState.IsValid) return CustomResponse(ModelState);
+
+        var id = User.FindFirstValue("sub");
+        var user = id is null ? null : await _userManager.FindByIdAsync(id);
+        if (user is null || await Desativado(user)) return Unauthorized();
+
+        if (model.NovaSenha == model.SenhaAtual)
         {
-            AccessToken = encodedToken,
-            ExpiresIn = TimeSpan.FromHours(_jwtSettings.HorasParaExpirar).TotalSeconds,
-            UserToken = new UsuarioToken()
+            AdicionarErro("A nova senha deve ser diferente da atual.");
+            return CustomResponse();
+        }
+
+        var resultado = await _userManager.ChangePasswordAsync(user, model.SenhaAtual!, model.NovaSenha!);
+        if (!resultado.Succeeded)
+        {
+            AdicionarErros(resultado.Errors.Select(e => e.Code == "PasswordMismatch" ? "Senha atual incorreta." : e.Description).ToArray());
+            return CustomResponse();
+        }
+
+        foreach (var marca in (await _userManager.GetClaimsAsync(user)).Where(c => c.Type == TiposDeClaim.TrocarSenha).ToList())
+            await _userManager.RemoveClaimAsync(user, marca);
+
+        return CustomResponse(await GerarResposta(user));
+    }
+
+    private async Task<bool> Desativado(IdentityUser user) =>
+        (await _userManager.GetClaimsAsync(user)).Any(c => c.Type == TiposDeClaim.Desativado && c.Value == "1");
+
+    private async Task<UsuarioRespostaLogin> GerarResposta(IdentityUser user)
+    {
+        var claimsDoUsuario = await _userManager.GetClaimsAsync(user);
+        var perfis = await _userManager.GetRolesAsync(user);
+
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Id),
+            new(JwtRegisteredClaimNames.Email, user.Email!),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(TiposDeClaim.Nome, claimsDoUsuario.FirstOrDefault(c => c.Type == TiposDeClaim.Nome)?.Value ?? user.Email!),
+        };
+        claims.AddRange(perfis.Select(p => new Claim(TiposDeClaim.Papel, p)));
+        // O Administrador acessa todas as associações; os outros levam no token só as vinculadas.
+        if (!perfis.Contains(Perfis.Administrador))
+            claims.AddRange(claimsDoUsuario.Where(c => c.Type == TiposDeClaim.Associacao).Select(c => new Claim(TiposDeClaim.Associacao, c.Value)));
+        var trocarSenha = claimsDoUsuario.Any(c => c.Type == TiposDeClaim.TrocarSenha && c.Value == "1");
+        if (trocarSenha) claims.Add(new Claim(TiposDeClaim.TrocarSenha, "1"));
+
+        // Árbitro: sessão longa (cobre um jogo inteiro). Administradores: curta, renovada enquanto usam o sistema.
+        var duracao = perfis.Contains(Perfis.Arbitro)
+            ? TimeSpan.FromHours(_jwtSettings.HorasParaExpirarArbitro)
+            : TimeSpan.FromMinutes(_jwtSettings.MinutosParaExpirar);
+
+        var token = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(
+            issuer: _jwtSettings.Emissor,
+            audience: _jwtSettings.Audiencia,
+            claims: claims,
+            notBefore: DateTime.UtcNow,
+            expires: DateTime.UtcNow.Add(duracao),
+            signingCredentials: new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Segredo!)), SecurityAlgorithms.HmacSha256)));
+
+        return new UsuarioRespostaLogin
+        {
+            AccessToken = token,
+            ExpiresIn = duracao.TotalSeconds,
+            UserToken = new UsuarioToken
             {
-                Id = user.Id.ToString(),
+                Id = user.Id,
                 Email = user.Email,
-                Claims = claims.Select(c => new UsuarioClaim() { Type = c.Type, Value = c.Value })
+                Nome = claims.First(c => c.Type == TiposDeClaim.Nome).Value,
+                Perfil = perfis.FirstOrDefault(),
+                Associacoes = claims.Where(c => c.Type == TiposDeClaim.Associacao).Select(c => c.Value).ToList(),
+                TrocarSenha = trocarSenha
             }
         };
-    }
-
-    private static long ToUnixEpocheDate(DateTime date)
-    {
-        return (long)Math.Round((date.ToUniversalTime() - new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalSeconds);
     }
 }

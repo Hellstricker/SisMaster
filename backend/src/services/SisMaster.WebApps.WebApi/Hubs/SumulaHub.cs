@@ -1,4 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using SisMaster.WebApi.Core.Autorizacao;
+using SisMaster.WebApi.Core.Usuarios;
+using SisMaster.WebApps.WebApi.Seguranca;
 using SisMaster.WebApps.WebApi.Domain.Sumula;
 using SisMaster.WebApps.WebApi.Hubs.Dtos;
 
@@ -7,12 +11,28 @@ namespace SisMaster.WebApps.WebApi.Hubs;
 public class SumulaHub : Hub
 {
     private readonly ISumulaRepository _partidaRepository;
+    private readonly IResolvedorDeAssociacao _resolvedor;
 
-    public SumulaHub(ISumulaRepository partidaRepository)
+    public SumulaHub(ISumulaRepository partidaRepository, IResolvedorDeAssociacao resolvedor)
     {
         _partidaRepository = partidaRepository;
+        _resolvedor = resolvedor;
     }
 
+    /// <summary>
+    /// Ver o placar é público (OnConnectedAsync é anônimo). Operar a mesa exige perfil de árbitro (ou superior) E que o jogo
+    /// seja de uma associação do usuário; senão a chamada é recusada.
+    /// </summary>
+    private async Task GarantirAcessoAsync(Guid partidaId)
+    {
+        var acesso = new AcessoDoUsuario(Context.User);
+        if (acesso.EhAdministrador) return;
+        var associacao = await _resolvedor.AssociacaoDoAsync(Recurso.Sumula, partidaId);
+        if (associacao is null || !acesso.PodeAcessar(associacao.Value))
+            throw new HubException("Sem permissão para operar esta partida.");
+    }
+
+    [AllowAnonymous]
     public override async Task OnConnectedAsync()
     {
         var partidaIdStr = Context.GetHttpContext()?.Request.Query["partidaId"].ToString();
@@ -29,9 +49,11 @@ public class SumulaHub : Hub
         await base.OnConnectedAsync();
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     public async Task EntrarComoMesarioTempo(string partidaIdStr)
     {
         if (!Guid.TryParse(partidaIdStr, out var partidaId)) return;
+        await GarantirAcessoAsync(partidaId);
         await Groups.AddToGroupAsync(Context.ConnectionId, $"mesario-tempo-{partidaId}");
         await Groups.AddToGroupAsync(Context.ConnectionId, $"partida-{partidaId}");
 
@@ -40,9 +62,11 @@ public class SumulaHub : Hub
             await Clients.Caller.SendAsync("EstadoAtual", MapEstadoDto(partida));
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     public async Task EntrarComoMesarioStats(string partidaIdStr)
     {
         if (!Guid.TryParse(partidaIdStr, out var partidaId)) return;
+        await GarantirAcessoAsync(partidaId);
         await Groups.AddToGroupAsync(Context.ConnectionId, $"mesario-stats-{partidaId}");
         await Groups.AddToGroupAsync(Context.ConnectionId, $"partida-{partidaId}");
 
@@ -51,9 +75,11 @@ public class SumulaHub : Hub
             await Clients.Caller.SendAsync("EstadoAtual", MapEstadoDto(partida));
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     public async Task IniciarCronometro(string partidaIdStr)
     {
         if (!Guid.TryParse(partidaIdStr, out var partidaId)) return;
+        await GarantirAcessoAsync(partidaId);
 
         var partida = await _partidaRepository.ObterPorIdAsync(partidaId);
         if (partida is null) return;
@@ -65,9 +91,11 @@ public class SumulaHub : Hub
         await Clients.Group($"partida-{partidaId}").SendAsync("CronometroAtualizado", MapCronometroDto(partida));
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     public async Task PausarCronometro(string partidaIdStr)
     {
         if (!Guid.TryParse(partidaIdStr, out var partidaId)) return;
+        await GarantirAcessoAsync(partidaId);
 
         var partida = await _partidaRepository.ObterPorIdAsync(partidaId);
         if (partida is null) return;
@@ -79,9 +107,11 @@ public class SumulaHub : Hub
         await Clients.Group($"partida-{partidaId}").SendAsync("CronometroAtualizado", MapCronometroDto(partida));
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     public async Task ResetarShotClock(string partidaIdStr, int segundos = 24)
     {
         if (!Guid.TryParse(partidaIdStr, out var partidaId)) return;
+        await GarantirAcessoAsync(partidaId);
 
         var partida = await _partidaRepository.ObterPorIdAsync(partidaId);
         if (partida is null) return;
@@ -93,9 +123,11 @@ public class SumulaHub : Hub
         await Clients.Group($"partida-{partidaId}").SendAsync("CronometroAtualizado", MapCronometroDto(partida));
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     public async Task AlternarPosse(string partidaIdStr)
     {
         if (!Guid.TryParse(partidaIdStr, out var partidaId)) return;
+        await GarantirAcessoAsync(partidaId);
 
         var partida = await _partidaRepository.ObterPorIdAsync(partidaId);
         if (partida is null) return;
@@ -107,9 +139,11 @@ public class SumulaHub : Hub
         await Clients.Group($"partida-{partidaId}").SendAsync("CronometroAtualizado", MapCronometroDto(partida));
     }
 
+    [Authorize(Policy = Politicas.Arbitragem)]
     public async Task AvancarPeriodo(string partidaIdStr)
     {
         if (!Guid.TryParse(partidaIdStr, out var partidaId)) return;
+        await GarantirAcessoAsync(partidaId);
 
         var partida = await _partidaRepository.ObterPorIdAsync(partidaId);
         if (partida is null) return;

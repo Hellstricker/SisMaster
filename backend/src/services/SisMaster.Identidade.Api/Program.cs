@@ -1,12 +1,6 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.HttpOverrides;
 using SisMaster.Identidade.Api.Configurations;
-using SisMaster.Identidade.Api.Data;
-using SisMaster.Identidade.Api.Extensions;
 using SisMaster.WebApi.Core.Configurations;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,9 +19,14 @@ builder.Services
 
 var app = builder.Build();
 
-app
-    .UseSwaggerConfiguration()
-    .UseApiConfiguration()
-    .MigrateDatabaseAsync().GetAwaiter().GetResult();
+await app.MigrateDatabaseAsync();
+await app.GarantirPerfisEAdministradorAsync();
+
+app.UseForwardedHeaders();
+app.UseSwaggerConfiguration()
+   .UseApiConfiguration();
 
 app.Run();
+
+/// <summary>Necessário para os testes de integração (WebApplicationFactory).</summary>
+public partial class Program;

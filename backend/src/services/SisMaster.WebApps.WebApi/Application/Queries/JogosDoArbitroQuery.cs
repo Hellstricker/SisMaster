@@ -1,8 +1,10 @@
+using SisMaster.WebApi.Core.Usuarios;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
 using SisMaster.WebApps.WebApi.Domain.Equipes;
 using SisMaster.WebApps.WebApi.Domain.Fases;
 using SisMaster.WebApps.WebApi.Domain.Jogos;
 using SisMaster.WebApps.WebApi.Domain.Sumula;
+using SisMaster.WebApps.WebApi.Seguranca;
 
 namespace SisMaster.WebApps.WebApi.Application.Queries;
 
@@ -17,10 +19,14 @@ public class JogosDoArbitroQuery
     private readonly IFaseRepository _faseRepository;
     private readonly IEquipeRepository _equipeRepository;
     private readonly ISumulaRepository _sumulaRepository;
+    private readonly IAcessoDoUsuario _acesso;
+    private readonly IResolvedorDeAssociacao _resolvedor;
 
     public JogosDoArbitroQuery(IJogoRepository jogoRepository, ITemporadaRepository temporadaRepository, IFaseRepository faseRepository,
-        IEquipeRepository equipeRepository, ISumulaRepository sumulaRepository)
+        IEquipeRepository equipeRepository, ISumulaRepository sumulaRepository, IAcessoDoUsuario acesso, IResolvedorDeAssociacao resolvedor)
     {
+        _acesso = acesso;
+        _resolvedor = resolvedor;
         _jogoRepository = jogoRepository;
         _temporadaRepository = temporadaRepository;
         _faseRepository = faseRepository;
@@ -40,6 +46,13 @@ public class JogosDoArbitroQuery
         {
             var temporada = await _temporadaRepository.ObterPorIdAsync(grupo.Key, ct);
             if (temporada is null) continue;
+
+            // Só os jogos das associações a que o usuário está vinculado (o Administrador vê todos).
+            if (_acesso.AssociacoesPermitidas is { } permitidas)
+            {
+                var associacao = await _resolvedor.AssociacaoDoAsync(Recurso.Temporada, temporada.Id, ct);
+                if (associacao is null || !permitidas.Contains(associacao.Value)) continue;
+            }
 
             var fases = await _faseRepository.ListarPorTemporadaAsync(temporada.Id, ct);
             var confrontos = await _jogoRepository.ListarConfrontosDaTemporadaAsync(temporada.Id, ct);

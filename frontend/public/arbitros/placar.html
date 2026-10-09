@@ -263,7 +263,7 @@
 <a class="back" href="/arbitros/">← Início</a>
 
 <script>
-  const API = 'http://localhost:5200';
+  const API = ''; // mesma origem: o nginx encaminha /api e /hubs (o placar é público, sem login)
   const params = new URLSearchParams(location.search);
   const PARTIDA_ID = params.get('partidaId') || '';
 

@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
+using SisMaster.WebApi.Core.Autorizacao;
+using SisMaster.WebApps.WebApi.Seguranca;
 using Microsoft.AspNetCore.Mvc;
 using SisMaster.Core.Communications;
 using SisMaster.WebApps.WebApi.Application.Commands;
@@ -30,6 +33,8 @@ public class JogosController : MainController
     }
 
     /// <summary>Detalhe do jogo (Tela 10): equipes, agenda, resultado e resumo da súmula.</summary>
+    [Authorize(Policy = Politicas.Gestao)]
+    [IdEh(Recurso.Jogo)]
     [HttpGet("jogos/{id:guid}")]
     public async Task<ActionResult> Detalhar(Guid id, CancellationToken ct)
     {
@@ -38,6 +43,8 @@ public class JogosController : MainController
     }
 
     /// <summary>Registra o W.O. (a equipe ausente perde por 20 × 0, sem bonificação).</summary>
+    [Authorize(Policy = Politicas.Gestao)]
+    [IdEh(Recurso.Jogo)]
     [HttpPost("jogos/{id:guid}/wo")]
     public async Task<ActionResult> RegistrarWO(Guid id, [FromBody] RegistrarWOCommand command)
     {
@@ -47,6 +54,8 @@ public class JogosController : MainController
     }
 
     /// <summary>A súmula do jogo para preparar a relação dos jogadores (Tela 11A).</summary>
+    [Authorize(Policy = Politicas.Arbitragem)]
+    [IdEh(Recurso.Jogo)]
     [HttpGet("jogos/{id:guid}/sumula")]
     public async Task<ActionResult> ObterSumula(Guid id, CancellationToken ct)
     {
@@ -55,6 +64,8 @@ public class JogosController : MainController
     }
 
     /// <summary>Cria a súmula do jogo (estado EmPreparacao).</summary>
+    [Authorize(Policy = Politicas.Arbitragem)]
+    [IdEh(Recurso.Jogo)]
     [HttpPost("jogos/{id:guid}/sumula")]
     public async Task<ActionResult> PrepararSumula(Guid id)
     {
@@ -63,6 +74,8 @@ public class JogosController : MainController
     }
 
     /// <summary>Salva a relação de um dos times (técnico, capitão e jogadores com a camisa do jogo).</summary>
+    [Authorize(Policy = Politicas.Arbitragem)]
+    [IdEh(Recurso.Jogo)]
     [HttpPut("jogos/{id:guid}/sumula/relacao")]
     public async Task<ActionResult> SalvarRelacao(Guid id, [FromBody] SalvarRelacaoCommand command)
     {
@@ -72,6 +85,8 @@ public class JogosController : MainController
     }
 
     /// <summary>Inicia a súmula: exige as duas relações completas.</summary>
+    [Authorize(Policy = Politicas.Arbitragem)]
+    [IdEh(Recurso.Jogo)]
     [HttpPost("jogos/{id:guid}/sumula/iniciar")]
     public async Task<ActionResult> IniciarSumula(Guid id)
     {
@@ -80,6 +95,7 @@ public class JogosController : MainController
     }
 
     /// <summary>A tabela de jogos da temporada inteira (todas as categorias), por número.</summary>
+    [Authorize(Policy = Politicas.Gestao)]
     [HttpGet("temporadas/{temporadaId:guid}/jogos")]
     public async Task<ActionResult> Listar(Guid temporadaId, CancellationToken ct)
     {
@@ -88,6 +104,7 @@ public class JogosController : MainController
     }
 
     /// <summary>Agenda vários jogos no mesmo dia, com horários em sequência.</summary>
+    [Authorize(Policy = Politicas.Gestao)]
     [HttpPatch("temporadas/{temporadaId:guid}/jogos/agendar-lote")]
     public async Task<ActionResult> AgendarEmLote(Guid temporadaId, [FromBody] AgendarJogosEmLoteCommand command)
     {
@@ -97,6 +114,7 @@ public class JogosController : MainController
     }
 
     /// <summary>Monta a tabela de jogos da temporada inteira a partir das fases (definitivo).</summary>
+    [Authorize(Policy = Politicas.Gestao)]
     [HttpPost("temporadas/{temporadaId:guid}/tabela-jogos")]
     public async Task<ActionResult> GerarTabela(Guid temporadaId)
     {
@@ -105,6 +123,8 @@ public class JogosController : MainController
     }
 
     /// <summary>Define data, hora e local do jogo.</summary>
+    [Authorize(Policy = Politicas.Gestao)]
+    [IdEh(Recurso.Jogo)]
     [HttpPatch("jogos/{id:guid}")]
     public async Task<ActionResult> Agendar(Guid id, [FromBody] AgendarJogoCommand command)
     {
@@ -113,6 +133,7 @@ public class JogosController : MainController
         return CustomResponse(result);
     }
 
+    [Authorize(Policy = Politicas.Gestao)]
     [HttpGet("associacoes/{associacaoId:guid}/locais")]
     public async Task<ActionResult> ListarLocais(Guid associacaoId, CancellationToken ct)
     {
@@ -124,6 +145,8 @@ public class JogosController : MainController
         return CustomResponse(locais.Select(l => new { l.Id, l.Nome, l.Cidade, l.Estado, Jogos = usos.GetValueOrDefault(l.Id) }));
     }
 
+    [Authorize(Policy = Politicas.Gestao)]
+    [IdEh(Recurso.Local)]
     [HttpPatch("locais/{id:guid}")]
     public async Task<ActionResult> EditarLocal(Guid id, [FromBody] EditarLocalCommand command)
     {
@@ -132,6 +155,8 @@ public class JogosController : MainController
         return CustomResponse(result);
     }
 
+    [Authorize(Policy = Politicas.Gestao)]
+    [IdEh(Recurso.Local)]
     [HttpDelete("locais/{id:guid}")]
     public async Task<ActionResult> ExcluirLocal(Guid id)
     {
@@ -139,6 +164,7 @@ public class JogosController : MainController
         return CustomResponse(result);
     }
 
+    [Authorize(Policy = Politicas.Gestao)]
     [HttpPost("associacoes/{associacaoId:guid}/locais")]
     public async Task<ActionResult> CriarLocal(Guid associacaoId, [FromBody] CriarLocalCommand command)
     {

@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
+using SisMaster.WebApi.Core.Autorizacao;
+using SisMaster.WebApps.WebApi.Seguranca;
 using Microsoft.AspNetCore.Mvc;
 using SisMaster.Core.Communications;
 using SisMaster.WebApps.WebApi.Application.Commands;
@@ -9,6 +12,7 @@ using SisMaster.WebApi.Core.Controllers;
 namespace SisMaster.WebApps.WebApi.Controllers;
 
 [Route("api")]
+[Authorize(Policy = Politicas.Gestao)]
 public class EquipesController : MainController
 {
     private readonly IMediatorHandler _mediator;
@@ -74,6 +78,7 @@ public class EquipesController : MainController
         return CustomResponse(result);
     }
 
+    [IdEh(Recurso.Equipe)]
     [HttpPatch("equipes/{id:guid}")]
     public async Task<ActionResult> Editar(Guid id, [FromBody] EditarEquipeCommand command)
     {
@@ -82,6 +87,7 @@ public class EquipesController : MainController
         return CustomResponse(result);
     }
 
+    [IdEh(Recurso.Equipe)]
     [HttpDelete("equipes/{id:guid}")]
     public async Task<ActionResult> Excluir(Guid id)
     {
@@ -89,6 +95,7 @@ public class EquipesController : MainController
         return CustomResponse(result);
     }
 
+    [IdEh(Recurso.Equipe)]
     [HttpPost("equipes/{id:guid}/atletas")]
     public async Task<ActionResult> AdicionarAtleta(Guid id, [FromBody] AdicionarAtletaCommand command)
     {
@@ -97,6 +104,7 @@ public class EquipesController : MainController
         return CustomResponse(result);
     }
 
+    [IdEh(Recurso.Equipe)]
     [HttpDelete("equipes/{id:guid}/atletas/{atletaId:guid}")]
     public async Task<ActionResult> RemoverAtleta(Guid id, Guid atletaId)
     {
