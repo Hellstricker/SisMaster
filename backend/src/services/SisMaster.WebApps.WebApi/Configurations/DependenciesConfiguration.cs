@@ -42,6 +42,7 @@ public static class DependenciesConfiguration
         services.AddScoped<ITemporadaRepository, TemporadaRepository>();
         services.AddScoped<ICategoriaRepository, CategoriaRepository>();
         services.AddScoped<IPessoaRepository, PessoaRepository>();
+        services.AddScoped<Domain.Auditoria.IAuditoria, Data.Auditoria.ServicoDeAuditoria>();
         services.AddScoped<IInscricaoRepository, InscricaoRepository>();
         services.AddScoped<IEquipeRepository, EquipeRepository>();
         services.AddScoped<IFaseRepository, FaseRepository>();
@@ -56,6 +57,8 @@ public static class DependenciesConfiguration
         services.AddScoped<JogosDaTemporadaQuery>();
         services.AddScoped<DetalheJogoQuery>();
         services.AddScoped<ResumoDaTemporadaQuery>();
+        services.AddScoped<ExportacaoDeInscricoesQuery>();
+        services.AddScoped<Application.Importacao.ImportacaoDeInscricoes>();
         services.AddScoped<PreparoSumulaQuery>();
         services.AddScoped<ImportacaoFibaPreviaQuery>();
         services.AddHttpClient<IFibaLiveStatsClient, FibaLiveStatsClient>(c =>

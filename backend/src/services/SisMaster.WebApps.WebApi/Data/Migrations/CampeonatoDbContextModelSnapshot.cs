@@ -242,6 +242,46 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.ToTable("TemporadaCategorias", (string)null);
                 });
 
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Auditoria.RegistroDeAuditoria", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Acao")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Detalhe")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("Em")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Entidade")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid?>("EntidadeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UsuarioId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Em");
+
+                    b.HasIndex("Entidade", "EntidadeId");
+
+                    b.ToTable("RegistrosDeAuditoria", (string)null);
+                });
+
             modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Equipes.Atleta", b =>
                 {
                     b.Property<Guid>("Id")
@@ -669,8 +709,17 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.Property<DateOnly>("Data")
                         .HasColumnType("date");
 
+                    b.Property<DateTime?>("EstornadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EstornadoPor")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("InscricaoId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("MotivoEstorno")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Tipo")
                         .IsRequired()

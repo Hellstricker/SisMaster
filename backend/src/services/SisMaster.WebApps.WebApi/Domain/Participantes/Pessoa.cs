@@ -34,6 +34,26 @@ public class Pessoa : Entity, IAggregateRoot
 
     public void TornarAssociado() => Perfil = PerfilPessoa.Associado;
 
+    /// <summary>Corrige e-mail e telefone (não afetam a elegibilidade).</summary>
+    public void AtualizarContato(string email, string? telefone)
+    {
+        Validacoes.ValidarSeVazio(email, "E-mail não pode ser vazio");
+        Validacoes.ValidarTamanho(email, 5, 150, "E-mail deve ter entre 5 e 150 caracteres");
+        Validacoes.ValidarSeVerdadeiro(!email.Contains('@'), "E-mail inválido");
+        Email = email.Trim();
+        Telefone = string.IsNullOrWhiteSpace(telefone) ? null : telefone.Trim();
+    }
+
+    /// <summary>Corrige os dados que definem a elegibilidade nas categorias. Só o Administrador, com registro de auditoria.</summary>
+    public void CorrigirIdentificacao(string nome, string cpf, DateOnly nascimento, Sexo sexo)
+    {
+        Validar(nome, nascimento, Email);
+        Nome = nome.Trim();
+        Cpf = new Cpf(Cpf.RemoverFormatacao(cpf));
+        Nascimento = nascimento;
+        Sexo = sexo;
+    }
+
     private static void Validar(string nome, DateOnly nascimento, string email)
     {
         Validacoes.ValidarSeVazio(nome, "Nome da pessoa não pode ser vazio");

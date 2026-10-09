@@ -15,6 +15,9 @@ public class PessoaRepository : IPessoaRepository
     public async Task<Pessoa?> ObterPorCpfAsync(string cpfSomenteDigitos, CancellationToken ct = default) =>
         await _context.Pessoas.FirstOrDefaultAsync(p => p.Cpf.Numero == cpfSomenteDigitos, ct);
 
+    public async Task<Pessoa?> ObterPorIdAsync(Guid id, CancellationToken ct = default) =>
+        await _context.Pessoas.FirstOrDefaultAsync(p => p.Id == id, ct);
+
     public void Adicionar(Pessoa pessoa) => _context.Pessoas.Add(pessoa);
 
     public void Dispose() => _context.Dispose();

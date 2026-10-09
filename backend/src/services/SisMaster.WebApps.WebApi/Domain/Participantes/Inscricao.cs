@@ -63,8 +63,9 @@ public class Inscricao : Entity, IAggregateRoot
 
     // ---- Situação financeira
 
-    public bool TaxaPaga => _pagamentos.Any(p => p.Tipo == TipoPagamento.Taxa);
-    public decimal TotalPago => _pagamentos.Sum(p => p.Valor);
+    // Pagamentos estornados continuam no histórico, mas não contam.
+    public bool TaxaPaga => _pagamentos.Any(p => p.Ativo && p.Tipo == TipoPagamento.Taxa);
+    public decimal TotalPago => _pagamentos.Where(p => p.Ativo).Sum(p => p.Valor);
     public bool CobrancaGerada => CobrancaGeradaEm is not null;
 
     /// <summary>Total das categorias menos o desconto. Nulo até a cobrança ser gerada.</summary>
@@ -94,6 +95,42 @@ public class Inscricao : Entity, IAggregateRoot
         var ic = ObterCategoria(inscricaoCategoriaId);
         ic.Aprovar(justificativaExcecao, foraDoEsperado);
         if (TaxaPaga) ic.Efetivar();
+    }
+
+    public void DesfazerAprovacao(Guid inscricaoCategoriaId) => ObterCategoria(inscricaoCategoriaId).DesfazerAprovacao();
+
+    public void ReabrirPedido(Guid inscricaoCategoriaId) => ObterCategoria(inscricaoCategoriaId).Reabrir();
+
+    /// <summary>Corrige os dados da ficha (altura, peso, posição e plano de saúde) com as mesmas regras do envio.</summary>
+    public void AtualizarDados(int? alturaCm, int? pesoKg, string? posicao, bool possuiPlanoSaude, string? nomePlanoSaude)
+    {
+        if (alturaCm is not null)
+            Validacoes.ValidarMinimoMaximo(alturaCm.Value, 100, 260, "Altura deve estar entre 100 e 260 cm");
+        if (pesoKg is not null)
+            Validacoes.ValidarMinimoMaximo(pesoKg.Value, 30, 250, "Peso deve estar entre 30 e 250 kg");
+        if (possuiPlanoSaude)
+            Validacoes.ValidarSeVazio(nomePlanoSaude ?? string.Empty, "Informe o nome do plano de saúde");
+
+        AlturaCm = alturaCm;
+        PesoKg = pesoKg;
+        Posicao = string.IsNullOrWhiteSpace(posicao) ? null : posicao.Trim();
+        PossuiPlanoSaude = possuiPlanoSaude;
+        NomePlanoSaude = possuiPlanoSaude ? nomePlanoSaude!.Trim() : null;
+    }
+
+    /// <summary>
+    /// Estorna um pagamento (fica no histórico, com motivo). Se era a taxa, os pedidos efetivados voltam a aguardar pagamento.
+    /// Quem chama confere antes que nenhum desses pedidos tenha atleta em equipe.
+    /// </summary>
+    public PagamentoInscricao EstornarPagamento(Guid pagamentoId, string motivo, string? usuario)
+    {
+        var pagamento = _pagamentos.FirstOrDefault(p => p.Id == pagamentoId)
+            ?? throw new DomainException("Pagamento não encontrado nesta ficha");
+        pagamento.Estornar(motivo, usuario);
+
+        if (pagamento.Tipo == TipoPagamento.Taxa && !TaxaPaga)
+            foreach (var ic in _categorias) ic.VoltarParaAguardandoPagamento();
+        return pagamento;
     }
 
     private InscricaoCategoria ObterCategoria(Guid id) =>

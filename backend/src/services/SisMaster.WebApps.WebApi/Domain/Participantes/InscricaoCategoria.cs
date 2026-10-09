@@ -58,6 +58,30 @@ public class InscricaoCategoria : Entity
         Status = StatusInscricaoCategoria.Efetivada;
     }
 
+    /// <summary>Volta um pedido aprovado (aguardando pagamento ou efetivado) para pendente. Quem chama confere que não há atleta em equipe.</summary>
+    internal void DesfazerAprovacao()
+    {
+        if (Status is not (StatusInscricaoCategoria.AguardandoPagamento or StatusInscricaoCategoria.Efetivada))
+            throw new DomainException("Só é possível desfazer a aprovação de um pedido aprovado");
+        Status = StatusInscricaoCategoria.Pendente;
+        JustificativaExcecao = null;
+    }
+
+    /// <summary>Reabre um pedido recusado: volta a pendente (a recusa anterior fica no histórico de auditoria).</summary>
+    internal void Reabrir()
+    {
+        if (Status != StatusInscricaoCategoria.Recusada)
+            throw new DomainException("Só é possível reabrir um pedido recusado");
+        Status = StatusInscricaoCategoria.Pendente;
+    }
+
+    /// <summary>A taxa foi estornada: o pedido efetivado volta a aguardar o pagamento.</summary>
+    internal void VoltarParaAguardandoPagamento()
+    {
+        if (Status == StatusInscricaoCategoria.Efetivada)
+            Status = StatusInscricaoCategoria.AguardandoPagamento;
+    }
+
     public void Recusar(string motivo)
     {
         if (Status != StatusInscricaoCategoria.Pendente)

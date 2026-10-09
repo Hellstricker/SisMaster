@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
 import {
   type CategoriaPedida,
   type Ficha,
@@ -9,6 +10,11 @@ import {
   recusarInscricao,
   registrarPagamentoSaldo,
   registrarPagamentoTaxa,
+  corrigirIdentificacao,
+  desfazerAprovacao,
+  editarDadosDaFicha,
+  estornarPagamento,
+  reabrirPedido,
 } from '../../api/inscricoes';
 import {
   type TemporadaDetalhe,
@@ -29,6 +35,9 @@ import {
   ModalRecusar,
   ModalValoresCategorias,
 } from './ModaisDiretoria';
+import {
+  ModalDesfazerAprovacao, ModalEditarFicha, ModalExportar, ModalIdentificacao, ModalImportar, ModalPagamentos, ModalReabrir,
+} from './ModaisG7';
 import styles from './Inscricoes.module.css';
 
 const STATUS: StatusInscricao[] = ['Pendente', 'AguardandoPagamento', 'Efetivada', 'Recusada'];
@@ -56,7 +65,14 @@ type Modal =
   | { tipo: 'taxa'; ficha: Ficha }
   | { tipo: 'saldo'; ficha: Ficha }
   | { tipo: 'valores' }
-  | { tipo: 'cobranca' };
+  | { tipo: 'cobranca' }
+  | { tipo: 'editar'; ficha: Ficha }
+  | { tipo: 'identificacao'; ficha: Ficha }
+  | { tipo: 'pagamentos'; ficha: Ficha }
+  | { tipo: 'reabrir'; ficha: Ficha; pedido: CategoriaPedida }
+  | { tipo: 'desfazer'; ficha: Ficha; pedido: CategoriaPedida }
+  | { tipo: 'exportar' }
+  | { tipo: 'importar' };
 
 /**
  * Inscrições da temporada: uma linha por ficha (pessoa), com as categorias pedidas dentro.
@@ -78,6 +94,9 @@ export default function InscricoesTemporada() {
   const [tamanho, setTamanho] = useState(25);
   const [pagina, setPagina] = useState(1);
   const [modal, setModal] = useState<Modal | null>(null);
+  const [menuAberto, setMenuAberto] = useState<string | null>(null);
+  const { usuario } = useAuth();
+  const ehAdministrador = usuario?.perfil === 'Administrador';
   const [aviso, setAviso] = useState<{ texto: string; erro: boolean } | null>(null);
 
   const categoriaFiltro = params.get('categoria') ?? 'todas';
@@ -97,6 +116,14 @@ export default function InscricoesTemporada() {
   }, [id]);
 
   useEffect(() => { carregar(); }, [carregar]);
+
+  // o menu de ações fecha ao clicar em qualquer outro lugar
+  useEffect(() => {
+    if (menuAberto === null) return;
+    const fechar = () => setMenuAberto(null);
+    document.addEventListener('click', fechar);
+    return () => document.removeEventListener('click', fechar);
+  }, [menuAberto]);
 
   useEffect(() => {
     if (!aviso) return;
@@ -249,15 +276,32 @@ export default function InscricoesTemporada() {
         </span>
       </div>
 
+      <div className={styles.tiles}>
+        {(['Pendente', 'AguardandoPagamento', 'Efetivada', 'Recusada'] as const).map(st => (
+          <button key={st} className={`${styles.tile} ${filtro === st ? styles.tileOn : ''}`} onClick={() => setFiltro(filtro === st ? 'Todas' : st)}>
+            <span className={styles.tileN}>{contagem[st]}</span>
+            <span className={styles.tileL}>{st === 'Pendente' ? 'Pendentes de análise' : ROTULO[st]}</span>
+          </button>
+        ))}
+        <div className={`${styles.tile} ${styles.tileFixo}`}>
+          <span className={styles.tileN}>{formatarMoeda(fichas.reduce((a, x) => a + (x.financeiro.cobrancaGerada ? Math.max(x.financeiro.saldo ?? 0, 0) : 0), 0))}</span>
+          <span className={styles.tileL}>A receber (fichas com cobrança)</span>
+        </div>
+      </div>
+
       <div className={styles.toolbar}>
         <select className={`${styles.select} ${styles.filtroCat}`} value={categoriaFiltro} onChange={e => escolherCategoria(e.target.value)} aria-label="Filtrar por categoria">
           <option value="todas">Todas as categorias</option>
           {temporada.categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
         <input className={`${styles.input} ${styles.busca}`} placeholder="Buscar por nome ou CPF" value={busca} onChange={e => setBusca(e.target.value)} />
-        <button className={`${styles.btnPrimary} ${styles.btnNova}`} disabled={encerrada} onClick={() => setModal({ tipo: 'nova' })} title={encerrada ? 'Temporada encerrada' : habilitadas ? '' : 'Inscrição pela diretoria: vale mesmo com as inscrições encerradas'}>
-          + Nova inscrição
-        </button>
+        <span className={styles.barraAcoes}>
+          <button className={styles.btnSecondary} onClick={() => setModal({ tipo: 'importar' })} disabled={encerrada} title={encerrada ? 'Temporada encerrada' : ''}>⬆ Importar planilha</button>
+          <button className={styles.btnSecondary} onClick={() => setModal({ tipo: 'exportar' })}>⬇ Exportar lista (CSV)</button>
+          <button className={`${styles.btnPrimary} ${styles.btnNova}`} disabled={encerrada} onClick={() => setModal({ tipo: 'nova' })} title={encerrada ? 'Temporada encerrada' : habilitadas ? '' : 'Inscrição pela diretoria: vale mesmo com as inscrições encerradas'}>
+            + Nova inscrição
+          </button>
+        </span>
       </div>
 
       <div className={styles.toolbar}>
@@ -374,6 +418,34 @@ export default function InscricoesTemporada() {
                           ? <span className={styles.mutado}>Histórico</span>
                           : temEfetivada ? <span className={styles.mutado}>{fin.cobrancaGerada ? 'Quitada · ' : ''}pronta para equipe</span> : null
                       )}
+                      <span className={styles.menuWrap} onClick={e => e.stopPropagation()}>
+                        <button className={`${styles.btnSecondary} ${styles.btnSm}`} aria-haspopup="menu" aria-expanded={menuAberto === f.id}
+                          onClick={() => setMenuAberto(menuAberto === f.id ? null : f.id)}>Ações ▾</button>
+                        {menuAberto === f.id && (
+                          <div className={styles.menuLista} role="menu">
+                            <button className={styles.menuItem} role="menuitem" disabled={encerrada} onClick={() => { setMenuAberto(null); setModal({ tipo: 'editar', ficha: f }); }}>Corrigir dados da ficha</button>
+                            {ehAdministrador && (
+                              <button className={styles.menuItem} role="menuitem" disabled={encerrada} onClick={() => { setMenuAberto(null); setModal({ tipo: 'identificacao', ficha: f }); }}>
+                                Corrigir identificação<small>nome, CPF, nascimento e sexo (Administrador)</small>
+                              </button>
+                            )}
+                            <button className={styles.menuItem} role="menuitem" disabled={fin.pagamentos.length === 0} onClick={() => { setMenuAberto(null); setModal({ tipo: 'pagamentos', ficha: f }); }}>
+                              Ver / estornar pagamentos<small>{fin.pagamentos.length === 0 ? 'sem pagamentos' : `${fin.pagamentos.length} lançamento(s)`}</small>
+                            </button>
+                            {f.categorias.some(c => c.status === 'Recusada' || c.status === 'AguardandoPagamento' || c.status === 'Efetivada') && <div className={styles.menuSep} />}
+                            {f.categorias.filter(c => c.status === 'Recusada').map(c => (
+                              <button key={`r${c.id}`} className={styles.menuItem} role="menuitem" disabled={encerrada} onClick={() => { setMenuAberto(null); setModal({ tipo: 'reabrir', ficha: f, pedido: c }); }}>
+                                Reabrir pedido recusado<small>{c.nome}</small>
+                              </button>
+                            ))}
+                            {f.categorias.filter(c => c.status === 'AguardandoPagamento' || c.status === 'Efetivada').map(c => (
+                              <button key={`d${c.id}`} className={styles.menuItem} role="menuitem" disabled={encerrada} onClick={() => { setMenuAberto(null); setModal({ tipo: 'desfazer', ficha: f, pedido: c }); }}>
+                                Desfazer aprovação<small>{c.nome} · só sem equipe formada</small>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </span>
                     </div>
                   </td>
                 </tr>
@@ -409,6 +481,36 @@ export default function InscricoesTemporada() {
       {modal?.tipo === 'saldo' && (
         <ModalPagamento tipo="saldo" nome={modal.ficha.pessoa.nome} saldo={modal.ficha.financeiro.saldo ?? 0} onFechar={() => setModal(null)}
           onConfirmar={({ valor, dataIso }) => executar(() => registrarPagamentoSaldo(modal.ficha.id, valor!, dataIso), 'Pagamento registrado.')} />
+      )}
+      {modal?.tipo === 'editar' && (
+        <ModalEditarFicha ficha={modal.ficha} onFechar={() => setModal(null)}
+          onConfirmar={dados => executar(() => editarDadosDaFicha(modal.ficha.id, dados), 'Dados da ficha salvos.')} />
+      )}
+      {modal?.tipo === 'identificacao' && (
+        <ModalIdentificacao ficha={modal.ficha} anoTemporada={temporada.ano} onFechar={() => setModal(null)}
+          onConfirmar={dados => executar(() => corrigirIdentificacao(modal.ficha.pessoa.id, dados), 'Identificação corrigida e registrada na auditoria.')} />
+      )}
+      {modal?.tipo === 'pagamentos' && (
+        <ModalPagamentos ficha={fichas.find(x => x.id === modal.ficha.id) ?? modal.ficha} somenteLeitura={encerrada} onFechar={() => setModal(null)}
+          onEstornar={(pagamentoId, motivo) => executar(() => estornarPagamento(modal.ficha.id, pagamentoId, motivo), 'Pagamento estornado e registrado no histórico.')} />
+      )}
+      {modal?.tipo === 'reabrir' && (
+        <ModalReabrir nome={`${modal.ficha.pessoa.nome} — ${modal.pedido.nome}`} motivoAnterior={modal.pedido.motivoRecusa} onFechar={() => setModal(null)}
+          onConfirmar={() => executar(() => reabrirPedido(modal.pedido.id), 'Pedido reaberto: está pendente.')} />
+      )}
+      {modal?.tipo === 'desfazer' && (
+        <ModalDesfazerAprovacao nome={`${modal.ficha.pessoa.nome} — ${modal.pedido.nome}`} onFechar={() => setModal(null)}
+          onConfirmar={motivo => executar(() => desfazerAprovacao(modal.pedido.id, motivo), 'Aprovação desfeita: o pedido voltou para pendente.')} />
+      )}
+      {modal?.tipo === 'exportar' && (
+        <ModalExportar temporadaId={temporada.id} ano={temporada.ano} quantidade={ordenadas.length}
+          rotuloFiltro={`${filtro === 'Todas' ? 'todas as situações' : ROTULO[filtro]}${categoriaFiltro === 'todas' ? '' : ', uma categoria'}${busca.trim() ? ', com busca' : ''}`}
+          filtro={{ status: filtro, categoriaId: categoriaFiltro, busca }}
+          onFechar={exportou => { setModal(null); if (exportou) setAviso({ texto: 'Arquivo gerado (a exportação foi registrada).', erro: false }); }} />
+      )}
+      {modal?.tipo === 'importar' && (
+        <ModalImportar temporadaId={temporada.id} onFechar={() => setModal(null)}
+          onConcluido={r => { setModal(null); setAviso({ texto: `Importação concluída: ${r.criadas} criadas, ${r.ignoradas} ignoradas, ${r.comErro} com erro.`, erro: r.comErro > 0 }); void carregar(); }} />
       )}
       {modal?.tipo === 'valores' && (
         <ModalValoresCategorias

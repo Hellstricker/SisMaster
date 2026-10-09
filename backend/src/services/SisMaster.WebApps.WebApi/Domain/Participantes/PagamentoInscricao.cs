@@ -18,6 +18,13 @@ public class PagamentoInscricao : Entity
     public decimal Valor { get; private set; }
     public DateOnly Data { get; private set; }
 
+    /// <summary>Pagamento estornado: continua no histórico, mas deixa de contar no total pago.</summary>
+    public DateTime? EstornadoEm { get; private set; }
+    public string? MotivoEstorno { get; private set; }
+    public string? EstornadoPor { get; private set; }
+
+    public bool Ativo => EstornadoEm is null;
+
     protected PagamentoInscricao() { }
 
     internal PagamentoInscricao(Guid inscricaoId, TipoPagamento tipo, decimal valor, DateOnly data)
@@ -27,5 +34,15 @@ public class PagamentoInscricao : Entity
         Tipo = tipo;
         Valor = valor;
         Data = data;
+    }
+
+    internal void Estornar(string motivo, string? usuario)
+    {
+        if (!Ativo)
+            throw new DomainException("Este pagamento já foi estornado");
+        Validacoes.ValidarSeVazio(motivo, "Informe o motivo do estorno");
+        EstornadoEm = DateTime.UtcNow;
+        MotivoEstorno = motivo.Trim();
+        EstornadoPor = usuario;
     }
 }

@@ -1,5 +1,5 @@
 import type { Sexo } from './categorias';
-import { enviar, obter } from './http';
+import { BASE, enviar, enviarComResposta, lerErro, obter } from './http';
 
 export type StatusInscricao = 'Pendente' | 'AguardandoPagamento' | 'Efetivada' | 'Recusada';
 export type PerfilPessoa = 'Convidado' | 'Associado';
@@ -9,6 +9,10 @@ export interface PagamentoInscricao {
   tipo: 'Taxa' | 'Saldo';
   valor: number;
   data: string;
+  /** Estornado: continua no histórico, mas não conta no total pago. */
+  estornado: boolean;
+  estornadoEm: string | null;
+  motivoEstorno: string | null;
 }
 
 /** Conta financeira da ficha (compartilhada por todas as categorias do mesmo envio). */
@@ -46,6 +50,8 @@ export interface Ficha {
     idade: number;
     sexo: Sexo;
     perfil: PerfilPessoa;
+    email: string;
+    telefone: string | null;
   };
   dados: {
     alturaCm: number | null;
@@ -98,4 +104,105 @@ export function registrarPagamentoTaxa(inscricaoId: string, dataPagamento: strin
 
 export function registrarPagamentoSaldo(inscricaoId: string, valor: number, dataPagamento: string): Promise<void> {
   return enviar('POST', `/api/inscricoes/${inscricaoId}/pagamentos/saldo`, { valor, dataPagamento }, 'Erro ao registrar o pagamento');
+}
+
+// ---- G7: correções, exportação e importação
+
+export interface DadosDaFicha {
+  alturaCm: number | null;
+  pesoKg: number | null;
+  posicao: string | null;
+  possuiPlanoSaude: boolean;
+  nomePlanoSaude: string | null;
+  email: string;
+  telefone: string | null;
+}
+
+export function editarDadosDaFicha(inscricaoId: string, dados: DadosDaFicha): Promise<void> {
+  return enviar('PATCH', `/api/inscricoes/${inscricaoId}/dados`, dados, 'Erro ao salvar os dados da ficha');
+}
+
+export function estornarPagamento(inscricaoId: string, pagamentoId: string, motivo: string): Promise<void> {
+  return enviar('POST', `/api/inscricoes/${inscricaoId}/pagamentos/${pagamentoId}/estornar`, { motivo }, 'Erro ao estornar o pagamento');
+}
+
+export function desfazerAprovacao(inscricaoCategoriaId: string, motivo: string): Promise<void> {
+  return enviar('PATCH', `/api/inscricoes-categorias/${inscricaoCategoriaId}/desfazer-aprovacao`, { motivo }, 'Erro ao desfazer a aprovação');
+}
+
+export function reabrirPedido(inscricaoCategoriaId: string): Promise<void> {
+  return enviar('PATCH', `/api/inscricoes-categorias/${inscricaoCategoriaId}/reabrir`, undefined, 'Erro ao reabrir o pedido');
+}
+
+export interface Identificacao {
+  nome: string;
+  cpf: string;
+  nascimento: string; // ISO yyyy-MM-dd
+  sexo: Sexo;
+}
+
+/** Só o Administrador: nome, CPF, nascimento e sexo definem a elegibilidade. */
+export function corrigirIdentificacao(pessoaId: string, dados: Identificacao): Promise<void> {
+  return enviar('PATCH', `/api/pessoas/${pessoaId}/identificacao`, dados, 'Erro ao corrigir a identificação');
+}
+
+export interface FiltroDeExportacao {
+  status: StatusInscricao | 'Todas';
+  categoriaId: string; // 'todas' ou id da categoria da temporada
+  busca: string;
+  cpf: boolean;
+  contato: boolean;
+  ficha: boolean;
+}
+
+/** Baixa o CSV (o servidor aplica o filtro, só inclui CPF/contato se pedidos e registra a exportação). */
+export async function exportarCsv(temporadaId: string, filtro: FiltroDeExportacao, nomeDoArquivo: string): Promise<void> {
+  const q = new URLSearchParams();
+  if (filtro.status !== 'Todas') q.set('status', filtro.status);
+  if (filtro.categoriaId !== 'todas') q.set('categoriaId', filtro.categoriaId);
+  if (filtro.busca.trim()) q.set('busca', filtro.busca.trim());
+  q.set('cpf', String(filtro.cpf));
+  q.set('contato', String(filtro.contato));
+  q.set('ficha', String(filtro.ficha));
+  const res = await fetch(`${BASE}/api/temporadas/${temporadaId}/inscricoes/exportar?${q}`);
+  if (!res.ok) throw await lerErro(res, 'Não foi possível exportar a lista');
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeDoArquivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export interface LinhaDaImportacao {
+  linha: number;
+  nome: string;
+  resultado: 'Criar' | 'Ignorar' | 'Erro';
+  mensagens: string[];
+  avisos: string[];
+}
+
+export interface PreviaDaImportacao {
+  total: number;
+  aContar: number;
+  ignoradas: number;
+  comErro: number;
+  linhas: LinhaDaImportacao[];
+}
+
+export interface ResultadoDaImportacao {
+  criadas: number;
+  ignoradas: number;
+  comErro: number;
+  linhas: LinhaDaImportacao[];
+}
+
+export function previaDaImportacao(temporadaId: string, csv: string): Promise<PreviaDaImportacao> {
+  return enviarComResposta('POST', `/api/temporadas/${temporadaId}/inscricoes/importacao/previa`, { csv }, 'Não foi possível conferir a planilha');
+}
+
+export function importarPlanilha(temporadaId: string, csv: string): Promise<ResultadoDaImportacao> {
+  return enviarComResposta('POST', `/api/temporadas/${temporadaId}/inscricoes/importacao`, { csv, consentimentoConfirmado: true }, 'Não foi possível importar a planilha');
 }

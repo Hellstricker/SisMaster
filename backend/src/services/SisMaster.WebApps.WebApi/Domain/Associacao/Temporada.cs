@@ -170,6 +170,13 @@ public class Temporada : Entity
             throw new DomainException("A data de fim da competição não pode ser anterior à de início");
     }
 
+    /// <summary>Estornar pagamento, desfazer aprovação, reabrir pedido e corrigir ficha não valem em temporada encerrada.</summary>
+    public void ValidarPermiteAlterarInscricoes()
+    {
+        if (Status == StatusTemporada.Encerrada)
+            throw new DomainException("Temporada encerrada não aceita alteração de inscrições");
+    }
+
     public void ValidarAceitaInscricoes()
     {
         if (!InscricoesHabilitadas)
