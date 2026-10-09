@@ -1,4 +1,5 @@
 using FluentAssertions;
+using SisMaster.WebApps.Tests.Infra;
 using Microsoft.EntityFrameworkCore;
 using SisMaster.WebApps.WebApi.Data;
 using SisMaster.WebApps.WebApi.Data.Repositories;
@@ -18,10 +19,8 @@ public class ImportacaoPersistenciaTests : IAsyncLifetime
     private readonly List<string> _sql = [];
     private bool _disponivel;
 
-    /// <summary>SQL Server de desenvolvimento (o do docker-compose); troque por SISMASTER_TESTE_SQLSERVER (sem o Database).</summary>
-    private static string Conexao(string banco) =>
-        (Environment.GetEnvironmentVariable("SISMASTER_TESTE_SQLSERVER")
-            ?? "Server=localhost,1433;User Id=sa;Password=SisMaster@2026!;TrustServerCertificate=True") + $";Database={banco}";
+    /// <summary>SQL Server de teste: veja BancoDeTeste (nenhuma senha no código).</summary>
+    private static string Conexao(string banco) => BancoDeTeste.ComBanco(banco);
 
     private CampeonatoDbContext NovoContexto() =>
         new(new DbContextOptionsBuilder<CampeonatoDbContext>()

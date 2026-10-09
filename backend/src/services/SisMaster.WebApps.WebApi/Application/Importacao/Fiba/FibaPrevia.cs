@@ -106,7 +106,7 @@ public static class FibaAnalisador
             else
             {
                 if ((pl.Starter == 1) != rel.Titular)
-                    problemas.Add($"{rotulo}: a camisa {camisa} ({rel.Nome}) {(pl.Starter == 1 ? "foi titular no feed e não na súmula" : "é titular na súmula e não foi no feed")}");
+                    avisos.Add($"{rotulo}: a camisa {camisa} ({rel.Nome}) {(pl.Starter == 1 ? "foi titular no feed e não na súmula" : "é titular na súmula e não foi no feed")} — ao importar, os titulares do feed prevalecem");
                 ConferirTotais(pl, eventos.Where(e => e.Camisa == camisa).ToList(), divergencias);
                 foreach (var d in divergencias) problemas.Add($"{rotulo}, camisa {camisa} ({rel.Nome}): {d}");
             }
@@ -117,15 +117,19 @@ public static class FibaAnalisador
         foreach (var r in relacionados.Where(r => tm.Pl.Values.All(p => p.ShirtNumber.Trim() != r.Numero)))
             avisos.Add($"{rotulo}: {r.Nome} (camisa {r.Numero}) está na súmula e não aparece no feed");
 
-        ValidarQuadra(rotulo, relacionados, trocas, problemas);
+        var titularesDoFeed = tm.Pl.Values.Where(p => p.Starter == 1).Select(p => p.ShirtNumber.Trim()).ToHashSet();
+        var esperados = Math.Min(5, relacionados.Count);
+        if (titularesDoFeed.Count != esperados)
+            problemas.Add($"{rotulo}: o feed indica {titularesDoFeed.Count} titulares (esperado {esperados})");
+        ValidarQuadra(rotulo, titularesDoFeed, trocas, problemas);
 
         return new PreviaTimeFiba(lado, tm.Name, nomeSumula, tm.Score, total, periodos, jogadores);
     }
 
-    /// <summary>Reproduz a quadra a partir dos titulares da súmula: toda troca precisa tirar quem está e pôr quem não está.</summary>
-    private static void ValidarQuadra(string rotulo, List<RelacionadoDaSumula> relacionados, List<TrocaFiba> trocas, List<string> problemas)
+    /// <summary>Reproduz a quadra a partir dos titulares do feed (que prevalecem sobre os da súmula): toda troca precisa tirar quem está e pôr quem não está.</summary>
+    private static void ValidarQuadra(string rotulo, IReadOnlyCollection<string> titularesDoFeed, List<TrocaFiba> trocas, List<string> problemas)
     {
-        var quadra = relacionados.Where(r => r.Titular).Select(r => r.Numero).ToHashSet();
+        var quadra = titularesDoFeed.ToHashSet();
         foreach (var t in trocas)
         {
             if (t.CamisaSai is not null && !quadra.Remove(t.CamisaSai))

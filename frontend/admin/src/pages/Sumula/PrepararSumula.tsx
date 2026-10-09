@@ -182,6 +182,11 @@ export default function PrepararSumula() {
         a relação trava quando a súmula é iniciada.
       </p>
 
+      {dados.sumula?.importadaEm && (
+        <div className={`${base.banner} ${base.bannerAviso}`}>
+          <span><b>Súmula importada do FIBA LiveStats</b> (jogo {dados.sumula.codigoExterno}) em {new Date(dados.sumula.importadaEm).toLocaleString('pt-BR')}.</span>
+        </div>
+      )}
       {!dados.existe || !dados.sumula ? (
         <div className={`${base.banner} ${base.bannerAviso}`}>
           <span><b>Este jogo ainda não tem súmula.</b> Prepare-a para informar a relação dos jogadores.</span>

@@ -70,7 +70,9 @@ public class PreparoSumulaQuery
                 // Depois do início do jogo ainda é possível acrescentar atletas (chegada tardia).
                 PodeAcrescentarAtletas = sumula.Status is StatusSumula.EmAndamento or StatusSumula.Intervalo,
                 sumula.PlacarCasa,
-                sumula.PlacarVisitante
+                sumula.PlacarVisitante,
+                sumula.CodigoExterno,
+                sumula.ImportadaEm
             },
             Times = times,
             // Sem rodízio na categoria (mínimos em quadra e fora zerados), vale só o mínimo da FIBA.

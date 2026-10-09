@@ -89,7 +89,7 @@ public class FibaImportacaoTests
     }
 
     [Fact]
-    public void Titular_divergente_impede_a_importacao()
+    public void Titular_divergente_vira_aviso_e_nao_impede_a_importacao()
     {
         var jogo = Jogo();
         var relacao = RelacaoIgualAoFeed(jogo)
@@ -97,8 +97,9 @@ public class FibaImportacaoTests
 
         var previa = FibaAnalisador.Analisar(jogo, FibaTradutor.Traduzir(jogo), relacao, Nomes);
 
-        previa.PodeAplicar.Should().BeFalse();
-        previa.Problemas.Should().Contain(p => p.Contains("camisa 11") && p.Contains("titular"));
+        previa.PodeAplicar.Should().BeTrue();
+        previa.Problemas.Should().BeEmpty();
+        previa.Avisos.Should().Contain(p => p.Contains("camisa 11") && p.Contains("titular") && p.Contains("prevalecem"));
     }
 
     [Fact]

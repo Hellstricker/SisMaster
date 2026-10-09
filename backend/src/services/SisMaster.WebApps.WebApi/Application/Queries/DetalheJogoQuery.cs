@@ -92,6 +92,8 @@ public class DetalheJogoQuery
             {
                 sumula.Id,
                 sumula.Status,
+                sumula.CodigoExterno,
+                sumula.ImportadaEm,
                 Times = sumula.Times.OrderBy(t => t.Lado).Select(t => new
                 {
                     t.Lado,

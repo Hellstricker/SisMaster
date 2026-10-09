@@ -114,4 +114,51 @@ public class SumulaImportacaoTests
 
         act.Should().Throw<DomainException>().WithMessage("*mesmo time*");
     }
+    [Fact]
+    public void Importar_com_titulares_do_feed_sobrescreve_os_titulares_da_relacao()
+    {
+        var s = Nova(iniciar: true); // casa: titulares 1-5
+        var titulares = new[] { 3, 4, 5, 6, 7 }.Select(n => J(s, LadoTime.Casa, n))
+            .Concat(new[] { 11, 12, 13, 14, 15 }.Select(n => J(s, LadoTime.Visitante, n))).ToList();
+
+        // A troca (sai 6, entra 1) só é válida com a quadra do feed; com os titulares da súmula (1-5) a camisa 6 nem estava em quadra.
+        s.ImportarJogoRealizado("2888968",
+            [new EventoImportado(J(s, LadoTime.Casa, 3), TipoEvento.Ponto2, Periodo.Primeiro, 540)],
+            [new TrocaImportada(J(s, LadoTime.Casa, 6), J(s, LadoTime.Casa, 1), Periodo.Segundo, 600)],
+            titulares);
+
+        s.TimeDoLado(LadoTime.Casa).Jogadores.Where(j => j.Titular).Select(j => j.Numero)
+            .Should().BeEquivalentTo(new[] { "3", "4", "5", "6", "7" });
+        s.Status.Should().Be(StatusSumula.Encerrada);
+    }
+
+    [Fact]
+    public void Importar_com_titulares_do_feed_numa_sumula_em_preparacao_ajusta_e_encerra()
+    {
+        var s = Nova(); // em preparação
+        var titulares = new[] { 2, 3, 4, 5, 6 }.Select(n => J(s, LadoTime.Casa, n))
+            .Concat(new[] { 11, 12, 13, 14, 15 }.Select(n => J(s, LadoTime.Visitante, n))).ToList();
+
+        s.ImportarJogoRealizado("2888968", [new EventoImportado(J(s, LadoTime.Casa, 2), TipoEvento.Ponto2, Periodo.Primeiro, 540)], [], titulares);
+
+        s.TimeDoLado(LadoTime.Casa).Jogadores.Count(j => j.Titular).Should().Be(5);
+        s.Status.Should().Be(StatusSumula.Encerrada);
+    }
+
+    [Fact]
+    public void Importar_com_titulares_que_nao_somam_cinco_por_time_e_recusado_sem_alterar_nada()
+    {
+        var s = Nova(iniciar: true);
+        var titulares = new[] { 1, 2, 3, 4 }.Select(n => J(s, LadoTime.Casa, n)) // só 4 na casa
+            .Concat(new[] { 11, 12, 13, 14, 15 }.Select(n => J(s, LadoTime.Visitante, n))).ToList();
+
+        var act = () => s.ImportarJogoRealizado("2888968", [], [], titulares);
+
+        act.Should().Throw<DomainException>().WithMessage("*4 titulares*");
+        s.Status.Should().Be(StatusSumula.EmAndamento);
+        s.CodigoExterno.Should().BeNull();
+        s.TimeDoLado(LadoTime.Casa).Jogadores.Where(j => j.Titular).Select(j => j.Numero)
+            .Should().BeEquivalentTo(new[] { "1", "2", "3", "4", "5" });
+    }
+
 }

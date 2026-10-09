@@ -71,8 +71,13 @@ public class ImportarFibaCommandHandler : IRequestHandler<ImportarFibaCommand, V
             var trocas = analise.Traducao.Trocas
                 .Select(t => new TrocaImportada(t.CamisaSai is null ? null : Jogador(t.Lado, t.CamisaSai), Jogador(t.Lado, t.CamisaEntra), t.Periodo, t.TempoRestanteSegundos)).ToList();
 
+            // Os titulares do feed prevalecem sobre os da súmula.
+            var titulares = analise.Previa.Times
+                .SelectMany(t => t.Jogadores.Where(j => j.TitularFeed && j.NomeSumula is not null).Select(j => Jogador(t.Lado, j.Camisa)))
+                .ToList();
+
             // Súmula, jogo e classificação mudam juntos, na mesma transação.
-            var resultado = sumula.ImportarJogoRealizado(analise.Codigo, eventos, trocas);
+            var resultado = sumula.ImportarJogoRealizado(analise.Codigo, eventos, trocas, titulares);
             _sumulaRepository.AplicarImportacao(resultado);
             await _sumulaRepository.GuardarDadosExternosAsync(sumula.Id, analise.JsonBruto, cancellationToken);
             jogo.ReceberPlacarImportado(sumula.Id, sumula.PlacarCasa, sumula.PlacarVisitante);

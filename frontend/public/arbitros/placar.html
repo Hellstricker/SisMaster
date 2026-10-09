@@ -328,6 +328,14 @@
     if (cron.periodoAtual) document.getElementById('periodoLabel').textContent = periodLabel(cron.periodoAtual);
   });
 
+  // Encerramento (inclusive por importacao do FIBA LiveStats): mostra o placar final e
+  // reconecta para receber o estado completo (faltas, periodo e status) que a importacao muda de uma vez.
+  connection.on('SumulaEncerrada', async p => {
+    document.getElementById('placarCasa').textContent = p.placarCasa;
+    document.getElementById('placarVisit').textContent = p.placarVisitante;
+    try { await connection.stop(); await connection.start(); setStatus(true); } catch { setStatus(false); }
+  });
+
   connection.onreconnecting(() => setStatus(false));
   connection.onreconnected(() => setStatus(true));
 

@@ -16,6 +16,9 @@ public class Jogador : Entity
     public string Numero { get; private set; } = string.Empty;
     public bool Titular { get; private set; }
 
+    /// <summary>Usado só pela importação de um jogo realizado, que ajusta os titulares aos do feed.</summary>
+    internal void DefinirTitular(bool titular) => Titular = titular;
+
     /// <summary>Período (1–5) em que o atleta foi acrescentado à súmula depois do início do jogo; nulo = relacionado desde o começo.</summary>
     public int? ChegouNoPeriodo { get; private set; }
 

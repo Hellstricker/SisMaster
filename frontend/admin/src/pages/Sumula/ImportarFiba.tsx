@@ -48,7 +48,7 @@ function situacao(j: PreviaTimeFiba['jogadores'][number]): { nivel: 'ok' | 'bad'
       : { nivel: 'warn', texto: 'Não jogou e não está relacionada' };
   }
   if (j.titularSumula !== null && j.titularSumula !== j.titularFeed) {
-    return { nivel: 'bad', texto: j.titularFeed ? 'Titular no feed, reserva na súmula' : 'Reserva no feed, titular na súmula' };
+    return { nivel: 'warn', texto: j.titularFeed ? 'Titular no feed, reserva na súmula — será ajustado ao feed' : 'Reserva no feed, titular na súmula — será ajustado ao feed' };
   }
   if (j.divergencias.length) return { nivel: 'bad', texto: j.divergencias.join('; ') };
   return { nivel: 'ok', texto: 'Confere' };

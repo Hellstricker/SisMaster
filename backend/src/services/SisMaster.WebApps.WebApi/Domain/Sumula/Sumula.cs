@@ -305,10 +305,12 @@ public class Sumula : Entity, IAggregateRoot
     public DateTime? ImportadaEm { get; private set; }
 
     /// <summary>
-    /// Substitui todos os eventos e trocas pelos de um jogo já realizado e encerra a súmula. A relação (jogadores, titulares) não
-    /// muda. As trocas são conferidas contra a quadra (os titulares com as trocas aplicadas); nada é alterado se algo não fecha.
+    /// Substitui todos os eventos e trocas pelos de um jogo já realizado e encerra a súmula. Os jogadores relacionados não mudam;
+    /// quando <paramref name="titulares"/> é informado (os titulares do feed), ele **sobrescreve** os titulares da súmula. As trocas são
+    /// conferidas contra a quadra (os titulares com as trocas aplicadas); nada é alterado se algo não fecha.
     /// </summary>
-    public ResultadoImportacao ImportarJogoRealizado(string codigoExterno, IReadOnlyList<EventoImportado> eventos, IReadOnlyList<TrocaImportada> trocas)
+    public ResultadoImportacao ImportarJogoRealizado(string codigoExterno, IReadOnlyList<EventoImportado> eventos, IReadOnlyList<TrocaImportada> trocas,
+        IReadOnlyCollection<Guid>? titulares = null)
     {
         if (string.IsNullOrWhiteSpace(codigoExterno))
             throw new DomainException("Informe o código do jogo na fonte externa");
@@ -320,7 +322,20 @@ public class Sumula : Entity, IAggregateRoot
             Validacoes.ValidarSeMenorQue(e.TempoJogoSegundos, 0, "Tempo de jogo não pode ser negativo");
         }
 
-        var quadras = _times.ToDictionary(t => t.Id, t => t.Jogadores.Where(j => j.Titular).Select(j => j.Id).ToHashSet());
+        if (titulares is not null)
+        {
+            foreach (var id in titulares)
+                if (ObterJogador(id) is null) throw new DomainException("Há um titular do feed que não está relacionado nesta súmula");
+            foreach (var time in _times)
+            {
+                var qtd = time.Jogadores.Count(j => titulares.Contains(j.Id));
+                var esperado = Math.Min(RegrasDeRelacao.Titulares, time.Jogadores.Count);
+                if (qtd != esperado) throw new DomainException($"{time.Nome}: o feed indica {qtd} titulares (esperado {esperado})");
+            }
+        }
+
+        var quadras = _times.ToDictionary(t => t.Id, t => t.Jogadores
+            .Where(j => titulares is null ? j.Titular : titulares.Contains(j.Id)).Select(j => j.Id).ToHashSet());
         foreach (var t in trocas)
         {
             var entra = ObterJogador(t.JogadorEntraId) ?? throw new DomainException("O jogador que entra não está relacionado nesta súmula");
@@ -337,6 +352,11 @@ public class Sumula : Entity, IAggregateRoot
             }
             if (!quadra.Add(entra.Id)) throw new DomainException($"{entra.Nome} já estava em quadra");
         }
+
+        // Os titulares do feed prevalecem; só depois disso a relação é conferida para iniciar.
+        if (titulares is not null)
+            foreach (var time in _times)
+                foreach (var j in time.Jogadores) j.DefinirTitular(titulares.Contains(j.Id));
 
         if (Status == StatusSumula.EmPreparacao) Iniciar(); // exige a relação completa
 

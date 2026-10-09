@@ -276,7 +276,7 @@ export interface DetalheJogo {
   podeRegistrarWO: boolean;
   podePrepararSumula: boolean;
   motivoSemSumula: string | null;
-  sumula: { id: string; status: StatusSumula; times: ResumoTimeSumula[] } | null;
+  sumula: { id: string; status: StatusSumula; codigoExterno: string | null; importadaEm: string | null; times: ResumoTimeSumula[] } | null;
 }
 
 export function obterDetalheJogo(jogoId: string): Promise<DetalheJogo> {
@@ -320,7 +320,7 @@ export interface TimePreparo {
 export interface PreparoSumula {
   jogo: { id: string; numero: number; status: StatusJogo; data: string | null; hora: string | null; categoria: string; fase: string };
   existe: boolean;
-  sumula: { id: string; status: StatusSumula; editavel: boolean; podeAcrescentarAtletas: boolean; placarCasa: number; placarVisitante: number } | null;
+  sumula: { id: string; status: StatusSumula; editavel: boolean; podeAcrescentarAtletas: boolean; placarCasa: number; placarVisitante: number; codigoExterno: string | null; importadaEm: string | null } | null;
   times: TimePreparo[];
   /** Sem rodízio na categoria, vale só o mínimo da FIBA. */
   categoriaComRodizio: boolean;

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using SisMaster.WebApps.Tests.Infra;
 using System.Text.Json.Serialization;
 using FluentAssertions;
 using Microsoft.AspNetCore.SignalR;
@@ -38,8 +39,7 @@ public class ImportarFibaHandlerTests : IAsyncLifetime
 
     private CampeonatoDbContext NovoContexto() =>
         new(new DbContextOptionsBuilder<CampeonatoDbContext>()
-            .UseSqlServer((Environment.GetEnvironmentVariable("SISMASTER_TESTE_SQLSERVER")
-                ?? "Server=localhost,1433;User Id=sa;Password=SisMaster@2026!;TrustServerCertificate=True") + $";Database={_banco}")
+            .UseSqlServer(BancoDeTeste.ComBanco(_banco))
             .Options);
 
     public async Task InitializeAsync()
@@ -75,7 +75,7 @@ public class ImportarFibaHandlerTests : IAsyncLifetime
     }
 
     /// <summary>Jogo agendado + súmula em preparação com a relação igual à do feed (Croácia em casa); inverter troca os lados.</summary>
-    private static async Task<(Guid JogoId, Guid SumulaId)> CriarJogoEmPreparacao(CampeonatoDbContext ctx, bool inverter = false)
+    private static async Task<(Guid JogoId, Guid SumulaId)> CriarJogoEmPreparacao(CampeonatoDbContext ctx, bool inverter = false, bool trocarTitular = false)
     {
         var feed = JsonSerializer.Deserialize<FibaJogoDto>(Json, Opcoes)!;
         var faseId = Guid.NewGuid();
@@ -88,6 +88,13 @@ public class ImportarFibaHandlerTests : IAsyncLifetime
         {
             var rel = feed.Tm[chave].Pl.Values
                 .Select(p => new RelacionadoNovo(Guid.NewGuid(), p.NomeCompleto, p.ShirtNumber, p.Starter == 1)).ToList();
+            if (trocarTitular && lado == LadoTime.Casa)
+            {
+                // um titular do feed vira reserva e um reserva vira titular: a súmula diverge do feed
+                var tit = rel.First(r => r.Titular);
+                var res = rel.First(r => !r.Titular);
+                rel = rel.Select(r => r == tit ? r with { Titular = false } : r == res ? r with { Titular = true } : r).ToList();
+            }
             sumula.SalvarRelacao(lado, "Prof.", null, rel, rel[0].AtletaId);
         }
         jogo.VincularSumula(sumula.Id);
@@ -128,6 +135,32 @@ public class ImportarFibaHandlerTests : IAsyncLifetime
             jogo.SumulaId.Should().Be(sumulaId);
 
             (await new SumulaRepository(ctx).ObterDadosExternosAsync(sumulaId)).Should().Be(Json);
+        }
+    }
+
+    [Fact]
+    public async Task Titulares_divergentes_sao_sobrescritos_pelos_do_feed()
+    {
+        if (!_disponivel) return;
+
+        var feed = JsonSerializer.Deserialize<FibaJogoDto>(Json, Opcoes)!;
+        var titularesDoFeed = feed.Tm["1"].Pl.Values.Where(p => p.Starter == 1).Select(p => p.ShirtNumber).ToList();
+
+        Guid sumulaId;
+        await using (var ctx = NovoContexto()) (_, sumulaId) = await CriarJogoEmPreparacao(ctx, trocarTitular: true);
+
+        await using (var ctx = NovoContexto())
+        {
+            var r = await NovoHandler(ctx, Json).Handle(new ImportarFibaCommand { SumulaId = sumulaId, Codigo = "2888968" }, default);
+            r.Errors.Should().BeEmpty();
+        }
+
+        await using (var ctx = NovoContexto())
+        {
+            var s = (await new SumulaRepository(ctx).ObterPorIdAsync(sumulaId))!;
+            s.Status.Should().Be(StatusSumula.Encerrada);
+            s.TimeDoLado(LadoTime.Casa).Jogadores.Where(j => j.Titular).Select(j => j.Numero)
+                .Should().BeEquivalentTo(titularesDoFeed);
         }
     }
 

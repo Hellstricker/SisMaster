@@ -165,6 +165,11 @@ export default function DetalheJogo() {
           </h3>
           {sumula ? (
             <>
+              {sumula.importadaEm && (
+                <div className={base.dica} style={{ marginBottom: 8 }}>
+                  Importada do FIBA LiveStats (jogo {sumula.codigoExterno}) em {new Date(sumula.importadaEm).toLocaleString('pt-BR')}.
+                </div>
+              )}
               {sumula.times.map(t => (
                 <div key={t.lado} className={styles.resumoTime}>
                   <b>{t.nome}</b> — {t.relacionados} relacionados
