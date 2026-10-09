@@ -25,7 +25,9 @@ public static class ApiConfiguration
             app.UseCors("CorsPolicy");
         app.UseAuthConfiguration();
         app.MapControllers();
-        app.MapHub<SumulaHub>("/hubs/sumula");
+        // O placar público conecta sem login (só recebe). A conexão é liberada aqui; cada método de escrita do hub exige
+        // o perfil de arbitragem por [Authorize] e a associação do jogo (ver SumulaHub).
+        app.MapHub<SumulaHub>("/hubs/sumula").AllowAnonymous();
         return app;
     }
 }
