@@ -88,6 +88,14 @@ export async function entrar(email: string, senha: string): Promise<Sessao> {
   return receber(res, 'Não foi possível entrar. Tente de novo.');
 }
 
+/** Pede a senha temporária por e-mail. A resposta é a mesma exista ou não a conta (a API não revela quais e-mails têm conta). */
+export async function esqueciSenha(email: string): Promise<void> {
+  const res = await fetch(`${BASE}/api/identidade/esqueci-senha`, {
+    method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ email }),
+  });
+  if (!res.ok) throw await lerErro(res, 'Não foi possível enviar o pedido. Tente de novo.');
+}
+
 /** Troca o token por um novo (o fetch interceptado já manda o atual). Usado enquanto a pessoa está usando o sistema. */
 export async function renovarSessao(): Promise<void> {
   const res = await fetch(`${BASE}/api/identidade/renovar`, { method: 'POST' });

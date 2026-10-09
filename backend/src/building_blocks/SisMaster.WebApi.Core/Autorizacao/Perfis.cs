@@ -38,4 +38,7 @@ public static class TiposDeClaim
 
     /// <summary>Presente (valor "1") numa conta desativada: não consegue entrar, mas nada é apagado.</summary>
     public const string Desativado = "desativado";
+
+    /// <summary>Quando (segundos Unix) a pessoa pediu a última recuperação de senha; limita a um pedido a cada poucos minutos.</summary>
+    public const string RecuperacaoEm = "recuperacao-em";
 }

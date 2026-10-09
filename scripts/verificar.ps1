@@ -14,6 +14,8 @@
 param([switch]$SemDocker, [switch]$SemE2E)
 
 $ErrorActionPreference = 'Stop'
+# Com NO_COLOR e FORCE_COLOR juntos (alguns terminais; o Playwright define FORCE_COLOR), o Node avisa no stderr e o script tomaria o aviso por erro.
+Remove-Item Env:FORCE_COLOR, Env:NO_COLOR -ErrorAction SilentlyContinue
 . "$PSScriptRoot\lib.ps1"
 $inicio = Get-Date
 $stackNoAr = $false

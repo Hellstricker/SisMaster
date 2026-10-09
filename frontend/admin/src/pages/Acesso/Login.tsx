@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { destinoAposEntrar, useAuth } from '../../auth/AuthContext';
+import { esqueciSenha } from '../../auth/sessao';
 import { AREA_ARBITROS } from '../../utils/area';
 import styles from './Acesso.module.css';
 
@@ -17,6 +18,7 @@ export default function Login() {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState('');
   const [esqueci, setEsqueci] = useState(false);
+  const [pedido, setPedido] = useState<'' | 'enviando' | 'enviado'>('');
 
   // já logado: segue para a área certa
   if (usuario) {
@@ -39,6 +41,19 @@ export default function Login() {
     } catch (ex) {
       setErro(ex instanceof Error ? ex.message : 'Não foi possível entrar.');
       setEnviando(false);
+    }
+  }
+
+  async function recuperar() {
+    setErro('');
+    if (!/\S+@\S+\.\S+/.test(email)) { setErro('Informe o seu e-mail acima para receber a senha temporária.'); return; }
+    setPedido('enviando');
+    try {
+      await esqueciSenha(email.trim());
+      setPedido('enviado');
+    } catch (ex) {
+      setPedido('');
+      setErro(ex instanceof Error ? ex.message : 'Não foi possível enviar o pedido.');
     }
   }
 
@@ -69,10 +84,21 @@ export default function Login() {
             <button className={styles.botao} disabled={enviando}>{enviando ? 'Entrando…' : 'Entrar'}</button>
           </form>
 
-          <p className={styles.rodape}><a onClick={() => setEsqueci(true)}>Esqueci minha senha</a></p>
+          <p className={styles.rodape}><a onClick={() => { setEsqueci(true); setPedido(''); }}>Esqueci minha senha</a></p>
           {esqueci && (
             <div className={`${styles.aviso} ${styles.info}`} style={{ marginTop: 12, marginBottom: 0 }}>
-              Peça a um administrador para redefinir a sua senha. Você receberá uma senha temporária por e-mail e a troca ao entrar.
+              {pedido === 'enviado'
+                ? 'Se o e-mail estiver cadastrado, enviamos uma senha temporária para ele. Entre com ela e defina a sua senha. Você pode pedir de novo depois de 10 minutos.'
+                : (
+                  <>
+                    Informe o seu e-mail no campo acima e peça uma senha temporária. Ela chega por e-mail e deve ser trocada ao entrar.
+                    <div style={{ marginTop: 8 }}>
+                      <button type="button" className={styles.botao} onClick={recuperar} disabled={pedido === 'enviando'}>
+                        {pedido === 'enviando' ? 'Enviando…' : 'Enviar senha temporária'}
+                      </button>
+                    </div>
+                  </>
+                )}
             </div>
           )}
         </div>
