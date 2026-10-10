@@ -29,3 +29,10 @@
 .links { display: flex; gap: 6px; flex-wrap: wrap; }
 .botao { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 @media (max-width: 620px) { .jogo { grid-template-columns: 1fr; } .acoes { min-width: 0; } }
+
+/* Celular: botões com tamanho de toque (mínimo de 44 px), para uso na quadra com o dedo. */
+@media (max-width: 620px) {
+  .acoes .botao, .acoes button { min-height: 44px; height: auto; font-size: 15px; }
+  .topo button { min-height: 40px; }
+  .filtros select { min-height: 40px; }
+}
