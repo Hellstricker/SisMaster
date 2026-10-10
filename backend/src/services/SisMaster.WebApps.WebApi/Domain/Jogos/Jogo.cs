@@ -125,6 +125,24 @@ public class Jogo : Entity, IAggregateRoot
         Status = StatusJogo.WO;
     }
 
+    /// <summary>Desfaz o W.O. registrado: o jogo volta a Agendado (mesma data, hora e local) e o placar 20 × 0 é apagado.</summary>
+    public void DesfazerWO()
+    {
+        if (Status != StatusJogo.WO)
+            throw new DomainException("O jogo não está em W.O.");
+        PlacarCasa = null;
+        PlacarVisitante = null;
+        Status = StatusJogo.Agendado;
+    }
+
+    /// <summary>Um jogo "se necessário" dispensado porque a série foi decidida volta a Agendado (a série deixou de estar decidida).</summary>
+    public void ReativarDispensado()
+    {
+        if (Status != StatusJogo.Dispensado)
+            throw new DomainException("O jogo não está dispensado");
+        Status = StatusJogo.Agendado;
+    }
+
     /// <summary>A série já foi decidida: o jogo "se necessário" não será disputado. Só jogo agendado; descarta a súmula preparada.</summary>
     public void Dispensar()
     {

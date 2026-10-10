@@ -1,4 +1,6 @@
+using SisMaster.WebApps.WebApi.Application.Services;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
+using SisMaster.WebApps.WebApi.Domain.Auditoria;
 using SisMaster.WebApps.WebApi.Domain.Equipes;
 using SisMaster.WebApps.WebApi.Domain.Fases;
 using SisMaster.WebApps.WebApi.Domain.Jogos;
@@ -15,10 +17,15 @@ public class DetalheJogoQuery
     private readonly ISumulaRepository _sumulaRepository;
     private readonly ITemporadaRepository _temporadaRepository;
     private readonly ILocalRepository _localRepository;
+    private readonly DesfazerWOServico _desfazerWO;
+    private readonly IAuditoria _auditoria;
 
     public DetalheJogoQuery(IJogoRepository jogoRepository, IFaseRepository faseRepository, IEquipeRepository equipeRepository,
-        ISumulaRepository sumulaRepository, ITemporadaRepository temporadaRepository, ILocalRepository localRepository)
+        ISumulaRepository sumulaRepository, ITemporadaRepository temporadaRepository, ILocalRepository localRepository,
+        DesfazerWOServico desfazerWO, IAuditoria auditoria)
     {
+        _desfazerWO = desfazerWO;
+        _auditoria = auditoria;
         _jogoRepository = jogoRepository;
         _faseRepository = faseRepository;
         _equipeRepository = equipeRepository;
@@ -62,6 +69,10 @@ public class DetalheJogoQuery
             else if (!temporadaAberta) motivoSemSumula = "A temporada está encerrada";
         }
 
+        // Só um W.O. pode ser desfeito, e só se nada depende do resultado (a tela mostra o motivo quando não pode).
+        var motivoSemDesfazerWO = jogo.Status == StatusJogo.WO ? await _desfazerWO.MotivoQueImpedeAsync(jogo, ct) : null;
+        var historico = (await _auditoria.ListarAsync("Jogo", jogo.Id, ct)).Select(r => new { r.Em, r.Acao, r.Detalhe }).ToList();
+
         return new
         {
             jogo.Id,
@@ -86,6 +97,9 @@ public class DetalheJogoQuery
             WoCasaAusente = jogo.Status == StatusJogo.WO ? jogo.PlacarCasa == 0 : (bool?)null,
             PodeAgendar = jogo.Status == StatusJogo.Agendado && !sumulaIniciada && temporadaAberta,
             PodeRegistrarWO = definidas && jogo.Status == StatusJogo.Agendado && !sumulaIniciada && temporadaAberta,
+            PodeDesfazerWO = jogo.Status == StatusJogo.WO && motivoSemDesfazerWO is null,
+            MotivoSemDesfazerWO = motivoSemDesfazerWO,
+            Historico = historico,
             PodePrepararSumula = sumula is null && motivoSemSumula is null,
             MotivoSemSumula = motivoSemSumula,
             Sumula = sumula is null ? null : new

@@ -3,6 +3,8 @@ using MediatR;
 using SisMaster.Core.DomainObjects;
 using SisMaster.WebApps.WebApi.Application.Services;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
+using SisMaster.WebApps.WebApi.Domain.Auditoria;
+using SisMaster.WebApps.WebApi.Domain.Equipes;
 using SisMaster.WebApps.WebApi.Domain.Jogos;
 using SisMaster.WebApps.WebApi.Domain.Sumula;
 using SisMaster.WebApps.WebApi.Domain.Sumula.Enums;
@@ -15,9 +17,14 @@ public class RegistrarWOCommandHandler : IRequestHandler<RegistrarWOCommand, Val
     private readonly ISumulaRepository _sumulaRepository;
     private readonly ITemporadaRepository _temporadaRepository;
     private readonly AvancoDaTemporada _avanco;
+    private readonly IEquipeRepository _equipeRepository;
+    private readonly IAuditoria _auditoria;
 
-    public RegistrarWOCommandHandler(IJogoRepository jogoRepository, ISumulaRepository sumulaRepository, ITemporadaRepository temporadaRepository, AvancoDaTemporada avanco)
+    public RegistrarWOCommandHandler(IJogoRepository jogoRepository, ISumulaRepository sumulaRepository, ITemporadaRepository temporadaRepository, AvancoDaTemporada avanco,
+        IEquipeRepository equipeRepository, IAuditoria auditoria)
     {
+        _equipeRepository = equipeRepository;
+        _auditoria = auditoria;
         _jogoRepository = jogoRepository;
         _sumulaRepository = sumulaRepository;
         _temporadaRepository = temporadaRepository;
@@ -53,8 +60,14 @@ public class RegistrarWOCommandHandler : IRequestHandler<RegistrarWOCommand, Val
                 jogo.DesvincularSumula();
             }
 
+            var nomes = (await _equipeRepository.ObterElencosAsync(jogo.TemporadaId, cancellationToken)).NomesDasEquipes;
+            string Nome(Guid? equipe) => equipe is { } id ? nomes.GetValueOrDefault(id, "equipe") : "equipe";
+            var ausente = request.CasaAusente ? Nome(jogo.Casa.EquipeId) : Nome(jogo.Visitante.EquipeId);
+            var vencedora = request.CasaAusente ? Nome(jogo.Visitante.EquipeId) : Nome(jogo.Casa.EquipeId);
+
             jogo.RegistrarWO(request.CasaAusente);
             await _avanco.ExecutarAsync(jogo.TemporadaId, cancellationToken);
+            _auditoria.Registrar("RegistrarWO", "Jogo", jogo.Id, $"W.O. registrado: {ausente} ausente; {vencedora} vence por {Jogo.PlacarWO} × 0 (sem bonificação).");
             await _jogoRepository.UnitOfWork.Commit();
 
             return request.ValidationResult;

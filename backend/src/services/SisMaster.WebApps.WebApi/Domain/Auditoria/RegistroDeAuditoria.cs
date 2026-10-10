@@ -38,4 +38,7 @@ public interface IAuditoria
 
     /// <summary>Para ações sem outra gravação (por exemplo, exportar): grava na hora.</summary>
     Task RegistrarEGravarAsync(string acao, string entidade, Guid? entidadeId, string detalhe, CancellationToken ct = default);
+
+    /// <summary>O histórico de uma entidade (somente leitura), do mais antigo ao mais recente.</summary>
+    Task<IReadOnlyList<RegistroDeAuditoria>> ListarAsync(string entidade, Guid entidadeId, CancellationToken ct = default);
 }

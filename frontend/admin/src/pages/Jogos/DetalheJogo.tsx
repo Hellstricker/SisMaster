@@ -6,6 +6,7 @@ import {
   type LadoJogo,
   type StatusJogo,
   type StatusSumula,
+  desfazerWO,
   linksDaSumula,
   obterDetalheJogo,
   prepararSumula,
@@ -49,6 +50,7 @@ export default function DetalheJogo() {
   const [agendando, setAgendando] = useState(false);
   const [wo, setWo] = useState<{ casaAusente: boolean } | null>(null);
   const [woErro, setWoErro] = useState('');
+  const [desfazendo, setDesfazendo] = useState<{ motivo: string; erro: string; salvando: boolean } | null>(null);
   const [aviso, setAviso] = useState<{ texto: string; erro: boolean } | null>(null);
 
   const carregar = useCallback(async () => {
@@ -100,6 +102,20 @@ export default function DetalheJogo() {
     }
   }
 
+  async function confirmarDesfazerWO() {
+    if (!desfazendo) return;
+    if (!desfazendo.motivo.trim()) return setDesfazendo({ ...desfazendo, erro: 'Informe o motivo para desfazer o W.O.' });
+    setDesfazendo({ ...desfazendo, erro: '', salvando: true });
+    try {
+      await desfazerWO(id!, desfazendo.motivo.trim());
+      setDesfazendo(null);
+      setAviso({ texto: 'W.O. desfeito: o jogo voltou a Agendado.', erro: false });
+      await carregar();
+    } catch (e) {
+      setDesfazendo({ ...desfazendo, salvando: false, erro: e instanceof Error ? e.message : 'Não foi possível desfazer o W.O.' });
+    }
+  }
+
   return (
     <div className={base.page}>
       <div className={base.topbar}>
@@ -128,6 +144,8 @@ export default function DetalheJogo() {
 
       {!dados.casa.definida || !dados.visitante.definida ? (
         <div className={`${base.banner} ${base.bannerAviso}`}><span><b>Equipes ainda não definidas.</b> A súmula só pode ser preparada quando as fases de origem terminarem.</span></div>
+      ) : dados.status === 'Dispensado' ? (
+        <div className={`${base.banner} ${base.bannerTrava}`}><span><b>Jogo dispensado.</b> A série já foi decidida: este jogo “se necessário” não será disputado.</span></div>
       ) : dados.status === 'WO' ? (
         <div className={`${base.banner} ${base.bannerTrava}`}><span><b>W.O. registrado.</b> {wTime} ausente · 20 × 0, sem bonificação.</span></div>
       ) : dados.status === 'Encerrado' ? (
@@ -199,6 +217,8 @@ export default function DetalheJogo() {
             </>
           ) : dados.status === 'WO' ? (
             <p className={base.dica}>Sem súmula: o jogo foi decidido por W.O.</p>
+          ) : dados.status === 'Dispensado' ? (
+            <p className={base.dica}>Sem súmula: o jogo foi dispensado porque a série já foi decidida.</p>
           ) : (
             <>
               <p className={base.dica}>{dados.motivoSemSumula ?? 'Nenhuma súmula criada para este jogo.'}</p>
@@ -216,7 +236,25 @@ export default function DetalheJogo() {
         {dados.podeRegistrarWO && (
           <button className={`${base.btnSecondary} ${base.btnSm}`} onClick={() => { setWoErro(''); setWo({ casaAusente: true }); }}>Registrar W.O.…</button>
         )}
+        {dados.status === 'WO' && (
+          <>
+            <button className={`${base.btnSecondary} ${base.btnSm}`} disabled={!dados.podeDesfazerWO}
+              onClick={() => setDesfazendo({ motivo: '', erro: '', salvando: false })}>Desfazer W.O.…</button>
+            {dados.motivoSemDesfazerWO && <div className={styles.bloqueioAgenda} role="alert">{dados.motivoSemDesfazerWO}</div>}
+          </>
+        )}
       </div>
+
+      {dados.historico.length > 0 && (
+        <div className={styles.cartaoInfo}>
+          <h3>Histórico do jogo</h3>
+          <ul className={styles.historicoJogo}>
+            {dados.historico.map((h, i) => (
+              <li key={`${h.em}-${i}`}><span className={styles.quando}>{new Date(h.em).toLocaleString('pt-BR')}</span>{h.detalhe}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {agendando && (
         <ModalAgendar
@@ -243,6 +281,28 @@ export default function DetalheJogo() {
             <div className={base.modalFooter}>
               <button className={base.btnSecondary} onClick={() => setWo(null)}>Cancelar</button>
               <button className={base.btnPrimary} onClick={confirmarWO}>Registrar W.O.</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {desfazendo && (
+        <div className={base.overlay} onMouseDown={e => { if (e.target === e.currentTarget && !desfazendo.salvando) setDesfazendo(null); }}>
+          <div className={base.modal} style={{ maxWidth: 480 }}>
+            <h2 className={base.modalTitulo}>Desfazer W.O.</h2>
+            <p className={base.modalTexto}>
+              O jogo volta a Agendado, com a mesma data, horário e local. O resultado 20 × 0 é apagado e a classificação é recalculada.
+              Se o W.O. decidiu uma série, o jogo “se necessário” dispensado por ele volta a Agendado. Fica registrado no histórico do jogo.
+            </p>
+            <div className={base.field}>
+              <label htmlFor="df-motivo">Motivo <small>(obrigatório)</small></label>
+              <input id="df-motivo" className={base.input} maxLength={300} placeholder="Ex.: marquei a equipe errada" autoFocus value={desfazendo.motivo}
+                onChange={e => setDesfazendo({ ...desfazendo, motivo: e.target.value, erro: '' })} />
+            </div>
+            {desfazendo.erro && <p className={base.fieldErro}>{desfazendo.erro}</p>}
+            <div className={base.modalFooter}>
+              <button className={base.btnSecondary} onClick={() => setDesfazendo(null)} disabled={desfazendo.salvando}>Cancelar</button>
+              <button className={base.btnPrimary} onClick={confirmarDesfazerWO} disabled={desfazendo.salvando}>{desfazendo.salvando ? 'Desfazendo...' : 'Desfazer W.O.'}</button>
             </div>
           </div>
         </div>

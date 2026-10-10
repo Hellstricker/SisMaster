@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using SisMaster.WebApi.Core.Usuarios;
 using SisMaster.WebApps.WebApi.Domain.Auditoria;
 
@@ -7,6 +8,12 @@ public sealed class ServicoDeAuditoria(CampeonatoDbContext contexto, IAcessoDoUs
 {
     public void Registrar(string acao, string entidade, Guid? entidadeId, string detalhe) =>
         contexto.RegistrosDeAuditoria.Add(new RegistroDeAuditoria(acesso.Id, acao, entidade, entidadeId, detalhe));
+
+    public async Task<IReadOnlyList<RegistroDeAuditoria>> ListarAsync(string entidade, Guid entidadeId, CancellationToken ct = default) =>
+        await contexto.RegistrosDeAuditoria.AsNoTracking()
+            .Where(r => r.Entidade == entidade && r.EntidadeId == entidadeId)
+            .OrderBy(r => r.Em)
+            .ToListAsync(ct);
 
     public async Task RegistrarEGravarAsync(string acao, string entidade, Guid? entidadeId, string detalhe, CancellationToken ct = default)
     {

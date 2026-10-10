@@ -36,6 +36,9 @@ public interface IJogoRepository : IRepository<Jogo>
     /// <summary>Alguma vaga de outra fase já foi resolvida a partir da colocação nesta fase?</summary>
     Task<bool> ExisteVagaResolvidaPelaColocacaoAsync(Guid faseId, CancellationToken ct = default);
 
+    /// <summary>Alguma vaga de outra fase já foi resolvida a partir do vencedor ou do perdedor deste confronto?</summary>
+    Task<bool> ExisteVagaResolvidaPeloConfrontoAsync(Guid confrontoId, CancellationToken ct = default);
+
     /// <summary>
     /// Jogos já agendados (com data) que ainda não terminaram (Agendado ou Em andamento), de temporadas não encerradas,
     /// com vagas e local (somente leitura), por data e hora.

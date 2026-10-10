@@ -277,6 +277,11 @@ export interface DetalheJogo {
   woCasaAusente: boolean | null;
   podeAgendar: boolean;
   podeRegistrarWO: boolean;
+  /** Só em jogo de W.O. e só se nada foi calculado a partir do resultado. */
+  podeDesfazerWO: boolean;
+  motivoSemDesfazerWO: string | null;
+  /** W.O. registrados e desfeitos, do mais antigo ao mais recente. */
+  historico: { em: string; acao: string; detalhe: string }[];
   podePrepararSumula: boolean;
   motivoSemSumula: string | null;
   sumula: { id: string; status: StatusSumula; codigoExterno: string | null; importadaEm: string | null; times: ResumoTimeSumula[] } | null;
@@ -288,6 +293,11 @@ export function obterDetalheJogo(jogoId: string): Promise<DetalheJogo> {
 
 export function registrarWO(jogoId: string, casaAusente: boolean): Promise<void> {
   return enviar('POST', `/api/jogos/${jogoId}/wo`, { casaAusente }, 'Erro ao registrar o W.O.');
+}
+
+/** Desfaz o W.O.: o jogo volta a Agendado. O motivo é obrigatório e fica no histórico do jogo. */
+export function desfazerWO(jogoId: string, motivo: string): Promise<void> {
+  return enviar('POST', `/api/jogos/${jogoId}/desfazer-wo`, { motivo }, 'Erro ao desfazer o W.O.');
 }
 
 // ---------- Tela 11A: preparar a súmula ----------

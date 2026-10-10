@@ -52,6 +52,10 @@ public class JogoRepository : IJogoRepository
     public async Task<bool> ExisteVagaResolvidaPelaColocacaoAsync(Guid faseId, CancellationToken ct = default) =>
         await _context.FaseEquipes.AnyAsync(v => v.EquipeId != null && v.Origem.Tipo == TipoReferencia.Colocacao && v.Origem.FaseId == faseId, ct);
 
+    public async Task<bool> ExisteVagaResolvidaPeloConfrontoAsync(Guid confrontoId, CancellationToken ct = default) =>
+        await _context.FaseEquipes.AnyAsync(v => v.EquipeId != null && v.Origem.ConfrontoOrigemId == confrontoId
+            && (v.Origem.Tipo == TipoReferencia.Vencedor || v.Origem.Tipo == TipoReferencia.Perdedor), ct);
+
     public async Task<IReadOnlyList<Jogo>> ListarAgendadosPendentesAsync(CancellationToken ct = default) =>
         await _context.Jogos.AsNoTracking()
             .Include(j => j.Local).Include(j => j.Casa).Include(j => j.Visitante)

@@ -56,6 +56,17 @@ public class JogosController : MainController
         return CustomResponse(result);
     }
 
+    /// <summary>Desfaz o W.O.: o jogo volta a Agendado. Exige motivo; recusa se algo já foi calculado a partir do resultado.</summary>
+    [Authorize(Policy = Politicas.Gestao)]
+    [IdEh(Recurso.Jogo)]
+    [HttpPost("jogos/{id:guid}/desfazer-wo")]
+    public async Task<ActionResult> DesfazerWO(Guid id, [FromBody] DesfazerWOCommand command)
+    {
+        command.JogoId = id;
+        var result = await _mediator.EnviarComando(command);
+        return CustomResponse(result);
+    }
+
     /// <summary>A súmula do jogo para preparar a relação dos jogadores (Tela 11A).</summary>
     [Authorize(Policy = Politicas.Arbitragem)]
     [IdEh(Recurso.Jogo)]

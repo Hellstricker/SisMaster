@@ -80,3 +80,8 @@
 .formatoSel { border-color: var(--accent, #4f46e5); }
 .formato input { margin-top: 3px; }
 .formato small { display: block; color: var(--text-secondary); font-size: 12px; }
+
+.historicoJogo { list-style: none; margin: 0; padding: 0; font-size: 13px; color: var(--text-primary); }
+.historicoJogo li { padding: 6px 0; border-bottom: 1px dashed var(--border); }
+.historicoJogo li:last-child { border-bottom: 0; }
+.quando { color: var(--text-secondary); font-size: 12px; margin-right: 8px; }
