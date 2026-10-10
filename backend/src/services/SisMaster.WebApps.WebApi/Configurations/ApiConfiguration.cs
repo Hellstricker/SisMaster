@@ -10,7 +10,12 @@ public static class ApiConfiguration
     {
         services.AddControllers()
             .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-        services.AddSignalR();
+        // Batimento de 5 s e tolerância de 20 s: a queda de rede na quadra é percebida rápido (o padrão é 15 s / 30 s).
+        services.AddSignalR(o =>
+        {
+            o.KeepAliveInterval = TimeSpan.FromSeconds(5);
+            o.ClientTimeoutInterval = TimeSpan.FromSeconds(20);
+        });
         // Tudo roda na mesma origem (o nginx serve o front e encaminha /api); CORS só se houver origens configuradas (Cors:Origens).
         var origens = configuration.GetSection("Cors:Origens").Get<string[]>() ?? [];
         if (origens.Length > 0)

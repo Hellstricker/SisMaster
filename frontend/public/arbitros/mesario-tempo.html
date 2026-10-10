@@ -4,10 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SisMaster — Mesário de Tempo</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+  <script src="signalr.min.js"></script>
   <script src="auth.js"></script>
+  <script src="conexao.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500;600&display=swap">
   <style>
+    /* Sem conexão: aviso grande e os controles travados (nada é enviado enquanto a rede não volta). */
+    .sem-conexao { display: none; background: #b91c1c; color: #fff; text-align: center; font-weight: 700; padding: 10px 12px; font-size: 1rem; }
+    body.offline .sem-conexao { display: block; }
+    body.offline .main .btn, body.offline .main .posse-btn { opacity: .35; pointer-events: none; }
     :root {
       --bg:      #070b14;
       --surface: #0d1320;
@@ -280,6 +285,8 @@
   </div>
 </div>
 
+<div class="sem-conexao" id="semConexao" role="alert">SEM CONEXÃO — reconectando… as ações NÃO estão sendo enviadas e o relógio pode estar desatualizado</div>
+
 <div class="main">
 
   <div class="clock-block">
@@ -341,39 +348,41 @@
   let nomeCasaVal = '—', nomeVisitVal = '—';
   let confirmCb = null;
 
-  // ── SignalR ──────────────────────────────────────────────────────
-  const connection = new signalR.HubConnectionBuilder()
-    .withUrl(`${API}/hubs/sumula?partidaId=${PARTIDA_ID}`, {
-      skipNegotiation: true,
-      transport: signalR.HttpTransportType.WebSockets,
-      accessTokenFactory: () => SisMasterAuth.token()
-    })
-    .withAutomaticReconnect()
-    .build();
-
-  connection.on('EstadoAtual', state => { updateScore(state); updateClock(state.cronometro); });
-  connection.on('EventoRegistrado', ev => updateScore(ev));
-  connection.on('CronometroAtualizado', cron => {
-    updateClock(cron);
-    if (cron.periodoAtual) {
-      const lbl = periodLabel(cron.periodoAtual);
-      document.getElementById('periodoLabel').textContent = lbl + ' Período';
-      document.getElementById('periodoNum').textContent   = lbl;
+  // ── SignalR (conexão que não desiste; ver conexao.js) ─────────────────
+  const conexao = SisMasterConexao.criar({
+    partidaId: PARTIDA_ID,
+    entrar: 'EntrarComoMesarioTempo',
+    aoMudar: setConn,
+    registrar: connection => {
+      // A cada reconexão o servidor reenvia EstadoAtual: o placar, o período e o relógio voltam sozinhos.
+      connection.on('EstadoAtual', state => { updateScore(state); updateClock(state.cronometro); });
+      connection.on('EventoRegistrado', ev => updateScore(ev));
+      connection.on('CronometroAtualizado', cron => {
+        updateClock(cron);
+        if (cron.periodoAtual) {
+          const lbl = periodLabel(cron.periodoAtual);
+          document.getElementById('periodoLabel').textContent = lbl + ' Período';
+          document.getElementById('periodoNum').textContent   = lbl;
+        }
+      });
     }
   });
-  connection.onreconnecting(() => setConn(false));
-  connection.onreconnected(() => setConn(true));
-
-  connection.start()
-    .then(async () => {
-      setConn(true);
-      await connection.invoke('EntrarComoMesarioTempo', PARTIDA_ID);
-    })
-    .catch(() => setConn(false));
 
   function setConn(ok) {
     document.getElementById('connDot').className = 'conn-dot' + (ok ? ' ok' : '');
-    document.getElementById('connTxt').textContent = ok ? 'Conectado' : 'Desconectado';
+    document.getElementById('connTxt').textContent = ok ? 'Conectado' : 'Sem conexão';
+    document.body.classList.toggle('offline', !ok);
+  }
+
+  // Chama o hub; sem conexão avisa que a ação NÃO foi enviada (nunca finge que deu certo).
+  async function acaoNoHub(metodo, args, falhou) {
+    try {
+      await conexao.invocar(metodo, PARTIDA_ID, ...args);
+      return true;
+    } catch (e) {
+      toast(e && e.message === 'SEM_CONEXAO' ? 'Sem conexão: a ação NÃO foi enviada' : falhou, true);
+      return false;
+    }
   }
 
   // ── Score / state ────────────────────────────────────────────────
@@ -403,8 +412,14 @@
   }
 
   // ── Clock rendering ──────────────────────────────────────────────
+  // Diferença entre a hora do servidor e a do aparelho: o relógio de jogo usa a hora do servidor (os horários de início
+  // vêm dela), então um aparelho com a hora errada não adianta nem atrasa o cronômetro.
+  let deslocamentoMs = 0;
+  const agora = () => Date.now() + deslocamentoMs;
+
   function updateClock(cron) {
     clockState = cron;
+    if (cron.agoraMs) deslocamentoMs = cron.agoraMs - Date.now();
 
     // Posse
     const posseCasa = cron.posseCasa;
@@ -427,7 +442,7 @@
 
   function tick() {
     if (!clockState) return;
-    const now = Date.now();
+    const now = agora();
     let gameSec = clockState.segundosRestantes;
     if (clockState.ativo && clockState.iniciadoEmMs) {
       const elapsed = (now - clockState.iniciadoEmMs) / 1000;
@@ -458,43 +473,34 @@
 
   // ── Hub actions ──────────────────────────────────────────────────
   async function iniciarCronometro() {
-    try {
-      await connection.invoke('IniciarCronometro', PARTIDA_ID);
-      log('Cronômetro iniciado');
-    } catch { toast('Erro ao iniciar cronômetro', true); }
+    if (await acaoNoHub('IniciarCronometro', [], 'Erro ao iniciar cronômetro')) log('Cronômetro iniciado');
   }
 
   async function pausarCronometro() {
-    try {
-      await connection.invoke('PausarCronometro', PARTIDA_ID);
-      log('Cronômetro pausado');
-    } catch { toast('Erro ao pausar cronômetro', true); }
+    if (await acaoNoHub('PausarCronometro', [], 'Erro ao pausar cronômetro')) log('Cronômetro pausado');
   }
 
   async function resetarShot(seg) {
-    try {
-      await connection.invoke('ResetarShotClock', PARTIDA_ID, seg);
+    if (await acaoNoHub('ResetarShotClock', [seg], 'Erro ao resetar shot clock')) {
       log(`Shot clock → reset ${seg}s`);
       toast(`Shot clock: ${seg}s`);
-    } catch { toast('Erro ao resetar shot clock', true); }
+    }
   }
 
   async function definirPosse(casa) {
-    try {
-      await connection.invoke('AlternarPosse', PARTIDA_ID);
+    if (await acaoNoHub('AlternarPosse', [], 'Erro ao alternar posse')) {
       const nome = casa ? nomeCasaVal : nomeVisitVal;
       log(`Posse → ${nome}`);
       toast(`Posse: ${nome}`);
-    } catch { toast('Erro ao alternar posse', true); }
+    }
   }
 
   function confirmarPeriodo() {
     showConfirm('Avançar para o próximo período?', async () => {
-      try {
-        await connection.invoke('AvancarPeriodo', PARTIDA_ID);
+      if (await acaoNoHub('AvancarPeriodo', [], 'Erro ao avançar período')) {
         log('Período avançado');
         toast('Período avançado!');
-      } catch { toast('Erro ao avançar período', true); }
+      }
     });
   }
 

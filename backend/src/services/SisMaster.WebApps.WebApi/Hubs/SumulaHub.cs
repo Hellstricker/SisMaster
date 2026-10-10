@@ -168,19 +168,20 @@ public class SumulaHub : Hub
         PartidaId = partida.Id,
         Ativo = partida.CronometroAtivo,
         SegundosRestantes = partida.CronometroSegundosRestantes,
-        IniciadoEmMs = partida.CronometroIniciadoEm.HasValue
-            ? new DateTimeOffset(partida.CronometroIniciadoEm.Value).ToUnixTimeMilliseconds()
-            : null,
+        IniciadoEmMs = EmMs(partida.CronometroIniciadoEm),
         SegundosAoIniciar = partida.CronometroSegundosAoIniciar,
         ShotClockAtivo = partida.ShotClockAtivo,
         ShotClockSegundos = partida.ShotClockSegundosRestantes,
-        ShotClockIniciadoEmMs = partida.ShotClockIniciadoEm.HasValue
-            ? new DateTimeOffset(partida.ShotClockIniciadoEm.Value).ToUnixTimeMilliseconds()
-            : null,
+        ShotClockIniciadoEmMs = EmMs(partida.ShotClockIniciadoEm),
         ShotClockSegundosAoIniciar = partida.ShotClockSegundosAoIniciar,
         PosseCasa = partida.PosseCasa,
-        PeriodoAtual = (int)partida.PeriodoAtual
+        PeriodoAtual = (int)partida.PeriodoAtual,
+        AgoraMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
     };
+
+    /// <summary>Os instantes são gravados em UTC; o banco os devolve sem "tipo", então o UTC é dito aqui (senão dependeria do fuso do servidor).</summary>
+    private static long? EmMs(DateTime? instante) =>
+        instante.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(instante.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds() : null;
 
     private static EstadoPartidaDto MapEstadoDto(Sumula partida)
     {
