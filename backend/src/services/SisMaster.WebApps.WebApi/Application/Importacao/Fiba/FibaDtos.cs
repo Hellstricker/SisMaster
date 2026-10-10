@@ -23,8 +23,9 @@ public sealed class FibaTimeDto
     /// <summary>Campos soltos do time, como p1_score…p4_score (placar do período).</summary>
     [JsonExtensionData] public Dictionary<string, JsonElement>? Extras { get; set; }
 
+    /// <summary>Placar do período; a prorrogação (período 5) vem no campo ot_score.</summary>
     public int? PlacarDoPeriodo(int periodo) =>
-        Extras is not null && Extras.TryGetValue($"p{periodo}_score", out var v) && v.TryGetInt32(out var n) ? n : null;
+        Extras is not null && Extras.TryGetValue(periodo == 5 ? "ot_score" : $"p{periodo}_score", out var v) && v.TryGetInt32(out var n) ? n : null;
 }
 
 public sealed class FibaJogadorDto

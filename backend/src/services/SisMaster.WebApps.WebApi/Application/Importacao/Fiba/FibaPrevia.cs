@@ -75,13 +75,15 @@ public static class FibaAnalisador
         if (total != tm.Score) problemas.Add($"{rotulo}: o placar reconstruído ({total}) difere do oficial ({tm.Score})");
 
         var periodos = new List<PreviaPeriodoFiba>();
-        foreach (var p in new[] { 1, 2, 3, 4 })
+        // Os 4 períodos e, se o jogo teve, a prorrogação (as duas equipes sempre com as mesmas linhas).
+        var temProrrogacao = tr.Eventos.Any(e => e.Periodo == Periodo.Prorrogacao);
+        foreach (var p in temProrrogacao ? new[] { 1, 2, 3, 4, 5 } : new[] { 1, 2, 3, 4 })
         {
             var rec = pontos.Where(e => (int)e.Periodo == p).Sum(e => Pontos(e.Tipo));
             var oficial = tm.PlacarDoPeriodo(p);
             periodos.Add(new PreviaPeriodoFiba(p, oficial, rec));
             if (oficial is not null && oficial != rec)
-                problemas.Add($"{rotulo}: no {p}º período o placar reconstruído ({rec}) difere do oficial ({oficial})");
+                problemas.Add($"{rotulo}: {(p == 5 ? "na prorrogação" : $"no {p}º período")} o placar reconstruído ({rec}) difere do oficial ({oficial})");
         }
 
         // Jogadores: camisa do feed ↔ relação da súmula.

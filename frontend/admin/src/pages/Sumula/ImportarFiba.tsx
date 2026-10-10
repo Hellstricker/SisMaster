@@ -252,7 +252,7 @@ export default function ImportarFiba() {
                       const okV = v.placarFeed == null || v.placarFeed === v.placarReconstruido;
                       return (
                         <tr key={p.periodo} className={okC && okV ? '' : styles.linhaErro}>
-                          <td>{p.periodo}º período</td>
+                          <td>{p.periodo === 5 ? "Prorrogação" : `${p.periodo}º período`}</td>
                           <td className={styles.n}>{p.placarFeed ?? '—'} / {p.placarReconstruido} {okC ? '✓' : '✗'}</td>
                           <td className={styles.n}>{v.placarFeed ?? '—'} / {v.placarReconstruido} {okV ? '✓' : '✗'}</td>
                         </tr>
