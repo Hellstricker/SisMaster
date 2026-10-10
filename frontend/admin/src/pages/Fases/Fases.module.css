@@ -131,3 +131,8 @@
 .previa { border: 1px dashed var(--border-input); border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
 .previa b { color: var(--text-primary); }
 .previaGrupo { display: inline-block; margin: 2px 12px 2px 0; }
+
+/* Celular: os botões dos avisos (salvar, iniciar, encerrar...) com tamanho de toque. */
+@media (max-width: 620px) {
+  .bannerAcoes button, .bannerAcoes a { min-height: 44px; height: auto; font-size: 15px; }
+}

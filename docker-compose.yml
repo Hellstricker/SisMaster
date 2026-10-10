@@ -31,6 +31,8 @@ services:
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=${IDENTIDADE_DB_NAME:-SisMasterIdentidade};User Id=sa;Password=${SA_PASSWORD:?Defina SA_PASSWORD no arquivo .env};MultipleActiveResultSets=true;TrustServerCertificate=True"
       JwtSettings__Segredo: "${JWT_SEGREDO:?Defina JWT_SEGREDO no arquivo .env (mínimo 32 caracteres)}"
       # Administrador inicial: criado só se ainda não existir nenhum usuário. Troca de senha obrigatória no primeiro acesso.
+      # Tentativas de login por minuto e por endereço (o padrão vale para uso real; o ambiente de teste sobe com mais).
+      Seguranca__LimiteDeLoginsPorMinuto: "${LIMITE_LOGINS_POR_MINUTO:-20}"
       Bootstrap__AdminEmail: "${ADMIN_EMAIL:-}"
       Bootstrap__AdminNome: "${ADMIN_NOME:-Administrador}"
       Bootstrap__AdminSenha: "${ADMIN_SENHA_INICIAL:-}"

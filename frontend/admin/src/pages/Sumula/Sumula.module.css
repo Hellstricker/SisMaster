@@ -28,3 +28,10 @@
 .link { display: inline-flex; align-items: center; text-decoration: none; }
 
 .tagChegada { grid-column: 2 / -1; font-size: 11px; color: var(--text-secondary); }
+
+/* Celular: caixas, campos e linhas com tamanho de toque (o árbitro usa o dedo, na quadra). */
+@media (max-width: 620px) {
+  .atleta { grid-template-columns: 34px 1fr 64px 44px 44px; min-height: 48px; }
+  .atleta input[type="checkbox"], .atleta input[type="radio"] { width: 24px; height: 24px; }
+  .camisa { height: 40px; }
+}
