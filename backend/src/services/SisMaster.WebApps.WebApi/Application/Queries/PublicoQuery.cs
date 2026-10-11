@@ -1,0 +1,60 @@
+using Microsoft.EntityFrameworkCore;
+using SisMaster.WebApps.WebApi.Data;
+using SisMaster.WebApps.WebApi.Domain.Associacao;
+
+namespace SisMaster.WebApps.WebApi.Application.Queries;
+
+/// <summary>
+/// Leitura para o site público: só o que qualquer visitante pode ver (nada de pessoa, CPF, e-mail ou valor de cobrança).
+/// A associação é achada pela sigla; associação inativa não aparece.
+/// </summary>
+public class PublicoQuery
+{
+    private readonly CampeonatoDbContext _context;
+
+    public PublicoQuery(CampeonatoDbContext context) => _context = context;
+
+    public async Task<object?> AssociacaoAsync(string sigla, CancellationToken ct)
+    {
+        var a = await _context.Associacoes.AsNoTracking()
+            .Where(x => x.Ativa && x.Sigla == sigla)
+            .Select(x => new { x.Id, x.Nome, x.Sigla, x.Uf })
+            .FirstOrDefaultAsync(ct);
+        return a;
+    }
+
+    /// <summary>
+    /// Temporadas com inscrições abertas hoje: situação "inscrições abertas", habilitadas e dentro da janela de datas
+    /// (o último dia da janela ainda vale).
+    /// </summary>
+    public async Task<object?> InscricoesAbertasAsync(string sigla, DateTime agora, CancellationToken ct)
+    {
+        var associacao = await _context.Associacoes.AsNoTracking().FirstOrDefaultAsync(x => x.Ativa && x.Sigla == sigla, ct);
+        if (associacao is null) return null;
+
+        var hoje = agora.Date;
+        var temporadas = await _context.Temporadas.AsNoTracking()
+            .Include(t => t.Categorias)
+            .Include(t => t.Campeonato)
+            .Where(t => t.Campeonato.AssociacaoId == associacao.Id && t.Campeonato.Ativo
+                && t.Status == StatusTemporada.InscricoesAbertas && t.InscricoesHabilitadas
+                && t.DataInicioInscricoes.Date <= hoje && t.DataFimInscricoes.Date >= hoje)
+            .OrderBy(t => t.DataFimInscricoes)
+            .ToListAsync(ct);
+
+        return new
+        {
+            Temporadas = temporadas.Select(t => new
+            {
+                TemporadaId = t.Id,
+                Campeonato = t.Campeonato.Nome,
+                t.Ano,
+                InicioInscricoes = t.DataInicioInscricoes,
+                FimInscricoes = t.DataFimInscricoes,
+                DiasRestantes = (t.DataFimInscricoes.Date - hoje).Days,
+                Categorias = t.Categorias.OrderBy(c => c.Nome)
+                    .Select(c => new { c.Id, c.Nome, c.IdadeMinima, Sexo = c.Sexo == null ? null : c.Sexo.ToString() }).ToList()
+            }).ToList()
+        };
+    }
+}

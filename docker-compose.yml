@@ -64,6 +64,17 @@ services:
       sqlserver:
         condition: service_healthy
 
+  # Site público (Next.js): lê só a API pública (/api/publico) pela rede interna. Uma associação fixa, pela sigla.
+  site:
+    build:
+      context: ./frontend/site
+    container_name: ${COMPOSE_PROJECT_NAME:-sismaster}-site
+    environment:
+      API_INTERNO: "http://campeonato-api:8080"
+      SITE_ASSOCIACAO_SIGLA: "${SITE_ASSOCIACAO_SIGLA:-ABABAS}"
+    depends_on:
+      - campeonato-api
+
   frontend:
     build:
       context: ./frontend
@@ -73,6 +84,7 @@ services:
     depends_on:
       - campeonato-api
       - identidade-api
+      - site
 
 volumes:
   sqlserver_data:

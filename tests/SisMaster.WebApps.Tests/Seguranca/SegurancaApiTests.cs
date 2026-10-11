@@ -208,8 +208,8 @@ public class SegurancaApiTests
             .Where(a => a.EndpointMetadata.OfType<IAllowAnonymous>().Any())
             .Select(a => $"{a.ControllerName}.{a.ActionName}").Distinct().Order().ToList();
 
-        publicas.Should().BeEquivalentTo(["Sumulas.ListarJogadoresDaPartida", "Sumulas.ObterPlacar"],
-            "só o placar e os nomes dos jogadores são públicos; qualquer outra rota pública precisa de decisão explícita");
+        publicas.Should().BeEquivalentTo(["Publico.Associacao", "Publico.InscricoesAbertas", "Sumulas.ListarJogadoresDaPartida", "Sumulas.ObterPlacar"],
+            "só o placar, os nomes dos jogadores e a API do site público (somente leitura, sem dado pessoal) são públicos; qualquer outra rota pública precisa de decisão explícita");
     }
 
     [Fact]
