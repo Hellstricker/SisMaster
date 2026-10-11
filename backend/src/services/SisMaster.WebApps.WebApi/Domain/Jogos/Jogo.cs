@@ -101,6 +101,16 @@ public class Jogo : Entity, IAggregateRoot
         Status = StatusJogo.Encerrado;
     }
 
+    /// <summary>A súmula foi reaberta para correção: o jogo volta a Em andamento e o resultado sai da classificação.</summary>
+    public void ReabrirPelaSumula()
+    {
+        if (Status != StatusJogo.Encerrado)
+            throw new DomainException("O jogo não está encerrado");
+        PlacarCasa = null;
+        PlacarVisitante = null;
+        Status = StatusJogo.EmAndamento;
+    }
+
     /// <summary>
     /// O jogo já foi realizado e a súmula veio de uma importação: o jogo fica Encerrado com o placar importado.
     /// Vale para jogo agendado, em andamento ou já encerrado (reimportação); W.O. e dispensado não têm súmula.

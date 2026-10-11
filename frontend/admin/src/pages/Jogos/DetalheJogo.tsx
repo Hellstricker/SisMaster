@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import EncerrarSumula from '../Sumula/EncerrarSumula';
+import ReabrirSumula from '../Sumula/ReabrirSumula';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   type DetalheJogo as Detalhe,
@@ -233,6 +234,10 @@ export default function DetalheJogo() {
         {dados.status === 'Encerrado' && <p>{dados.casa.texto} <b>{dados.placarCasa}</b> × <b>{dados.placarVisitante}</b> {dados.visitante.texto}</p>}
         {dados.status === 'WO' && <p>W.O. — vitória de {dados.woCasaAusente ? dados.visitante.texto : dados.casa.texto} por 20 × 0 (sem bonificação).</p>}
         {dados.status !== 'Encerrado' && dados.status !== 'WO' && <p className={base.dica}>Sem resultado ainda.</p>}
+        {dados.status === 'Encerrado' && dados.sumula && dados.podeReabrirSumula && (
+          <ReabrirSumula pequeno sumulaId={dados.sumula.id} jogo={`#${dados.numero} — ${dados.casa.texto} × ${dados.visitante.texto}`} onReaberta={carregar} />
+        )}
+        {dados.status === 'Encerrado' && dados.motivoSemReabrirSumula && <div className={styles.bloqueioAgenda} role="alert">{dados.motivoSemReabrirSumula}</div>}
         {dados.podeRegistrarWO && (
           <button className={`${base.btnSecondary} ${base.btnSm}`} onClick={() => { setWoErro(''); setWo({ casaAusente: true }); }}>Registrar W.O.…</button>
         )}

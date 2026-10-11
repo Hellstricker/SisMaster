@@ -173,12 +173,41 @@ public class Sumula : Entity, IAggregateRoot
         Status = StatusSumula.Intervalo;
     }
 
-    public void Encerrar()
+    /// <summary>Segundos que o relógio do período mostra agora (descontado o que já correu, se estiver rodando).</summary>
+    public int CronometroSegundosRestantesAgora => CalcularSegundosRestantesCronometro();
+
+    /// <summary>O jogo ainda não chegou ao fim: antes do 4º período ou com tempo no relógio.</summary>
+    public bool AntesDoTempo => PeriodoAtual < Periodo.Quarto || CalcularSegundosRestantesCronometro() > 0;
+
+    /// <summary>
+    /// Encerra a súmula. No basquete não há empate (jogue a prorrogação) e encerrar antes do fim do tempo só vale com a confirmação
+    /// de que o jogo terminou assim mesmo (desistência, lesão, queda de energia). O relógio, se correndo, é pausado.
+    /// </summary>
+    public void Encerrar(bool confirmarAntesDoTempo = false)
     {
         if (Status == StatusSumula.EmPreparacao)
             throw new DomainException("A súmula ainda não foi iniciada");
+        if (Status == StatusSumula.Encerrada)
+            throw new DomainException("A súmula já foi encerrada");
+        if (PlacarCasa == PlacarVisitante)
+            throw new DomainException("Placar empatado: jogue a prorrogação antes de encerrar");
+        if (AntesDoTempo && !confirmarAntesDoTempo)
+            throw new DomainException("O jogo ainda não chegou ao fim do tempo: confirme que ele terminou assim mesmo para encerrar");
         PausarCronometro();
         Status = StatusSumula.Encerrada;
+    }
+
+    /// <summary>
+    /// Reabre uma súmula encerrada pela mesa para corrigir o que foi lançado errado (o jogo volta a Em andamento).
+    /// Súmula importada do FIBA LiveStats não se reabre: importa-se de novo.
+    /// </summary>
+    public void Reabrir()
+    {
+        if (Status != StatusSumula.Encerrada)
+            throw new DomainException("A súmula não está encerrada");
+        if (CodigoExterno is not null)
+            throw new DomainException("Súmula importada do FIBA LiveStats não pode ser reaberta: importe o jogo de novo");
+        Status = StatusSumula.EmAndamento;
     }
 
     /// <summary>Faltas (pessoal, técnica ou antidesportiva) que tiram o jogador do jogo.</summary>
@@ -235,6 +264,8 @@ public class Sumula : Entity, IAggregateRoot
 
     public void DesfazerUltimoEvento()
     {
+        if (Status == StatusSumula.Encerrada)
+            throw new DomainException("A súmula está encerrada: reabra para corrigir");
         if (!_eventos.Any())
             throw new DomainException("Não há eventos para desfazer");
 

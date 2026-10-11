@@ -20,14 +20,39 @@ export interface JogoDoArbitro {
   hora: string | null;
   local: LocalItem | null;
   status: StatusJogo;
-  sumula: { id: string; status: StatusSumula } | null;
+  sumula: { id: string; status: StatusSumula; importada: boolean } | null;
 }
 
 export function listarJogosDoArbitro(): Promise<{ jogos: JogoDoArbitro[] }> {
   return obter<{ jogos: JogoDoArbitro[] }>('/api/arbitros/jogos', 'Erro ao carregar os jogos');
 }
 
-/** Encerra a súmula: o placar vira o resultado do jogo, que passa a Encerrado. */
-export function encerrarSumula(sumulaId: string): Promise<void> {
-  return enviar('POST', `/api/sumulas/${sumulaId}/encerrar`, undefined, 'Erro ao encerrar a súmula');
+/** O que a tela de encerramento mostra antes de confirmar. */
+export interface SituacaoEncerramento {
+  status: StatusSumula;
+  periodo: number;
+  placarCasa: number;
+  placarVisitante: number;
+  casa: string;
+  visitante: string;
+  segundosRestantes: number;
+  /** No basquete não há empate: bloqueia o encerramento. */
+  empatado: boolean;
+  /** Antes do 4º período ou com tempo no relógio: só encerra com a confirmação. */
+  antesDoTempo: boolean;
+  cronometroAtivo: boolean;
+}
+
+export function situacaoDoEncerramento(sumulaId: string): Promise<SituacaoEncerramento> {
+  return obter<SituacaoEncerramento>(`/api/sumulas/${sumulaId}/encerramento`, 'Erro ao carregar a situação do jogo');
+}
+
+/** Encerra a súmula: o placar vira o resultado do jogo, que passa a Encerrado. `confirmarAntesDoTempo` cobre o jogo que terminou antes do fim. */
+export function encerrarSumula(sumulaId: string, confirmarAntesDoTempo = false): Promise<void> {
+  return enviar('POST', `/api/sumulas/${sumulaId}/encerrar`, { confirmarAntesDoTempo }, 'Erro ao encerrar a súmula');
+}
+
+/** Reabre a súmula encerrada para correção (árbitro ou gestão). O motivo é obrigatório e fica no histórico do jogo. */
+export function reabrirSumula(sumulaId: string, motivo: string): Promise<void> {
+  return enviar('POST', `/api/sumulas/${sumulaId}/reabrir`, { motivo }, 'Erro ao reabrir a súmula');
 }

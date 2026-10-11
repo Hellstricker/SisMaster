@@ -244,7 +244,7 @@ test('da associação à classificação: um jogo completo', async ({ page, requ
   });
 
   await test.step('encerra a súmula: o jogo encerra e a fase termina', async () => {
-    await chamar(request, token, 'POST', `/api/sumulas/${sumulaId}/encerrar`, {});
+    await chamar(request, token, 'POST', `/api/sumulas/${sumulaId}/encerrar`, { confirmarAntesDoTempo: true });
     const jogo = await chamar(request, token, 'GET', `/api/jogos/${jogoId}`);
     expect(jogo.casa.texto).toBe('Águias');
     const classificacao = dados(await chamar(request, token, 'GET', `/api/fases/${faseId}/classificacao`));

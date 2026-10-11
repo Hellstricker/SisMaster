@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { type JogoDoArbitro, listarJogosDoArbitro } from '../../api/arbitros';
 import { linksDaSumula } from '../../api/jogos';
 import EncerrarSumula from '../Sumula/EncerrarSumula';
+import ReabrirSumula from '../Sumula/ReabrirSumula';
 import base from '../Fases/Fases.module.css';
 import styles from './Arbitros.module.css';
 
@@ -59,9 +60,12 @@ export default function JogosDoDia() {
 
   const filtrados = jogos.filter(j =>
     (!fData || j.data === fData) && (!fCategoria || j.categoria.nome === fCategoria) && (!fLocal || j.local?.id === fLocal));
-  const atrasados = filtrados.filter(j => j.data < hoje);
-  const doDia = filtrados.filter(j => j.data === hoje);
-  const proximos = filtrados.filter(j => j.data > hoje);
+  // Os encerrados de hoje ficam à parte: só servem para reabrir a súmula (se foi encerrada por engano ou há correção).
+  const encerrados = filtrados.filter(j => j.status === 'Encerrado' && j.data === hoje && j.sumula && !j.sumula.importada);
+  const abertos = filtrados.filter(j => j.status !== 'Encerrado');
+  const atrasados = abertos.filter(j => j.data < hoje);
+  const doDia = abertos.filter(j => j.data === hoje);
+  const proximos = abertos.filter(j => j.data > hoje);
 
   if (loading) return <div className={base.page}><p className={base.info}>Carregando...</p></div>;
 
@@ -113,6 +117,28 @@ export default function JogosDoDia() {
             <div key={d}>
               <div className={styles.diaSub}>{dataLonga(d)}</div>
               <PorLocal lista={proximos.filter(j => j.data === d)} onMudou={async () => { setAviso('Atualizado.'); await carregar(); }} />
+            </div>
+          ))}
+        </section>
+      )}
+
+      {encerrados.length > 0 && (
+        <section>
+          <h2 className={styles.dia}>Encerrados hoje <small>para corrigir, reabra a súmula</small></h2>
+          {encerrados.map(j => (
+            <div key={j.id} className={styles.jogo}>
+              <div>
+                <div className={styles.hora}>{horaCurta(j.hora) || '—'}</div>
+                <div className={styles.num}>#{j.numero}</div>
+              </div>
+              <div>
+                <div className={styles.par}>{j.casa.texto}<span className={styles.x}>×</span>{j.visitante.texto}</div>
+                <div className={styles.meta}><span className={styles.tag}>{j.categoria.nome}</span><span>{j.fase.nome} · {j.etiqueta}</span><span className={styles.pill}>encerrada</span></div>
+              </div>
+              <div className={styles.acoes}>
+                <ReabrirSumula pequeno sumulaId={j.sumula!.id} jogo={`#${j.numero} — ${j.casa.texto} × ${j.visitante.texto}`}
+                  onReaberta={async () => { setAviso('Súmula reaberta.'); await carregar(); }} />
+              </div>
             </div>
           ))}
         </section>

@@ -9,6 +9,9 @@ public class EncerrarSumulaCommand : Command
 {
     public Guid SumulaId { get; set; }
 
+    /// <summary>Confirma que o jogo terminou antes do fim do tempo (desistência, lesão, queda de energia).</summary>
+    public bool ConfirmarAntesDoTempo { get; set; }
+
     public override bool EhValido()
     {
         ValidationResult = new EncerrarSumulaCommandValidation().Validate(this);

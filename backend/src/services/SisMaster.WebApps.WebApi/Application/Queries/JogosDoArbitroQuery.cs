@@ -36,7 +36,9 @@ public class JogosDoArbitroQuery
 
     public async Task<object> ExecutarAsync(CancellationToken ct)
     {
-        var jogos = await _jogoRepository.ListarAgendadosPendentesAsync(ct);
+        var jogos = (await _jogoRepository.ListarAgendadosPendentesAsync(ct)).ToList();
+        // Encerrados de ontem e de hoje (data do servidor, que pode estar adiantada em relação ao fuso do árbitro): permitem reabrir a súmula.
+        jogos.AddRange(await _jogoRepository.ListarEncerradosEntreAsync(DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)), DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)), ct));
         var sumulas = jogos.Count == 0
             ? new Dictionary<Guid, Sumula>()
             : (await _sumulaRepository.ListarPorJogosAsync(jogos.Select(j => j.Id).ToList(), ct)).ToDictionary(s => s.JogoId);
@@ -88,7 +90,7 @@ public class JogosDoArbitroQuery
                     j.Hora,
                     Local = j.Local is null ? null : new { j.Local.Id, j.Local.Nome, j.Local.Cidade, j.Local.Estado },
                     j.Status,
-                    Sumula = sumula is null ? null : new { sumula.Id, Status = sumula.Status.ToString() }
+                    Sumula = sumula is null ? null : new { sumula.Id, Status = sumula.Status.ToString(), Importada = sumula.CodigoExterno is not null }
                 }));
             }
         }

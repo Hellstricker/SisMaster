@@ -111,11 +111,45 @@ public class SumulasController : MainController
         });
     }
 
+    public sealed record EncerrarRequest(bool ConfirmarAntesDoTempo = false);
+    public sealed record ReabrirRequest(string? Motivo);
+
+    /// <summary>O que a tela de encerramento mostra antes de confirmar: placar, período, tempo restante e o que bloqueia ou exige confirmação.</summary>
+    [Authorize(Policy = Politicas.Arbitragem)]
+    [HttpGet("{id:guid}/encerramento")]
+    public async Task<ActionResult> SituacaoDoEncerramento(Guid id, CancellationToken ct)
+    {
+        var s = await _partidaRepository.ObterPorIdAsync(id, ct);
+        if (s is null) return NotFound();
+        return CustomResponse(new
+        {
+            Status = s.Status.ToString(),
+            Periodo = (int)s.PeriodoAtual,
+            s.PlacarCasa,
+            s.PlacarVisitante,
+            Casa = s.TimeDoLado(LadoTime.Casa).Nome,
+            Visitante = s.TimeDoLado(LadoTime.Visitante).Nome,
+            SegundosRestantes = s.CronometroSegundosRestantesAgora,
+            Empatado = s.PlacarCasa == s.PlacarVisitante,
+            AntesDoTempo = s.AntesDoTempo,
+            CronometroAtivo = s.CronometroAtivo
+        });
+    }
+
     [Authorize(Policy = Politicas.Arbitragem)]
     [HttpPost("{id:guid}/encerrar")]
-    public async Task<ActionResult> Encerrar(Guid id)
+    public async Task<ActionResult> Encerrar(Guid id, [FromBody] EncerrarRequest? corpo)
     {
-        var result = await _mediator.EnviarComando(new EncerrarSumulaCommand { SumulaId = id });
+        var result = await _mediator.EnviarComando(new EncerrarSumulaCommand { SumulaId = id, ConfirmarAntesDoTempo = corpo?.ConfirmarAntesDoTempo ?? false });
+        return CustomResponse(result);
+    }
+
+    /// <summary>Reabre a súmula encerrada para correção (árbitro ou gestão), com motivo obrigatório; recusa se as fases seguintes já dependem do resultado.</summary>
+    [Authorize(Policy = Politicas.Arbitragem)]
+    [HttpPost("{id:guid}/reabrir")]
+    public async Task<ActionResult> Reabrir(Guid id, [FromBody] ReabrirRequest corpo)
+    {
+        var result = await _mediator.EnviarComando(new ReabrirSumulaCommand { SumulaId = id, Motivo = corpo.Motivo ?? string.Empty });
         return CustomResponse(result);
     }
 

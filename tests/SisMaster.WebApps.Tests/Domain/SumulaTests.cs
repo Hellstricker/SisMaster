@@ -196,6 +196,46 @@ public class SumulaTests
         s.PlacarVisitante.Should().Be(0);
     }
 
+    /// <summary>A casa abre 2 pontos de frente (no basquete não se encerra empatado).</summary>
+    private static void Pontuar(Sumula s) =>
+        s.RegistrarEvento(s.TimeDoLado(LadoTime.Casa).Jogadores.First().Id, TipoEvento.Ponto2, 100);
+
+    [Fact]
+    public void Encerrar_recusa_empate_e_antes_do_tempo_so_com_confirmacao()
+    {
+        var s = Iniciada();
+        var empate = () => s.Encerrar(confirmarAntesDoTempo: true);
+        empate.Should().Throw<DomainException>().WithMessage("*empatado*prorrogação*");
+
+        Pontuar(s);
+        s.AntesDoTempo.Should().BeTrue("o 1º período mal começou");
+        var cedo = () => s.Encerrar();
+        cedo.Should().Throw<DomainException>().WithMessage("*não chegou ao fim do tempo*");
+
+        s.Encerrar(confirmarAntesDoTempo: true);
+        s.Status.Should().Be(StatusSumula.Encerrada);
+        var dePovo = () => s.Encerrar(true);
+        dePovo.Should().Throw<DomainException>().WithMessage("*já foi encerrada*");
+    }
+
+    [Fact]
+    public void Reabrir_so_encerrada_e_o_desfazer_de_evento_exige_reabrir()
+    {
+        var s = Iniciada();
+        var naoEncerrada = () => s.Reabrir();
+        naoEncerrada.Should().Throw<DomainException>().WithMessage("*não está encerrada*");
+
+        Pontuar(s);
+        s.Encerrar(confirmarAntesDoTempo: true);
+        var desfazer = () => s.DesfazerUltimoEvento();
+        desfazer.Should().Throw<DomainException>().WithMessage("*reabra para corrigir*");
+
+        s.Reabrir();
+        s.Status.Should().Be(StatusSumula.EmAndamento);
+        s.DesfazerUltimoEvento();
+        s.PlacarCasa.Should().Be(0);
+    }
+
     [Fact]
     public void Encerrar_so_depois_de_iniciada()
     {
@@ -297,7 +337,8 @@ public class SumulaTests
         s.AvancarPeriodo();                           // prorrogação
         s.PeriodosNormaisEncerrados.Should().Be(4);
 
-        s.Encerrar();
+        Pontuar(s);
+        s.Encerrar(confirmarAntesDoTempo: true);
         s.PeriodosNormaisEncerrados.Should().Be(4);
     }
 
@@ -307,7 +348,8 @@ public class SumulaTests
         var s = Iniciada();
         s.AvancarPeriodo(); s.AvancarPeriodo(); s.AvancarPeriodo(); // 4º em andamento
 
-        s.Encerrar();
+        Pontuar(s);
+        s.Encerrar(confirmarAntesDoTempo: true);
 
         s.PeriodosNormaisEncerrados.Should().Be(4);
     }
@@ -386,7 +428,8 @@ public class SumulaTests
         cedo.Should().Throw<DomainException>().WithMessage("*em preparação*");
 
         var s = IniciadaCom4();
-        s.Encerrar();
+        Pontuar(s);
+        s.Encerrar(confirmarAntesDoTempo: true);
         var tarde = () => s.AcrescentarJogador(LadoTime.Casa, new RelacionadoNovo(Guid.NewGuid(), "A", "20", false));
         tarde.Should().Throw<DomainException>().WithMessage("*encerrada*");
     }

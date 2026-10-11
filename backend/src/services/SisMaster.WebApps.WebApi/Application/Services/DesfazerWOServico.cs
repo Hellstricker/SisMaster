@@ -26,20 +26,31 @@ public class DesfazerWOServico
     public async Task<string?> MotivoQueImpedeAsync(Jogo jogo, CancellationToken ct = default)
     {
         if (jogo.Status != StatusJogo.WO) return "O jogo não está em W.O.";
+        return await MotivoDeDependenciaAsync(jogo, "desfazer", "com este W.O.", ct);
+    }
 
+    /// <summary>O motivo que impede reabrir a súmula encerrada do jogo, ou nulo se pode (mesmas dependências do W.O.).</summary>
+    public async Task<string?> MotivoQueImpedeReabrirAsync(Jogo jogo, CancellationToken ct = default)
+    {
+        if (jogo.Status != StatusJogo.Encerrado) return "O jogo não está encerrado";
+        return await MotivoDeDependenciaAsync(jogo, "reabrir", "com este resultado", ct);
+    }
+
+    private async Task<string?> MotivoDeDependenciaAsync(Jogo jogo, string acao, string deste, CancellationToken ct)
+    {
         var temporada = await _temporadaRepository.ObterPorIdAsync(jogo.TemporadaId, ct);
         if (temporada is null || temporada.Status == StatusTemporada.Encerrada)
             return "Temporada encerrada não aceita alteração de jogos";
 
         if ((await _jogoRepository.ListarSorteiosDaFaseAsync(jogo.FaseId, ct)).Count > 0)
-            return "Não é possível desfazer: há um sorteio de desempate registrado nesta fase e ele depende da classificação com este W.O.";
+            return $"Não é possível {acao}: há um sorteio de desempate registrado nesta fase e ele depende da classificação {deste}";
 
         var fase = await _faseRepository.ObterPorIdAsync(jogo.FaseId, ct);
         if (fase is not null && fase.Tipo != TipoFase.MataMata && await _jogoRepository.ExisteVagaResolvidaPelaColocacaoAsync(fase.Id, ct))
-            return "Não é possível desfazer: a fase já terminou e definiu as equipes da fase seguinte a partir deste resultado. Corrija a fase seguinte antes, ou fale com a diretoria.";
+            return $"Não é possível {acao}: a fase já terminou e definiu as equipes da fase seguinte a partir deste resultado. Corrija a fase seguinte antes, ou fale com a diretoria.";
 
         if (jogo.ConfrontoId is { } confronto && await _jogoRepository.ExisteVagaResolvidaPeloConfrontoAsync(confronto, ct))
-            return "Não é possível desfazer: a série já definiu uma equipe da fase seguinte a partir deste resultado. Corrija a fase seguinte antes, ou fale com a diretoria.";
+            return $"Não é possível {acao}: a série já definiu uma equipe da fase seguinte a partir deste resultado. Corrija a fase seguinte antes, ou fale com a diretoria.";
 
         return null;
     }

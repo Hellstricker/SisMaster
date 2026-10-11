@@ -71,6 +71,9 @@ public class DetalheJogoQuery
 
         // Só um W.O. pode ser desfeito, e só se nada depende do resultado (a tela mostra o motivo quando não pode).
         var motivoSemDesfazerWO = jogo.Status == StatusJogo.WO ? await _desfazerWO.MotivoQueImpedeAsync(jogo, ct) : null;
+        // Súmula encerrada pela mesa: pode ser reaberta para correção, salvo se algo já depende do resultado.
+        var reabrivel = sumula is { Status: Domain.Sumula.Enums.StatusSumula.Encerrada, CodigoExterno: null } && jogo.Status == StatusJogo.Encerrado;
+        var motivoSemReabrir = reabrivel ? await _desfazerWO.MotivoQueImpedeReabrirAsync(jogo, ct) : null;
         var historico = (await _auditoria.ListarAsync("Jogo", jogo.Id, ct)).Select(r => new { r.Em, r.Acao, r.Detalhe }).ToList();
 
         return new
@@ -99,6 +102,8 @@ public class DetalheJogoQuery
             PodeRegistrarWO = definidas && jogo.Status == StatusJogo.Agendado && !sumulaIniciada && temporadaAberta,
             PodeDesfazerWO = jogo.Status == StatusJogo.WO && motivoSemDesfazerWO is null,
             MotivoSemDesfazerWO = motivoSemDesfazerWO,
+            PodeReabrirSumula = reabrivel && motivoSemReabrir is null,
+            MotivoSemReabrirSumula = motivoSemReabrir,
             Historico = historico,
             PodePrepararSumula = sumula is null && motivoSemSumula is null,
             MotivoSemSumula = motivoSemSumula,

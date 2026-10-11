@@ -280,6 +280,9 @@ export interface DetalheJogo {
   /** Só em jogo de W.O. e só se nada foi calculado a partir do resultado. */
   podeDesfazerWO: boolean;
   motivoSemDesfazerWO: string | null;
+  /** Súmula encerrada pela mesa e nada nas fases seguintes depende do resultado. */
+  podeReabrirSumula: boolean;
+  motivoSemReabrirSumula: string | null;
   /** W.O. registrados e desfeitos, do mais antigo ao mais recente. */
   historico: { em: string; acao: string; detalhe: string }[];
   podePrepararSumula: boolean;

@@ -126,6 +126,7 @@ public static class DependenciesConfiguration
         services.AddScoped<IRequestHandler<SalvarRelacaoCommand, FluentValidation.Results.ValidationResult>, SalvarRelacaoCommandHandler>();
         services.AddScoped<IRequestHandler<IniciarSumulaCommand, FluentValidation.Results.ValidationResult>, IniciarSumulaCommandHandler>();
         services.AddScoped<IRequestHandler<EncerrarSumulaCommand, FluentValidation.Results.ValidationResult>, EncerrarSumulaCommandHandler>();
+        services.AddScoped<IRequestHandler<ReabrirSumulaCommand, FluentValidation.Results.ValidationResult>, ReabrirSumulaCommandHandler>();
         services.AddScoped<IRequestHandler<RegistrarWOCommand, FluentValidation.Results.ValidationResult>, RegistrarWOCommandHandler>();
 
         return services;

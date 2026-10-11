@@ -64,6 +64,14 @@ public class JogoRepository : IJogoRepository
             .OrderBy(j => j.Data).ThenBy(j => j.Hora).ThenBy(j => j.Numero)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Jogo>> ListarEncerradosEntreAsync(DateOnly desde, DateOnly ate, CancellationToken ct = default) =>
+        await _context.Jogos.AsNoTracking()
+            .Include(j => j.Local).Include(j => j.Casa).Include(j => j.Visitante)
+            .Where(j => j.Data != null && j.Data >= desde && j.Data <= ate && j.Status == StatusJogo.Encerrado
+                && _context.Temporadas.Any(t => t.Id == j.TemporadaId && t.Status != Domain.Associacao.StatusTemporada.Encerrada))
+            .OrderBy(j => j.Data).ThenBy(j => j.Hora).ThenBy(j => j.Numero)
+            .ToListAsync(ct);
+
     public async Task<int> ContarJogosNoLocalAsync(Guid localId, CancellationToken ct = default) =>
         await _context.Jogos.CountAsync(j => j.LocalId == localId, ct);
 

@@ -175,7 +175,7 @@ test('A5: placar da TV com faltas, queda de rede e fim de jogo', async ({ page, 
   });
 
   await test.step('encerrar o jogo: FIM DE JOGO, vencedor em destaque e perdedor esmaecido', async () => {
-    await chamar(request, token, 'POST', `/api/sumulas/${partidaId}/encerrar`);
+    await chamar(request, token, 'POST', `/api/sumulas/${partidaId}/encerrar`, { confirmarAntesDoTempo: true });
     await expect(page.locator('body')).toHaveClass(/fim/);
     await expect(page.locator('.fim-banner')).toBeVisible();
     await expect(timeAguias).toHaveClass(/venceu/);

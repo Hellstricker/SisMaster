@@ -45,6 +45,9 @@ public interface IJogoRepository : IRepository<Jogo>
     /// </summary>
     Task<IReadOnlyList<Jogo>> ListarAgendadosPendentesAsync(CancellationToken ct = default);
 
+    /// <summary>Jogos encerrados com data entre <paramref name="desde"/> e <paramref name="ate"/>, de temporadas não encerradas (o árbitro pode precisar reabrir a súmula).</summary>
+    Task<IReadOnlyList<Jogo>> ListarEncerradosEntreAsync(DateOnly desde, DateOnly ate, CancellationToken ct = default);
+
     /// <summary>Quantos jogos usam o local.</summary>
     Task<int> ContarJogosNoLocalAsync(Guid localId, CancellationToken ct = default);
 

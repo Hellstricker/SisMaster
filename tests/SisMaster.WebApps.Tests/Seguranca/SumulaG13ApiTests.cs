@@ -349,4 +349,51 @@ public class SumulaG13ApiTests
         dados.GetProperty("casa").GetProperty("jogadores").EnumerateArray()
             .First(j => j.GetProperty("id").GetGuid() == jogador).GetProperty("faltas").GetInt32().Should().Be(5);
     }
+
+    // ------------------------------------------------------------------ A6: encerrar e reabrir
+
+    [Fact]
+    public async Task Encerrar_recusa_empate_exige_confirmar_antes_do_tempo_e_reabrir_pede_motivo()
+    {
+        if (SemBanco) return;
+        var (c, jogador) = await IniciadaComJogadorAsync("A6Fluxo");
+        var encerrar = (bool confirmar) => Chamar(c.Arbitro, HttpMethod.Post, $"/api/sumulas/{c.SumulaId}/encerrar", new { confirmarAntesDoTempo = confirmar });
+        var detalhe = async () => JsonDocument.Parse((await Chamar(c.Admin, HttpMethod.Get, $"/api/jogos/{c.JogoId}")).Corpo).RootElement;
+
+        var empate = await encerrar(true);
+        empate.Status.Should().Be(HttpStatusCode.BadRequest);
+        empate.Corpo.Should().Contain("empatado");
+
+        await Chamar(c.Arbitro, HttpMethod.Post, $"/api/sumulas/{c.SumulaId}/eventos",
+            new { eventoId = Guid.NewGuid(), jogadorId = jogador, tipo = "Ponto3", periodo = 1, tempoJogoSegundos = 500 });
+        var situacao = JsonDocument.Parse((await Chamar(c.Arbitro, HttpMethod.Get, $"/api/sumulas/{c.SumulaId}/encerramento")).Corpo).RootElement;
+        var dados = situacao.TryGetProperty("data", out var d) ? d : situacao;
+        dados.GetProperty("placarCasa").GetInt32().Should().Be(3);
+        dados.GetProperty("antesDoTempo").GetBoolean().Should().BeTrue();
+        dados.GetProperty("empatado").GetBoolean().Should().BeFalse();
+
+        var cedo = await encerrar(false);
+        cedo.Status.Should().Be(HttpStatusCode.BadRequest);
+        cedo.Corpo.Should().Contain("não chegou ao fim do tempo");
+
+        (await encerrar(true)).Status.Should().Be(HttpStatusCode.NoContent);
+        (await detalhe()).GetProperty("status").GetString().Should().Be("Encerrado");
+
+        var desfazer = await Chamar(c.Arbitro, HttpMethod.Delete, $"/api/sumulas/{c.SumulaId}/eventos/ultimo");
+        desfazer.Status.Should().Be(HttpStatusCode.BadRequest);
+        desfazer.Corpo.Should().Contain("reabra para corrigir");
+
+        var semMotivo = await Chamar(c.Arbitro, HttpMethod.Post, $"/api/sumulas/{c.SumulaId}/reabrir", new { motivo = "" });
+        semMotivo.Status.Should().Be(HttpStatusCode.BadRequest);
+
+        (await Chamar(c.Arbitro, HttpMethod.Post, $"/api/sumulas/{c.SumulaId}/reabrir", new { motivo = "lance livre lançado na equipe errada" })).Status.Should().Be(HttpStatusCode.NoContent);
+        var reaberto = await detalhe();
+        reaberto.GetProperty("status").GetString().Should().Be("EmAndamento");
+        reaberto.GetProperty("placarCasa").ValueKind.Should().Be(JsonValueKind.Null);
+        reaberto.GetProperty("historico").EnumerateArray().Select(h => h.GetProperty("acao").GetString())
+            .Should().Contain(["EncerrarSumula", "ReabrirSumula"]);
+
+        (await Chamar(c.Arbitro, HttpMethod.Delete, $"/api/sumulas/{c.SumulaId}/eventos/ultimo")).Status.Should().Be(HttpStatusCode.OK);
+        (await Chamar(c.Arbitro, HttpMethod.Post, $"/api/sumulas/{c.SumulaId}/reabrir", new { motivo = "de novo sem estar encerrada" })).Status.Should().Be(HttpStatusCode.BadRequest);
+    }
 }
