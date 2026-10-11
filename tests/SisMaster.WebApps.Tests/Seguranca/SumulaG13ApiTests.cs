@@ -299,4 +299,54 @@ public class SumulaG13ApiTests
         (await Preparo(c.Arbitro, c.JogoId)).GetProperty("times").EnumerateArray().First(t => t.GetProperty("lado").GetString() == "Visitante")
             .GetProperty("jogadores").GetArrayLength().Should().Be(4);
     }
+
+    // ------------------------------------------------------------------ A4: eventos do mesário de estatísticas
+
+    private async Task<(Cenario C, Guid Jogador)> IniciadaComJogadorAsync(string nome)
+    {
+        var c = await NovoAsync(nome);
+        await Salvar(c, Relacao(c.Casa, 6));
+        await Salvar(c, Relacao(c.Visitante, 5));
+        (await Chamar(c.Arbitro, HttpMethod.Post, $"/api/jogos/{c.JogoId}/sumula/iniciar")).Status.Should().Be(HttpStatusCode.NoContent);
+        var casa = (await Preparo(c.Arbitro, c.JogoId)).GetProperty("times").EnumerateArray().First(t => t.GetProperty("lado").GetString() == "Casa");
+        return (c, casa.GetProperty("jogadores").EnumerateArray().First().GetProperty("id").GetGuid());
+    }
+
+    [Fact]
+    public async Task Evento_reenviado_com_o_mesmo_id_nao_duplica_e_grava_tempo_e_periodo()
+    {
+        if (SemBanco) return;
+        var (c, jogador) = await IniciadaComJogadorAsync("A4Idem");
+        var id = Guid.NewGuid();
+        var corpo = new { eventoId = id, jogadorId = jogador, tipo = "Ponto2", periodo = 1, tempoJogoSegundos = 421 };
+
+        (await Chamar(c.Arbitro, HttpMethod.Post, $"/api/sumulas/{c.SumulaId}/eventos", corpo)).Status.Should().Be(HttpStatusCode.NoContent);
+        (await Chamar(c.Arbitro, HttpMethod.Post, $"/api/sumulas/{c.SumulaId}/eventos", corpo)).Status.Should().Be(HttpStatusCode.NoContent, "reenviar é inofensivo");
+
+        var sumula = JsonDocument.Parse((await Chamar(c.Arbitro, HttpMethod.Get, $"/api/sumulas/{c.SumulaId}/sumula")).Corpo).RootElement;
+        var dados = sumula.TryGetProperty("data", out var d) ? d : sumula;
+        var eventos = dados.GetProperty("eventos").EnumerateArray().ToList();
+        eventos.Should().HaveCount(1);
+        eventos[0].GetProperty("tempoJogoSegundos").GetInt32().Should().Be(421);
+        dados.GetProperty("placarCasa").GetInt32().Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Com_5_faltas_o_servidor_recusa_novos_lancamentos_e_o_rodizio_mostra_as_faltas()
+    {
+        if (SemBanco) return;
+        var (c, jogador) = await IniciadaComJogadorAsync("A4Cinco");
+        var lancar = (string tipo) => Chamar(c.Arbitro, HttpMethod.Post, $"/api/sumulas/{c.SumulaId}/eventos",
+            new { eventoId = Guid.NewGuid(), jogadorId = jogador, tipo, periodo = 1, tempoJogoSegundos = 300 });
+
+        for (var i = 0; i < 5; i++) (await lancar("FaltaPessoal")).Status.Should().Be(HttpStatusCode.NoContent);
+        var sexta = await lancar("Ponto2");
+
+        sexta.Status.Should().Be(HttpStatusCode.BadRequest);
+        sexta.Corpo.Should().Contain("5 faltas");
+        var rodizio = JsonDocument.Parse((await Chamar(c.Arbitro, HttpMethod.Get, $"/api/sumulas/{c.SumulaId}/rodizio")).Corpo).RootElement;
+        var dados = rodizio.TryGetProperty("data", out var d) ? d : rodizio;
+        dados.GetProperty("casa").GetProperty("jogadores").EnumerateArray()
+            .First(j => j.GetProperty("id").GetGuid() == jogador).GetProperty("faltas").GetInt32().Should().Be(5);
+    }
 }

@@ -181,7 +181,36 @@ public class Sumula : Entity, IAggregateRoot
         Status = StatusSumula.Encerrada;
     }
 
-    public EventoSumula RegistrarEvento(Guid jogadorId, TipoEvento tipo, int tempoSegundos)
+    /// <summary>Faltas (pessoal, técnica ou antidesportiva) que tiram o jogador do jogo.</summary>
+    public const int FaltasParaSerExcluido = 5;
+    /// <summary>Faltas de equipe que as telas mostram no máximo (o número nunca passa de 5; a contagem real continua por baixo).</summary>
+    public const int FaltasDeEquipeExibidas = 5;
+
+    private static bool EhFalta(TipoEvento tipo) =>
+        tipo is TipoEvento.FaltaPessoal or TipoEvento.FaltaTecnica or TipoEvento.FaltaAntiDesportiva;
+
+    /// <summary>Faltas do jogador no jogo todo (inclui a prorrogação).</summary>
+    public int FaltasDoJogador(Guid jogadorId) => _eventos.Count(e => e.JogadorId == jogadorId && EhFalta(e.Tipo));
+
+    /// <summary>A prorrogação continua a contagem de faltas de equipe do 4º período (como na FIBA).</summary>
+    private static Periodo PeriodoDeFaltas(Periodo periodo) => periodo == Periodo.Prorrogacao ? Periodo.Quarto : periodo;
+
+    /// <summary>Faltas de equipe do período atual (a contagem zera a cada período). É a contagem real, sem teto.</summary>
+    public int FaltasDeEquipeNoPeriodo(LadoTime lado)
+    {
+        var ids = TimeDoLado(lado).Jogadores.Select(j => j.Id).ToHashSet();
+        var periodo = PeriodoDeFaltas(PeriodoAtual);
+        return _eventos.Count(e => EhFalta(e.Tipo) && ids.Contains(e.JogadorId) && PeriodoDeFaltas(e.Periodo) == periodo);
+    }
+
+    /// <summary>O que as telas mostram: faltas de equipe do período, no máximo 5.</summary>
+    public int FaltasDeEquipeParaExibir(LadoTime lado) => Math.Min(FaltasDeEquipeExibidas, FaltasDeEquipeNoPeriodo(lado));
+
+    /// <summary>
+    /// Registra um evento do jogador. <paramref name="eventoId"/> permite ao aparelho da mesa reenviar o mesmo lançamento sem duplicá-lo;
+    /// <paramref name="periodo"/> é o período do toque (quando o envio atrasou por falta de rede), nunca depois do atual.
+    /// </summary>
+    public EventoSumula RegistrarEvento(Guid jogadorId, TipoEvento tipo, int tempoSegundos, Guid? eventoId = null, Periodo? periodo = null)
     {
         if (Status == StatusSumula.EmPreparacao)
             throw new DomainException("Inicie a súmula antes de registrar eventos");
@@ -190,7 +219,14 @@ public class Sumula : Entity, IAggregateRoot
 
         var jogador = ObterJogador(jogadorId) ?? throw new DomainException("O jogador não está relacionado nesta súmula");
 
-        var evento = new EventoSumula(Id, jogadorId, tipo, PeriodoAtual, tempoSegundos);
+        if (FaltasDoJogador(jogadorId) >= FaltasParaSerExcluido)
+            throw new DomainException($"{jogador.Nome} já tem {FaltasParaSerExcluido} faltas e está fora do jogo: não aceita novos lançamentos");
+
+        var periodoDoEvento = periodo ?? PeriodoAtual;
+        if (periodoDoEvento < Periodo.Primeiro || periodoDoEvento > PeriodoAtual)
+            throw new DomainException("Período do evento inválido");
+
+        var evento = new EventoSumula(Id, jogadorId, tipo, periodoDoEvento, tempoSegundos, eventoId);
         _eventos.Add(evento);
 
         AplicarEvento(evento, jogador.TimeId, 1);
@@ -280,6 +316,8 @@ public class Sumula : Entity, IAggregateRoot
         }
 
         if (quadra.Contains(entra.Id)) throw new DomainException($"{entra.Nome} já está em quadra");
+        if (FaltasDoJogador(entra.Id) >= FaltasParaSerExcluido)
+            throw new DomainException($"{entra.Nome} tem {FaltasParaSerExcluido} faltas e não pode entrar em quadra");
 
         var substituicao = new Substituicao(Id, _substituicoes.Count + 1, jogadorSaiId, entra.Id, PeriodoAtual, tempoJogoSegundos, RelogioNoInicio);
         _substituicoes.Add(substituicao);

@@ -92,6 +92,7 @@
       font-variant-numeric: tabular-nums; line-height: 1;
     }
     .mini-faltas { font-size: .58rem; font-weight: 600; color: var(--shot); letter-spacing: .04em; }
+    .mini-faltas.estourou { color: #ef4444; font-weight: 800; }
     .mini-team.home .mini-name, .mini-team.home .mini-score { color: var(--home); }
     .mini-team.away .mini-name, .mini-team.away .mini-score { color: var(--away); }
     .mini-center { display: flex; flex-direction: column; align-items: center; gap: 3px; }
@@ -359,6 +360,7 @@
       connection.on('EventoRegistrado', ev => updateScore(ev));
       connection.on('CronometroAtualizado', cron => {
         updateClock(cron);
+        mostrarFaltas(cron);
         if (cron.periodoAtual) {
           const lbl = periodLabel(cron.periodoAtual);
           document.getElementById('periodoLabel').textContent = lbl + ' Período';
@@ -386,11 +388,21 @@
   }
 
   // ── Score / state ────────────────────────────────────────────────
+  // Faltas de equipe do período: nunca mostra mais que 5; vermelho a partir da 5ª.
+  function mostrarFaltas(s) {
+    [['faltasCasa', s.faltasCasa], ['faltasVisit', s.faltasVisitante]].forEach(([id, n]) => {
+      if (n === undefined) return;
+      const el = document.getElementById(id);
+      const v = Math.min(n, 5);
+      el.textContent = v + ' falta' + (v !== 1 ? 's' : '') + ' no período';
+      el.classList.toggle('estourou', n >= 5);
+    });
+  }
+
   function updateScore(state) {
     document.getElementById('placarCasa').textContent  = state.placarCasa;
     document.getElementById('placarVisit').textContent = state.placarVisitante;
-    document.getElementById('faltasCasa').textContent  = state.faltasCasa + ' falta' + (state.faltasCasa !== 1 ? 's' : '');
-    document.getElementById('faltasVisit').textContent = state.faltasVisitante + ' falta' + (state.faltasVisitante !== 1 ? 's' : '');
+    mostrarFaltas(state);
     const lbl = periodLabel(state.periodoAtual);
     document.getElementById('periodoLabel').textContent = lbl + ' Período';
     document.getElementById('periodoNum').textContent   = lbl;

@@ -218,44 +218,7 @@ public class SumulasController : MainController
             await _partidaRepository.UnitOfWork.Commit();
 
             // Broadcast do estado atualizado para todos na partida
-            var estado = new EstadoPartidaDto
-            {
-                PartidaId = partida.Id,
-                Status = partida.Status.ToString(),
-                PeriodoAtual = (int)partida.PeriodoAtual,
-                PlacarCasa = partida.PlacarCasa,
-                PlacarVisitante = partida.PlacarVisitante,
-                FaltasCasa = partida.FaltasCasa,
-                FaltasVisitante = partida.FaltasVisitante,
-                Cronometro = new CronometroDto
-                {
-                    PartidaId = partida.Id,
-                    Ativo = partida.CronometroAtivo,
-                    SegundosRestantes = partida.CronometroSegundosRestantes,
-                    IniciadoEmMs = partida.CronometroIniciadoEm.HasValue
-                        ? new DateTimeOffset(partida.CronometroIniciadoEm.Value).ToUnixTimeMilliseconds()
-                        : null,
-                    SegundosAoIniciar = partida.CronometroSegundosAoIniciar,
-                    ShotClockAtivo = partida.ShotClockAtivo,
-                    ShotClockSegundos = partida.ShotClockSegundosRestantes,
-                    ShotClockIniciadoEmMs = partida.ShotClockIniciadoEm.HasValue
-                        ? new DateTimeOffset(partida.ShotClockIniciadoEm.Value).ToUnixTimeMilliseconds()
-                        : null,
-                    ShotClockSegundosAoIniciar = partida.ShotClockSegundosAoIniciar,
-                    PosseCasa = partida.PosseCasa,
-                    PeriodoAtual = (int)partida.PeriodoAtual
-                },
-                UltimoEvento = partida.Eventos.LastOrDefault() is { } novoUltimo
-                    ? new UltimoEventoDto
-                    {
-                        EventoId = novoUltimo.Id,
-                        JogadorId = novoUltimo.JogadorId,
-                        Tipo = novoUltimo.Tipo.ToString(),
-                        PeriodoAtual = (int)novoUltimo.Periodo,
-                        TempoJogoSegundos = novoUltimo.TempoJogoSegundos
-                    }
-                    : null
-            };
+            var estado = SumulaHub.MapEstadoDto(partida);
 
             await _hub.Clients.Group($"partida-{id}").SendAsync("EstadoAtual", estado, ct);
 

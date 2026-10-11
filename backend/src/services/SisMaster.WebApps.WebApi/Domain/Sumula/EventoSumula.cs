@@ -16,10 +16,11 @@ public class EventoSumula : Entity
 
     protected EventoSumula() { }
 
-    public EventoSumula(Guid sumulaId, Guid jogadorId, TipoEvento tipo, Periodo periodo, int tempoJogoSegundos)
+    public EventoSumula(Guid sumulaId, Guid jogadorId, TipoEvento tipo, Periodo periodo, int tempoJogoSegundos, Guid? id = null)
     {
         Validacoes.ValidarSeMenorQue(tempoJogoSegundos, 0, "Tempo de jogo não pode ser negativo");
 
+        if (id.HasValue && id.Value != Guid.Empty) Id = id.Value;
         SumulaId = sumulaId;
         JogadorId = jogadorId;
         Tipo = tipo;

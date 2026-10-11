@@ -61,6 +61,7 @@ public class RodizioDaSumulaQuery
                             j.Nome,
                             j.Titular,
                             Capitao = time.CapitaoId == j.Id,
+                            Faltas = sumula.FaltasDoJogador(j.Id),
                             EmQuadra = quadra.Contains(j.Id),
                             Periodos = r.Periodos.Select(p => p.ToString()).ToList(),
                             r.CompletosEmQuadra,

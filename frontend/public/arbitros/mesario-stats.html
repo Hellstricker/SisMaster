@@ -6,6 +6,7 @@
   <title>SisMaster — Mesário de Estatísticas</title>
   <script src="signalr.min.js"></script>
   <script src="auth.js"></script>
+  <script src="conexao.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500;600&display=swap">
   <style>
     :root {
@@ -27,6 +28,7 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Barlow', system-ui, sans-serif; }
     body { display: grid; grid-template-rows: auto 1fr auto; }
+    .faixas { display: block; }
 
     /* ── Topbar ── */
     .topbar {
@@ -199,6 +201,23 @@
     .no-tag { font-size: .6rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: rgba(245,158,11,.15); color: var(--shot); }
     .resumo-rod { font-size: .72rem; color: var(--text); margin: 4px 0 10px; }
 
+    /* ── Faltas, bloqueio e fila (A4) ── */
+    .sem-conexao { display: none; background: #b91c1c; color: #fff; text-align: center; font-weight: 700; padding: 8px 12px; font-size: .9rem; }
+    body.offline .sem-conexao { display: block; }
+    .fila-aviso { display: none; background: rgba(245,158,11,.15); border-bottom: 1px solid rgba(245,158,11,.4); color: var(--shot); padding: 6px 18px; font-size: .78rem; justify-content: space-between; gap: 10px; }
+    .fila-aviso.on { display: flex; }
+    .rejeitado { display: none; background: rgba(239,68,68,.15); border-bottom: 1px solid rgba(239,68,68,.5); color: #fecaca; padding: 6px 18px; font-size: .78rem; justify-content: space-between; gap: 10px; align-items: center; }
+    .rejeitado.on { display: flex; }
+    .rejeitado button { background: none; border: 1px solid rgba(239,68,68,.5); color: #fecaca; border-radius: 4px; padding: 2px 10px; cursor: pointer; }
+    .mini-faltas.estourou { color: var(--danger); font-weight: 800; }
+    .falt { margin-left: auto; font-size: .62rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--surface); color: var(--muted); white-space: nowrap; }
+    .falt.f4 { background: rgba(245,158,11,.2); color: var(--shot); }
+    .falt.f5 { background: rgba(239,68,68,.25); color: var(--danger); }
+    .player-item.fora { opacity: .5; cursor: not-allowed; }
+    .tag-fora { font-size: .55rem; font-weight: 800; padding: 1px 5px; border-radius: 3px; background: var(--danger); color: #fff; }
+    .opt.bloq { opacity: .5; cursor: not-allowed; }
+    .opt .motivo { margin-left: auto; font-size: .6rem; color: var(--danger); font-weight: 700; }
+
     /* ── Toast ── */
     .toast { position: fixed; bottom: 44px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--home); color: #fff; font-size: .78rem; font-weight: 600; padding: 8px 20px; border-radius: 6px; transition: transform .25s; z-index: 100; pointer-events: none; }
     .toast.err  { background: var(--danger); }
@@ -251,6 +270,10 @@
   </div>
 </div>
 
+<div class="cabeca">
+<div class="sem-conexao" id="semConexao" role="alert">SEM CONEXÃO — os lançamentos ficam guardados neste aparelho e são enviados quando a rede voltar (a substituição precisa da rede)</div>
+<div class="fila-aviso" id="filaAviso"><span><b id="nFila">0</b> lançamento(s) aguardando envio</span><span>enviam sozinhos, na ordem</span></div>
+<div class="rejeitado" id="rejeitado"><span id="rejeitadoTxt"></span><button onclick="document.getElementById('rejeitado').classList.remove('on')">OK</button></div>
 <div class="topbar">
   <div class="topbar-left">
     <div class="topbar-brand">SisMaster</div>
@@ -260,7 +283,7 @@
     <div class="mini-team home">
       <span class="mini-name"  id="nomeCasa">—</span>
       <span class="mini-score" id="placarCasa">—</span>
-      <span class="mini-faltas" id="faltasCasa">0 faltas</span>
+      <span class="mini-faltas" id="faltasCasa">Faltas no período: 0</span>
     </div>
     <div class="mini-center">
       <span class="mini-sep">×</span>
@@ -270,13 +293,14 @@
     <div class="mini-team away">
       <span class="mini-name"  id="nomeVisit">—</span>
       <span class="mini-score" id="placarVisit">—</span>
-      <span class="mini-faltas" id="faltasVisit">0 faltas</span>
+      <span class="mini-faltas" id="faltasVisit">Faltas no período: 0</span>
     </div>
   </div>
   <div class="topbar-role">
     <span class="conn-dot" id="connDot"></span>
     <span id="connTxt">Conectando...</span>
   </div>
+</div>
 </div>
 
 <div class="main" id="main">
@@ -388,68 +412,137 @@
   let periodoVisto = null;
   let subLado = 'casa', subSai = null, subEntra = null;
 
-  // ── SignalR ──────────────────────────────────────────────────────
-  const connection = new signalR.HubConnectionBuilder()
-    .withUrl(`${API}/hubs/sumula?partidaId=${PARTIDA_ID}`, {
-      skipNegotiation: true,
-      transport: signalR.HttpTransportType.WebSockets,
-      accessTokenFactory: () => SisMasterAuth.token()
-    })
-    .withAutomaticReconnect()
-    .build();
+  // ── SignalR (conexão que não desiste; ver conexao.js) ─────────────────
+  const conexao = SisMasterConexao.criar({
+    partidaId: PARTIDA_ID,
+    entrar: 'EntrarComoMesarioStats',
+    aoMudar: ok => {
+      setConn(ok);
+      if (ok) { loadPlayers().then(loadRodizio); drenarFila(); }   // reconectou: recarrega jogadores, quadra e rodízio
+    },
+    registrar: connection => {
+      connection.on('EstadoAtual', state => {
+        updateScore(state);
+        updateClock(state.cronometro);
+        ultimoDoServidor = state.ultimoEvento || null;
+        atualizarBarraDesfazer();
+        loadRodizio();
+      });
 
-  connection.on('EstadoAtual', state => {
-    updateScore(state);
-    updateClock(state.cronometro);
-    if (state.ultimoEvento) updateUndoBar(state.ultimoEvento);
-    else clearUndoBar();
+      connection.on('EventoRegistrado', ev => {
+        updateScore(ev);
+        ultimoDoServidor = { tipo: ev.tipo, jogadorId: ev.jogadorId };
+        atualizarBarraDesfazer();
+        loadRodizio();
+      });
+
+      connection.on('CronometroAtualizado', cron => {
+        updateClock(cron);
+        mostrarFaltas(cron);
+        // O rodízio muda quando um período termina: recarrega ao avançar.
+        if (cron.periodoAtual && periodoVisto !== null && cron.periodoAtual !== periodoVisto) loadRodizio();
+        if (cron.periodoAtual) periodoVisto = cron.periodoAtual;
+      });
+      connection.on('QuadraAtualizada', () => loadRodizio());
+      // Atleta acrescentado depois do início do jogo: atualiza a lista de jogadores e o rodízio.
+      connection.on('RelacaoAtualizada', async () => { await loadPlayers(); await loadRodizio(); });
+      connection.on('SumulaEncerrada', () => loadRodizio());
+    }
   });
-
-  connection.on('EventoRegistrado', ev => {
-    updateScore(ev);
-    updateUndoBar({ tipo: ev.tipo, jogadorId: ev.jogadorId });
-    toast('Evento registrado!');
-  });
-
-  connection.on('CronometroAtualizado', cron => {
-    updateClock(cron);
-    // O rodízio muda quando um período termina: recarrega ao avançar.
-    if (cron.periodoAtual && periodoVisto !== null && cron.periodoAtual !== periodoVisto) loadRodizio();
-    if (cron.periodoAtual) periodoVisto = cron.periodoAtual;
-  });
-  connection.on('QuadraAtualizada', () => loadRodizio());
-  // Atleta acrescentado depois do início do jogo: atualiza a lista de jogadores e o rodízio.
-  connection.on('RelacaoAtualizada', async () => { await loadPlayers(); await loadRodizio(); });
-  connection.on('SumulaEncerrada', () => loadRodizio());
-  connection.onreconnecting(() => setConn(false));
-  connection.onreconnected(() => setConn(true));
-
-  connection.start()
-    .then(async () => {
-      setConn(true);
-      await connection.invoke('EntrarComoMesarioStats', PARTIDA_ID);
-      await loadPlayers();
-      await loadRodizio();
-    })
-    .catch(() => setConn(false));
 
   function setConn(ok) {
     document.getElementById('connDot').className = 'conn-dot' + (ok ? ' ok' : '');
-    document.getElementById('connTxt').textContent = ok ? 'Conectado' : 'Desconectado';
+    document.getElementById('connTxt').textContent = ok ? 'Conectado' : 'Sem conexão';
+    document.body.classList.toggle('offline', !ok);
+  }
+
+  // ── Fila de lançamentos (rede ruim na quadra) ─────────────────────
+  // Cada lançamento leva o id, o período e o tempo do TOQUE; fica guardado no aparelho (sobrevive a recarregar a página)
+  // até o servidor aceitar. O id impede duplicar quando a resposta se perde. Recusa do servidor (ex.: 5 faltas) sai da fila com aviso.
+  const CHAVE_FILA = 'sismaster-fila-stats-' + PARTIDA_ID;
+  let fila = lerFila();
+  let enviando = false;
+  let ultimoDoServidor = null;
+  let periodoAtualVal = 1;
+  const TIPO_FALTA = [12, 13, 14];
+
+  function lerFila() { try { return JSON.parse(localStorage.getItem(CHAVE_FILA) || '[]'); } catch { return []; } }
+  function gravarFila() {
+    try { localStorage.setItem(CHAVE_FILA, JSON.stringify(fila)); } catch {}
+    const n = fila.length;
+    document.getElementById('nFila').textContent = n;
+    document.getElementById('filaAviso').classList.toggle('on', n > 0);
+    atualizarBarraDesfazer();
+    buildPlayerList();
+  }
+  function novoId() {
+    return (crypto.randomUUID && crypto.randomUUID()) ||
+      'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+  }
+
+  async function drenarFila() {
+    if (enviando) return;
+    enviando = true;
+    try {
+      while (fila.length && conexao.conectado()) {
+        const it = fila[0];
+        let r;
+        try {
+          r = await SisMasterAuth.fetch(`${API}/api/partidas/${PARTIDA_ID}/eventos`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eventoId: it.id, jogadorId: it.jogadorId, tipo: it.tipo, periodo: it.periodo, tempoJogoSegundos: it.tempo })
+          });
+        } catch { break; }                       // sem rede: tenta de novo depois, o item continua na fila
+        if (r.ok) { fila.shift(); gravarFila(); toast('Evento registrado!'); continue; }
+        if (r.status >= 500 || r.status === 401) break;   // problema do servidor/sessão: mantém na fila
+        const err = await r.json().catch(() => ({}));
+        fila.shift(); gravarFila();
+        avisoRejeitado(`Recusado: ${it.rotulo} — ${(err?.errors?.messages?.[0]) || 'o servidor não aceitou o lançamento'}`);
+      }
+    } finally { enviando = false; }
+  }
+  setInterval(() => { if (fila.length) drenarFila(); }, 5000);
+
+  function avisoRejeitado(txt) {
+    document.getElementById('rejeitadoTxt').textContent = txt;
+    document.getElementById('rejeitado').classList.add('on');
+  }
+
+  // Faltas de um jogador = as do servidor + as que ainda estão na fila.
+  function faltasDe(id) {
+    const base = infoJogador(id)?.faltas || 0;
+    const k = String(id).toLowerCase();
+    return base + fila.filter(i => TIPO_FALTA.includes(i.tipo) && String(i.jogadorId).toLowerCase() === k).length;
+  }
+
+  function badgeFaltas(f) {
+    return `<span class="falt ${f >= 5 ? 'f5' : f === 4 ? 'f4' : ''}">${f} falta${f === 1 ? '' : 's'}</span>`;
+  }
+
+  // Faltas de equipe do período: nunca mostra mais que 5; vermelho a partir da 5ª.
+  function mostrarFaltas(s) {
+    [['faltasCasa', s.faltasCasa], ['faltasVisit', s.faltasVisitante]].forEach(([id, n]) => {
+      if (n === undefined) return;
+      const el = document.getElementById(id);
+      el.textContent = 'Faltas no período: ' + Math.min(n, 5);
+      el.classList.toggle('estourou', n >= 5);
+    });
   }
 
   // ── Score / estado ───────────────────────────────────────────────
   function updateScore(state) {
     if (state.placarCasa        !== undefined) document.getElementById('placarCasa').textContent  = state.placarCasa;
     if (state.placarVisitante   !== undefined) document.getElementById('placarVisit').textContent = state.placarVisitante;
-    if (state.faltasCasa        !== undefined) document.getElementById('faltasCasa').textContent  = state.faltasCasa + ' falta' + (state.faltasCasa !== 1 ? 's' : '');
-    if (state.faltasVisitante   !== undefined) document.getElementById('faltasVisit').textContent = state.faltasVisitante + ' falta' + (state.faltasVisitante !== 1 ? 's' : '');
-    if (state.periodoAtual      !== undefined) document.getElementById('periodoLabel').textContent = periodLabel(state.periodoAtual);
+    mostrarFaltas(state);
+    if (state.periodoAtual      !== undefined) { periodoAtualVal = state.periodoAtual; document.getElementById('periodoLabel').textContent = periodLabel(state.periodoAtual); }
   }
 
   // ── Clock ────────────────────────────────────────────────────────
+  let deslocamentoMs = 0;   // hora do servidor menos a do aparelho
   function updateClock(cron) {
     clockState = cron;
+    if (cron.agoraMs) deslocamentoMs = cron.agoraMs - Date.now();
+    if (cron.periodoAtual) { periodoAtualVal = cron.periodoAtual; document.getElementById('periodoLabel').textContent = periodLabel(cron.periodoAtual); }
     if (cron.ativo) {
       if (!tickInterval) tickInterval = setInterval(tickClock, 200);
     } else {
@@ -460,7 +553,7 @@
 
   function tickClock() {
     if (!clockState?.ativo || !clockState.iniciadoEmMs) return;
-    const elapsed = (Date.now() - clockState.iniciadoEmMs) / 1000;
+    const elapsed = (Date.now() + deslocamentoMs - clockState.iniciadoEmMs) / 1000;
     renderClock(Math.max(0, clockState.segundosAoIniciar - elapsed));
   }
 
@@ -483,6 +576,7 @@
       jogadoresPorTime.casa      = d.timeCasa?.jogadores      || [];
       jogadoresPorTime.visitante = d.timeVisitante?.jogadores || [];
       buildPlayerList();
+      atualizarBarraDesfazer();
     } catch {}
   }
 
@@ -498,10 +592,15 @@
       jogadores.forEach(j => {
         const el = document.createElement('div');
         const info = infoJogador(j.id);
-        el.className = 'player-item' + (info && !info.emQuadra ? ' banco' : '');
+        const f = faltasDe(j.id), fora = f >= 5;
+        el.className = 'player-item' + (info && !info.emQuadra ? ' banco' : '') + (fora ? ' fora' : '');
         el.innerHTML = `<span class="player-num">#${j.numero}</span><span class="player-nome">${j.nome}</span>` +
-          `<span class="marca">${info?.emQuadra ? '<span class="tag-q">QUADRA</span>' : ''}${info?.capitao ? '<span class="tag-c">C</span>' : ''}</span>`;
-        el.onclick = () => selectJogador(j.id, `#${j.numero} ${j.nome} (${label})`, el);
+          `<span class="marca">${info?.emQuadra && !fora ? '<span class="tag-q">QUADRA</span>' : ''}${info?.capitao ? '<span class="tag-c">C</span>' : ''}${fora ? '<span class="tag-fora">FORA</span>' : ''}</span>${badgeFaltas(f)}`;
+        el.onclick = () => {
+          if (fora) { toast(`#${j.numero} tem 5 faltas e está fora do jogo: não aceita lançamentos`, true); return; }
+          selectJogador(j.id, `#${j.numero} ${j.nome} (${label})`, el);
+        };
+        if (j.id === selectedJogadorId) el.classList.add('selected');
         list.appendChild(el);
       });
     };
@@ -549,22 +648,18 @@
     selectedTipo = null; selectedJogadorId = null;
   }
 
-  async function confirmarEvento() {
+  function confirmarEvento() {
     if (!selectedJogadorId || selectedTipo === null) return;
     const jogadorId = selectedJogadorId;
     const tipo = selectedTipo;
+    const rotulo = `${selectedAcaoLabel} — ${selectedJogadorDesc}`;
+    if (faltasDe(jogadorId) >= 5) { toast('Jogador com 5 faltas: não aceita lançamentos', true); return; }
     fecharPainel();
-    try {
-      const r = await SisMasterAuth.fetch(`${API}/api/partidas/${PARTIDA_ID}/eventos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jogadorId, tipo })
-      });
-      if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
-        toast((err?.errors?.messages?.[0]) || 'Erro ao registrar evento', true);
-      }
-    } catch { toast('Erro de comunicação', true); }
+    // Tempo e período do TOQUE (não do envio): valem mesmo que a rede demore a voltar.
+    fila.push({ id: novoId(), jogadorId, tipo, periodo: periodoAtualVal, tempo: Math.max(0, tempoRestante), rotulo });
+    gravarFila();
+    if (conexao.conectado()) drenarFila();
+    else toast(`Sem rede: lançamento guardado (${fila.length} na fila)`);
   }
 
   // ── Quadra, substituição e rodízio ────────────────────────────────
@@ -587,6 +682,7 @@
   }
 
   function abrirSubstituicao() {
+    if (!conexao.conectado()) { toast('Sem conexão: a substituição precisa da rede', true); return; }
     subSai = null; subEntra = null;
     document.getElementById('subOverlay').hidden = false;
     renderSubstituicao();
@@ -598,8 +694,11 @@
     const nomes = { casa: rodizio.casa.nome, visitante: rodizio.visitante.nome };
     document.getElementById('subLados').innerHTML = ['casa', 'visitante'].map(l =>
       `<button class="lado-btn ${subLado === l ? 'sel' : ''}" onclick="escolherLado('${l}')">${nomes[l]}</button>`).join('');
-    const opt = (j, tipo) =>
-      `<div class="opt ${(tipo === 'sai' ? subSai : subEntra) === j.id ? 'sel' : ''}" onclick="escolher('${tipo}','${j.id}')"><span class="n">#${j.numero}</span>${j.nome}${j.capitao ? ' <span class="tag-c">C</span>' : ''}</div>`;
+    const opt = (j, tipo) => {
+      const f = faltasDe(j.id);
+      const bloq = tipo === 'entra' && f >= 5;   // com 5 faltas só pode sair
+      return `<div class="opt ${bloq ? 'bloq' : ''} ${(tipo === 'sai' ? subSai : subEntra) === j.id ? 'sel' : ''}" ${bloq ? '' : `onclick="escolher('${tipo}','${j.id}')"`}><span class="n">#${j.numero}</span>${j.nome}${j.capitao ? ' <span class="tag-c">C</span>' : ''} ${badgeFaltas(f)}${bloq ? '<span class="motivo">5 faltas: não pode entrar</span>' : ''}</div>`;
+    };
     const emQuadra = lado.jogadores.filter(j => j.emQuadra);
     const completa = emQuadra.length >= 5;
     const semSaida = completa ? '' :
@@ -617,6 +716,8 @@
 
   async function confirmarSubstituicao() {
     if (!subSai || !subEntra) return;
+    if (!conexao.conectado()) { toast('Sem conexão: a substituição precisa da rede', true); return; }
+    if (faltasDe(subEntra) >= 5) { toast('Jogador com 5 faltas não pode entrar em quadra', true); return; }
     try {
       const r = await SisMasterAuth.fetch(`${API}/api/partidas/${PARTIDA_ID}/substituicoes`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -665,17 +766,23 @@
 
   // ── Desfazer ─────────────────────────────────────────────────────
   function desfazer() {
+    if (!fila.length && !conexao.conectado()) { toast('Sem conexão: só dá para desfazer o que ainda está na fila', true); return; }
     document.getElementById('undoOverlay').hidden = false;
   }
 
   async function executarDesfazer() {
     document.getElementById('undoOverlay').hidden = true;
+    // O último lançamento ainda está na fila do aparelho: basta tirá-lo de lá (não chegou ao servidor).
+    if (fila.length) {
+      if (enviando) { toast('Enviando… tente desfazer de novo em um instante', true); return; }
+      fila.pop(); gravarFila();
+      toast('Lançamento da fila desfeito');
+      return;
+    }
     try {
       const r = await SisMasterAuth.fetch(`${API}/api/partidas/${PARTIDA_ID}/eventos/ultimo`, { method: 'DELETE' });
-      if (r.ok) {
-        toast('Evento desfeito!');
-        clearUndoBar();
-      } else {
+      if (r.ok) toast('Evento desfeito!');
+      else {
         const err = await r.json().catch(() => ({}));
         toast((err?.errors?.messages?.[0]) || 'Erro ao desfazer', true);
       }
@@ -690,19 +797,21 @@
     FaltaPessoal: 'Falta Pessoal', FaltaTecnica: 'Falta Técnica', FaltaAntiDesportiva: 'Falta Anti-Desportiva'
   };
 
-  function updateUndoBar(ev) {
+  function atualizarBarraDesfazer() {
+    const bar = document.getElementById('lastEvent');
+    const btn = document.getElementById('btnUndo');
+    if (fila.length) {
+      bar.innerHTML = `Último (<strong>aguardando envio</strong>): ${fila[fila.length - 1].rotulo}`;
+      btn.classList.add('visible'); btn.disabled = false;
+      return;
+    }
+    const ev = ultimoDoServidor;
+    if (!ev) { bar.textContent = 'Nenhum evento registrado'; btn.classList.remove('visible'); return; }
     const label = TIPO_LABELS[ev.tipo] || ev.tipo;
-    const all   = [...jogadoresPorTime.casa, ...jogadoresPorTime.visitante];
-    const j     = all.find(x => x.id === ev.jogadorId || x.id?.toLowerCase() === ev.jogadorId?.toLowerCase());
-    const jDesc = j ? ` — #${j.numero} ${j.nome}` : '';
-    document.getElementById('lastEvent').innerHTML = `Último: <strong>${label}</strong>${jDesc}`;
-    document.getElementById('btnUndo').classList.add('visible');
-    document.getElementById('btnUndo').disabled = false;
-  }
-
-  function clearUndoBar() {
-    document.getElementById('lastEvent').textContent = 'Nenhum evento registrado';
-    document.getElementById('btnUndo').classList.remove('visible');
+    const all = [...jogadoresPorTime.casa, ...jogadoresPorTime.visitante];
+    const j = all.find(x => x.id?.toLowerCase() === ev.jogadorId?.toLowerCase());
+    bar.innerHTML = `Último: <strong>${label}</strong>${j ? ` — #${j.numero} ${j.nome}` : ''}`;
+    btn.classList.add('visible'); btn.disabled = false;
   }
 
   // ── Toast ────────────────────────────────────────────────────────
@@ -714,6 +823,8 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
   }
+
+  gravarFila();   // mostra o que ficou na fila de uma sessão anterior (página recarregada)
 
   function periodLabel(n) {
     return (['', '1º', '2º', '3º', '4º', 'Prorr.'][n] || n + 'º') + ' Período';

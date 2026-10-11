@@ -14,6 +14,10 @@ public class CronometroDto
     public bool PosseCasa { get; set; }
     public int PeriodoAtual { get; set; }
 
+    /// <summary>Faltas de equipe do período atual, no máximo 5 (zeram quando o período muda).</summary>
+    public int FaltasCasa { get; set; }
+    public int FaltasVisitante { get; set; }
+
     /// <summary>A hora do servidor (Unix, ms) no momento do envio: o cliente corrige o relógio do próprio aparelho por ela.</summary>
     public long AgoraMs { get; set; }
 }

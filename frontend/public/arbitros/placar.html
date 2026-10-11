@@ -89,6 +89,8 @@
       color: #f59e0b;
       margin-left: 2px;
     }
+    .foul-count.estourou { color: #ef4444; font-weight: 800; }
+    .foul-dot.estourou { background: #ef4444; }
 
     .casa .team-name  { color: #22c55e; }
     .casa .team-score { color: #22c55e; }
@@ -279,14 +281,16 @@
   function renderFoulDots(containerId, count, countId) {
     const el = document.getElementById(containerId);
     const MAX = 5;
+    const estourou = count >= MAX;   // faltas de equipe do período: o número nunca passa de 5; vermelho a partir da 5ª
+    count = Math.min(count, MAX);
     el.innerHTML = '';
     for (let i = 0; i < MAX; i++) {
       const d = document.createElement('div');
-      d.className = 'foul-dot ' + (i < count ? 'filled' : 'empty');
+      d.className = 'foul-dot ' + (i < count ? 'filled' : 'empty') + (estourou ? ' estourou' : '');
       el.appendChild(d);
     }
     const num = document.createElement('span');
-    num.className = 'foul-count';
+    num.className = 'foul-count' + (estourou ? ' estourou' : '');
     num.id = countId;
     num.textContent = count > 0 ? count : '';
     el.appendChild(num);
@@ -326,6 +330,11 @@
   connection.on('CronometroAtualizado', cron => {
     updateClock(cron);
     if (cron.periodoAtual) document.getElementById('periodoLabel').textContent = periodLabel(cron.periodoAtual);
+    // As faltas de equipe zeram a cada período: o servidor manda a contagem junto com o relógio.
+    if (cron.faltasCasa !== undefined) {
+      renderFoulDots('foulsHomeDots', cron.faltasCasa, 'faltasCasaCount');
+      renderFoulDots('foulsAwayDots', cron.faltasVisitante, 'faltasVisitCount');
+    }
   });
 
   // Encerramento (inclusive por importacao do FIBA LiveStats): mostra o placar final e

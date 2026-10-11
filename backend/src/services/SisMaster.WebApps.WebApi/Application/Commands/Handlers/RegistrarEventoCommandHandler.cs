@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using SisMaster.Core.DomainObjects;
 using SisMaster.WebApps.WebApi.Domain.Sumula;
+using SisMaster.WebApps.WebApi.Domain.Sumula.Enums;
 using SisMaster.WebApps.WebApi.Hubs;
 using SisMaster.WebApps.WebApi.Hubs.Dtos;
 
@@ -30,10 +31,15 @@ public class RegistrarEventoCommandHandler : IRequestHandler<RegistrarEventoComm
             return request.ValidationResult;
         }
 
+        // Reenvio do mesmo lançamento (a resposta se perdeu na rede): já está gravado.
+        if (request.EventoId.HasValue && sumula.Eventos.Any(e => e.Id == request.EventoId.Value))
+            return request.ValidationResult;
+
         try
         {
             // O jogador precisa estar relacionado nesta súmula.
-            var evento = sumula.RegistrarEvento(request.JogadorId, request.Tipo, request.TempoJogoSegundos);
+            var evento = sumula.RegistrarEvento(request.JogadorId, request.Tipo, request.TempoJogoSegundos,
+                request.EventoId, request.Periodo.HasValue ? (Periodo)request.Periodo.Value : null);
 
             _sumulaRepository.AdicionarEvento(evento);
             await _sumulaRepository.UnitOfWork.Commit();
@@ -48,8 +54,8 @@ public class RegistrarEventoCommandHandler : IRequestHandler<RegistrarEventoComm
                 TempoJogoSegundos = request.TempoJogoSegundos,
                 PlacarCasa = sumula.PlacarCasa,
                 PlacarVisitante = sumula.PlacarVisitante,
-                FaltasCasa = sumula.FaltasCasa,
-                FaltasVisitante = sumula.FaltasVisitante
+                FaltasCasa = sumula.FaltasDeEquipeParaExibir(LadoTime.Casa),
+                FaltasVisitante = sumula.FaltasDeEquipeParaExibir(LadoTime.Visitante)
             };
 
             await _hub.Clients.Group($"partida-{sumula.Id}")

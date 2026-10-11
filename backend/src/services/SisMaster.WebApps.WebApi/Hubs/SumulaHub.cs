@@ -163,7 +163,7 @@ public class SumulaHub : Hub
         Visitante = partida.QuadraDo(partida.TimeDoLado(LadoTime.Visitante))
     };
 
-    private static CronometroDto MapCronometroDto(Sumula partida) => new()
+    public static CronometroDto MapCronometroDto(Sumula partida) => new()
     {
         PartidaId = partida.Id,
         Ativo = partida.CronometroAtivo,
@@ -176,6 +176,8 @@ public class SumulaHub : Hub
         ShotClockSegundosAoIniciar = partida.ShotClockSegundosAoIniciar,
         PosseCasa = partida.PosseCasa,
         PeriodoAtual = (int)partida.PeriodoAtual,
+        FaltasCasa = partida.FaltasDeEquipeParaExibir(LadoTime.Casa),
+        FaltasVisitante = partida.FaltasDeEquipeParaExibir(LadoTime.Visitante),
         AgoraMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
     };
 
@@ -183,7 +185,7 @@ public class SumulaHub : Hub
     private static long? EmMs(DateTime? instante) =>
         instante.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(instante.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds() : null;
 
-    private static EstadoPartidaDto MapEstadoDto(Sumula partida)
+    public static EstadoPartidaDto MapEstadoDto(Sumula partida)
     {
         var ultimo = partida.Eventos.LastOrDefault();
         return new EstadoPartidaDto
@@ -193,8 +195,8 @@ public class SumulaHub : Hub
             PeriodoAtual = (int)partida.PeriodoAtual,
             PlacarCasa = partida.PlacarCasa,
             PlacarVisitante = partida.PlacarVisitante,
-            FaltasCasa = partida.FaltasCasa,
-            FaltasVisitante = partida.FaltasVisitante,
+            FaltasCasa = partida.FaltasDeEquipeParaExibir(LadoTime.Casa),
+            FaltasVisitante = partida.FaltasDeEquipeParaExibir(LadoTime.Visitante),
             Cronometro = MapCronometroDto(partida),
             UltimoEvento = ultimo is null ? null : new UltimoEventoDto
             {

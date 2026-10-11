@@ -438,4 +438,91 @@ public class SumulaTests
 
         rodizio.Periodos.Should().Equal(EstadoPeriodo.Ausente, EstadoPeriodo.Ausente, EstadoPeriodo.Fora);
     }
+
+    // ---------- A4: faltas, bloqueio na 5ª, id do evento ----------
+
+    [Fact]
+    public void Quinta_falta_bloqueia_novos_lancamentos_do_jogador_e_desfazer_devolve()
+    {
+        var s = Iniciada();
+        var j = Casa(s)[0];
+        for (var i = 0; i < 5; i++) s.RegistrarEvento(j.Id, i % 2 == 0 ? TipoEvento.FaltaPessoal : TipoEvento.FaltaTecnica, 500);
+
+        s.FaltasDoJogador(j.Id).Should().Be(5);
+        var ponto = () => s.RegistrarEvento(j.Id, TipoEvento.Ponto2, 400);
+        var falta = () => s.RegistrarEvento(j.Id, TipoEvento.FaltaPessoal, 400);
+        ponto.Should().Throw<DomainException>().WithMessage("*5 faltas*");
+        falta.Should().Throw<DomainException>().WithMessage("*5 faltas*");
+
+        s.DesfazerUltimoEvento();
+        s.FaltasDoJogador(j.Id).Should().Be(4);
+        s.RegistrarEvento(j.Id, TipoEvento.Ponto2, 400);
+    }
+
+    [Fact]
+    public void Jogador_com_5_faltas_nao_entra_em_quadra_mas_pode_sair()
+    {
+        var s = Iniciada();
+        var j = Casa(s);
+        for (var i = 0; i < 5; i++) s.RegistrarEvento(j[6].Id, TipoEvento.FaltaPessoal, 500);   // do banco, com 5 faltas
+        for (var i = 0; i < 5; i++) s.RegistrarEvento(j[0].Id, TipoEvento.FaltaPessoal, 500);   // em quadra, com 5 faltas
+
+        var entra = () => s.RegistrarSubstituicao(j[1].Id, j[6].Id, 500);
+        entra.Should().Throw<DomainException>().WithMessage("*não pode entrar*");
+
+        s.RegistrarSubstituicao(j[0].Id, j[7].Id, 500);   // quem tem 5 faltas pode sair
+        s.QuadraDo(s.TimeDoLado(LadoTime.Casa)).Should().NotContain(j[0].Id);
+    }
+
+    [Fact]
+    public void Faltas_de_equipe_zeram_a_cada_periodo_e_a_prorrogacao_continua_a_contagem_do_quarto()
+    {
+        var s = Iniciada();
+        var casa = Casa(s);
+        s.RegistrarEvento(casa[0].Id, TipoEvento.FaltaPessoal, 500);
+        s.RegistrarEvento(casa[1].Id, TipoEvento.FaltaTecnica, 400);
+        s.FaltasDeEquipeNoPeriodo(LadoTime.Casa).Should().Be(2);
+        s.FaltasDeEquipeNoPeriodo(LadoTime.Visitante).Should().Be(0);
+
+        s.AvancarPeriodo();                                     // 2º período: zera
+        s.FaltasDeEquipeNoPeriodo(LadoTime.Casa).Should().Be(0);
+        s.RegistrarEvento(casa[2].Id, TipoEvento.FaltaPessoal, 500);
+        s.FaltasDeEquipeNoPeriodo(LadoTime.Casa).Should().Be(1);
+
+        s.AvancarPeriodo(); s.AvancarPeriodo();                 // 4º
+        s.RegistrarEvento(casa[3].Id, TipoEvento.FaltaPessoal, 300);
+        s.RegistrarEvento(casa[4].Id, TipoEvento.FaltaPessoal, 200);
+        s.AvancarPeriodo();                                     // prorrogação continua o 4º
+        s.FaltasDeEquipeNoPeriodo(LadoTime.Casa).Should().Be(2);
+        s.RegistrarEvento(casa[5].Id, TipoEvento.FaltaPessoal, 100);
+        s.FaltasDeEquipeNoPeriodo(LadoTime.Casa).Should().Be(3);
+    }
+
+    [Fact]
+    public void Faltas_de_equipe_exibidas_nunca_passam_de_5_mas_a_contagem_real_continua()
+    {
+        var s = Iniciada();
+        var casa = Casa(s);
+        for (var i = 0; i < 7; i++) s.RegistrarEvento(casa[i % 4].Id, TipoEvento.FaltaPessoal, 500);   // 4 jogadores, nenhum chega a 5
+
+        s.FaltasDeEquipeNoPeriodo(LadoTime.Casa).Should().Be(7);
+        s.FaltasDeEquipeParaExibir(LadoTime.Casa).Should().Be(5);
+    }
+
+    [Fact]
+    public void Evento_com_o_mesmo_id_nao_duplica_na_lista_e_o_periodo_do_toque_e_gravado()
+    {
+        var s = Iniciada();
+        var j = Casa(s)[0];
+        s.AvancarPeriodo();   // 2º período
+
+        var id = Guid.NewGuid();
+        var ev = s.RegistrarEvento(j.Id, TipoEvento.Ponto2, 123, id, Periodo.Primeiro);
+
+        ev.Id.Should().Be(id);
+        ev.Periodo.Should().Be(Periodo.Primeiro);
+        ev.TempoJogoSegundos.Should().Be(123);
+        var futuro = () => s.RegistrarEvento(j.Id, TipoEvento.Ponto2, 100, null, Periodo.Terceiro);
+        futuro.Should().Throw<DomainException>().WithMessage("*Período do evento inválido*");
+    }
 }
