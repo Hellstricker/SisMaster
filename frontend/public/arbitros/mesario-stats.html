@@ -754,7 +754,7 @@
         return `<tr><td class="l"><b>#${j.numero}</b> ${j.nome}${j.capitao ? ' <span class="tag-c">C</span>' : ''}${j.emQuadra ? ' <span class="tag-q">QUADRA</span>' : ''}</td>${cels}<td>${j.completosEmQuadra}</td><td>${j.completosFora}</td><td>${lado.exigeRodizio ? (j.cumpre ? '<span class="ok-tag">cumpre</span>' : '<span class="no-tag">falta</span>') : '—'}</td></tr>`;
       }).join('');
       const resumo = lado.exigeRodizio
-        ? `<b>${lado.cumprem} de ${lado.relacionados}</b> cumpriram o rodízio até agora${rodizio.valorBonificacaoPorAtleta > 0 ? ' · bonificação prevista: <b>' + lado.bonificacaoPrevista + '</b> ponto(s)' : ''}.`
+        ? `<b>${lado.cumprem} de ${lado.relacionados}</b> cumpriram o rodízio até agora${rodizio.valorBonificacaoPorAtleta > 0 ? ' · bonificação prevista: <b>' + lado.bonificacaoPrevista.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '</b> ponto(s)' : ''}.`
         : `Menos de 7 relacionados: o rodízio não é exigido e não há bonificação.`;
       return `<h4 style="margin-top:8px">${lado.nome}</h4><div class="resumo-rod">${resumo}</div>
         <table class="grade"><thead><tr><th class="l">Atleta</th>${cabP}<th>Q</th><th>F</th><th>Rodízio</th></tr></thead><tbody>${linhas}</tbody></table>`;

@@ -1,4 +1,4 @@
-import type { ClassificacaoPublica, LinhaClassificacao } from '@/lib/api';
+import { type ClassificacaoPublica, type LinhaClassificacao, pontos } from '@/lib/api';
 
 function Sequencia({ s }: { s: string }) {
   return (
@@ -8,12 +8,12 @@ function Sequencia({ s }: { s: string }) {
   );
 }
 
-function Tabela({ linhas }: { linhas: LinhaClassificacao[] }) {
+function Tabela({ linhas, bonus }: { linhas: LinhaClassificacao[]; bonus: boolean }) {
   return (
     <div className="rolagem">
       <table>
         <thead>
-          <tr><th>#</th><th className="l">Equipe</th><th>J</th><th>V</th><th>D</th><th>PF</th><th>PS</th><th>Saldo</th><th>Pts</th><th>Últ. 5</th></tr>
+          <tr><th>#</th><th className="l">Equipe</th><th>J</th><th>V</th><th>D</th><th>PF</th><th>PS</th><th>Saldo</th>{bonus && <th>Bôn.</th>}<th>Pts</th><th>Últ. 5</th></tr>
         </thead>
         <tbody>
           {linhas.map(l => (
@@ -23,7 +23,8 @@ function Tabela({ linhas }: { linhas: LinhaClassificacao[] }) {
               <td>{l.jogos}</td><td>{l.vitorias}</td><td>{l.derrotas}</td>
               <td>{l.pontosFeitos}</td><td>{l.pontosSofridos}</td>
               <td>{l.saldo > 0 ? `+${l.saldo}` : l.saldo}</td>
-              <td><b>{l.total}</b></td>
+              {bonus && <td>{l.bonificacao > 0 ? `+${pontos(l.bonificacao)}` : '0'}</td>}
+              <td><b>{pontos(l.total)}</b></td>
               <td><Sequencia s={l.sequencia} /></td>
             </tr>
           ))}
@@ -41,9 +42,11 @@ export default function Classificacao({ dados }: { dados: ClassificacaoPublica }
   if (c.tipo === 'Tabela') {
     return (
       <div className="card">
-        <Tabela linhas={c.linhas} />
+        <Tabela linhas={c.linhas} bonus={dados.bonificacaoAtiva} />
         <p className="small muted" style={{ margin: '10px 0 0' }}>
-          Verde: classificadas para a próxima fase. Pontos: vitória 2, derrota 1, W.O. 0. {c.definitiva ? '' : 'A fase ainda está em andamento.'}
+          Verde: classificadas para a próxima fase. Pontos: vitória 2, derrota 1, W.O. 0.{' '}
+          {dados.bonificacaoAtiva && <>Bôn. = bonificação do rodízio: {pontos(dados.temporada.valorBonificacaoPorAtleta)} ponto(s) por atleta que cumpriu (pode ser decimal), somada ao total. </>}
+          {c.definitiva ? '' : 'A fase ainda está em andamento.'}
         </p>
       </div>
     );
@@ -55,13 +58,13 @@ export default function Classificacao({ dados }: { dados: ClassificacaoPublica }
         {c.grupos.map(g => (
           <div className="card" key={g.ordem} style={{ marginBottom: 14 }}>
             <h3>{g.nome}</h3>
-            <Tabela linhas={g.linhas} />
+            <Tabela linhas={g.linhas} bonus={dados.bonificacaoAtiva} />
           </div>
         ))}
         {c.melhores.length > 0 && (
           <div className="card">
             <h3>Melhores classificados dos grupos</h3>
-            <Tabela linhas={c.melhores.map(m => ({ ...m.linha, posicao: m.posicao, texto: `${m.linha.texto} (${m.grupo})` }))} />
+            <Tabela bonus={dados.bonificacaoAtiva} linhas={c.melhores.map(m => ({ ...m.linha, posicao: m.posicao, texto: `${m.linha.texto} (${m.grupo})` }))} />
           </div>
         )}
         <p className="small muted">Verde: classificadas para a próxima fase.</p>

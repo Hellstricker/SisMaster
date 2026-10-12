@@ -79,7 +79,13 @@ export interface LinhaClassificacao {
   texto: string;
   equipe: { id: string; nome: string } | null;
   jogos: number; vitorias: number; derrotas: number; derrotasWO: number;
-  pontosFeitos: number; pontosSofridos: number; saldo: number; total: number;
+  pontosFeitos: number; pontosSofridos: number; saldo: number;
+  /** Pontos de vitórias, derrotas e W.O. (inteiro). */
+  subtotal: number;
+  /** Bonificação do rodízio: DECIMAL (ex.: 0,5 por atleta que cumpriu). */
+  bonificacao: number;
+  /** subtotal + bonificação: decimal. */
+  total: number;
   sequencia: string;
   classificado: string | null;
 }
@@ -92,6 +98,9 @@ export interface ClassificacaoPublica {
   id: string;
   nome: string;
   tipo: string;
+  /** A temporada paga bonificação por atleta que cumpre o rodízio (valor decimal, em pontos). */
+  bonificacaoAtiva: boolean;
+  temporada: { valorBonificacaoPorAtleta: number };
   classificacao:
     | { tipo: 'Tabela'; definitiva: boolean; linhas: LinhaClassificacao[] }
     | { tipo: 'Grupos'; definitiva: boolean; grupos: { nome: string; ordem: number; linhas: LinhaClassificacao[] }[]; melhores: { posicao: number; grupo: string; linha: LinhaClassificacao }[] }
@@ -156,6 +165,11 @@ export function diaMes(iso: string): string {
 /** "2026-10-12" -> "seg" (fuso fixo em UTC, ao meio-dia, para não virar o dia). */
 export function diaDaSemana(iso: string): string {
   return new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
+}
+
+/** Pontos com vírgula e até 2 casas ("6,5"; inteiros sem casas): a bonificação do rodízio é decimal. */
+export function pontos(n: number): string {
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
 }
 
 export function relogio(segundos: number): string {
