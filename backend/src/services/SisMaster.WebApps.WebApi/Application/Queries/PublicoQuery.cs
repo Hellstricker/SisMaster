@@ -37,7 +37,9 @@ public class PublicoQuery
             QuemSomos = p?.QuemSomos,
             Gestao = p?.GestaoDaDiretoria,
             Diretoria = (p?.Diretoria ?? []).Where(m => m.Nome != null).OrderBy(m => m.Ordem).Select(m => new { m.Cargo, m.Nome }).ToList(),
-            Contato = new { p?.Whatsapp, p?.Instagram, p?.Email, p?.OndeJogamos }
+            Contato = new { p?.Whatsapp, p?.Instagram, p?.Email, p?.OndeJogamos },
+            // Dados da controladora para a política de privacidade e os termos (são públicos por natureza).
+            Legal = new { p?.Cnpj, p?.Endereco, p?.EncarregadoDeDados, p?.EmailPrivacidade, p?.ForoCidade }
         };
     }
 

@@ -181,9 +181,29 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.Property<Guid>("AssociacaoId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Cnpj")
+                        .HasMaxLength(18)
+                        .HasColumnType("nvarchar(18)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("EmailPrivacidade")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("EncarregadoDeDados")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Endereco")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ForoCidade")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("GestaoDaDiretoria")
                         .HasMaxLength(30)

@@ -126,7 +126,7 @@ const assoc = `/api/publico/associacoes/${encodeURIComponent(SIGLA)}`;
 export const obterAssociacao = () => obter<Associacao>(assoc, 60);
 
 export async function obterInscricoesAbertas(): Promise<TemporadaAberta[] | null> {
-  const r = await obter<{ temporadas: TemporadaAberta[] }>(`${assoc}/inscricoes-abertas`);
+  const r = await obter<{ temporadas: TemporadaAberta[] }>(`${assoc}/inscricoes-abertas`, 0);
   return r ? r.temporadas : null;
 }
 
@@ -175,6 +175,8 @@ export interface PaginaDaAssociacao {
   gestao: string | null;
   diretoria: { cargo: string; nome: string }[];
   contato: { whatsapp: string | null; instagram: string | null; email: string | null; ondeJogamos: string | null };
+  /** Dados da controladora para a política de privacidade e os termos de uso. */
+  legal: { cnpj: string | null; endereco: string | null; encarregadoDeDados: string | null; emailPrivacidade: string | null; foroCidade: string | null };
 }
 
 export const obterPagina = () => obter<PaginaDaAssociacao>(`${assoc}/pagina`, 0);

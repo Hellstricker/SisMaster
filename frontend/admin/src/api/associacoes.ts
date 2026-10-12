@@ -88,6 +88,12 @@ export interface PaginaPublicaDados {
   email: string;
   ondeJogamos: string;
   diretoria: { cargo: string; nome: string }[];
+  /** Dados da controladora que entram na política de privacidade e nos termos de uso do site. */
+  cnpj: string;
+  endereco: string;
+  encarregadoDeDados: string;
+  emailPrivacidade: string;
+  foroCidade: string;
 }
 
 export interface PaginaPublicaApi {
@@ -99,6 +105,11 @@ export interface PaginaPublicaApi {
   email: string | null;
   ondeJogamos: string | null;
   diretoria: { cargo: string; nome: string | null }[];
+  cnpj: string | null;
+  endereco: string | null;
+  encarregadoDeDados: string | null;
+  emailPrivacidade: string | null;
+  foroCidade: string | null;
 }
 
 /** O conteúdo das páginas "A associação" e "Contato" do site (vazio se ainda não preenchido). */

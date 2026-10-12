@@ -102,3 +102,11 @@ table.parciais { max-width: 520px; margin: 0 auto; }
 .canal .ic { width: 42px; height: 42px; border-radius: 50%; background: var(--info-bg); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
 .canal b { display: block; }
 h2 { margin-top: 26px; }
+
+/* ---------- textos legais ---------- */
+.texto-legal { max-width: 780px; }
+.texto-legal h2 { font-size: 1.1rem; margin: 26px 0 8px; }
+.texto-legal p, .texto-legal li { line-height: 1.65; }
+.texto-legal ul { padding-left: 22px; }
+.texto-legal table { margin: 6px 0 12px; }
+.texto-legal td, .texto-legal th { text-align: left; vertical-align: top; }

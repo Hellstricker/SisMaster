@@ -84,7 +84,8 @@ public class AssociacoesController : MainController
 
     public sealed record MembroRequest(string? Cargo, string? Nome);
     public sealed record PaginaPublicaRequest(string? Missao, string? QuemSomos, string? GestaoDaDiretoria, string? Whatsapp, string? Instagram,
-        string? Email, string? OndeJogamos, List<MembroRequest>? Diretoria);
+        string? Email, string? OndeJogamos, List<MembroRequest>? Diretoria, string? Cnpj = null, string? Endereco = null, string? EncarregadoDeDados = null,
+        string? EmailPrivacidade = null, string? ForoCidade = null);
 
     /// <summary>O conteúdo das páginas "A associação" e "Contato" do site público (vazio se ainda não preenchido).</summary>
     [Authorize(Policy = Politicas.Gestao)]
@@ -102,6 +103,11 @@ public class AssociacoesController : MainController
             Instagram = p?.Instagram,
             Email = p?.Email,
             OndeJogamos = p?.OndeJogamos,
+            Cnpj = p?.Cnpj,
+            Endereco = p?.Endereco,
+            EncarregadoDeDados = p?.EncarregadoDeDados,
+            EmailPrivacidade = p?.EmailPrivacidade,
+            ForoCidade = p?.ForoCidade,
             Diretoria = (p?.Diretoria ?? []).OrderBy(m => m.Ordem).Select(m => new { m.Cargo, m.Nome }).ToList()
         });
     }
@@ -118,7 +124,8 @@ public class AssociacoesController : MainController
             var nova = pagina is null;
             pagina ??= new PaginaPublica(id);
             var (removidos, adicionados) = pagina.Atualizar(corpo.Missao, corpo.QuemSomos, corpo.GestaoDaDiretoria, corpo.Whatsapp, corpo.Instagram,
-                corpo.Email, corpo.OndeJogamos, (corpo.Diretoria ?? []).Select(m => (m.Cargo ?? string.Empty, m.Nome)).ToList());
+                corpo.Email, corpo.OndeJogamos, (corpo.Diretoria ?? []).Select(m => (m.Cargo ?? string.Empty, m.Nome)).ToList(),
+                new DadosLegais(corpo.Cnpj, corpo.Endereco, corpo.EncarregadoDeDados, corpo.EmailPrivacidade, corpo.ForoCidade));
 
             if (nova) _paginaRepository.Adicionar(pagina);
             _paginaRepository.RemoverMembros(removidos);

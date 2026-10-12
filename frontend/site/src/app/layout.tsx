@@ -34,7 +34,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <footer className="rodape">
           <div className="wrap">
             <span>{a ? `${a.nome} · ${a.uf}` : 'SisMaster'}</span>
-            <span><a href="/admin/">Gestão</a> · <a href="/arbitros/">Árbitros</a></span>
+            <span>
+              <Link href="/privacidade">Privacidade</Link> · <Link href="/termos">Termos de uso</Link> · <a href="/admin/">Gestão</a> · <a href="/arbitros/">Árbitros</a>
+            </span>
           </div>
         </footer>
       </body>

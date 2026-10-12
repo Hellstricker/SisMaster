@@ -5,6 +5,7 @@ import base from '../Fases/Fases.module.css';
 
 const VAZIA: PaginaPublicaDados = {
   missao: '', quemSomos: '', gestaoDaDiretoria: '', whatsapp: '', instagram: '', email: '', ondeJogamos: '', diretoria: [],
+  cnpj: '', endereco: '', encarregadoDeDados: '', emailPrivacidade: '', foroCidade: '',
 };
 
 /**
@@ -31,6 +32,8 @@ export default function PaginaPublica() {
         missao: p.missao ?? '', quemSomos: p.quemSomos ?? '', gestaoDaDiretoria: p.gestaoDaDiretoria ?? '', whatsapp: p.whatsapp ?? '',
         instagram: p.instagram ?? '', email: p.email ?? '', ondeJogamos: p.ondeJogamos ?? '',
         diretoria: p.diretoria.map(m => ({ cargo: m.cargo, nome: m.nome ?? '' })),
+        cnpj: p.cnpj ?? '', endereco: p.endereco ?? '', encarregadoDeDados: p.encarregadoDeDados ?? '',
+        emailPrivacidade: p.emailPrivacidade ?? '', foroCidade: p.foroCidade ?? '',
       });
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível carregar a página.');
@@ -137,6 +140,20 @@ export default function PaginaPublica() {
           <div className={base.field}><label htmlFor="pp-onde">Onde jogamos</label><input id="pp-onde" className={base.input} maxLength={150} placeholder="Ginásio, cidade/UF" value={dados.ondeJogamos} onChange={e => campo('ondeJogamos', e.target.value)} /></div>
         </div>
         <p className={base.dica}>Não coloque dados pessoais de atletas.</p>
+      </section>
+
+      <section className={base.card} style={{ marginBottom: 14 }}>
+        <h2 className={base.modalTitulo}>Dados para a política de privacidade e os termos de uso</h2>
+        <p className={base.dica} style={{ marginTop: 0 }}>
+          Entram nas páginas públicas <b>/privacidade</b> e <b>/termos</b> do site. O que ficar em branco aparece como “a informar pela associação”.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+          <div className={base.field}><label htmlFor="pp-cnpj">CNPJ</label><input id="pp-cnpj" className={base.input} maxLength={18} placeholder="00.000.000/0000-00" value={dados.cnpj} onChange={e => campo('cnpj', e.target.value)} /></div>
+          <div className={base.field}><label htmlFor="pp-end">Endereço da sede</label><input id="pp-end" className={base.input} maxLength={200} value={dados.endereco} onChange={e => campo('endereco', e.target.value)} /></div>
+          <div className={base.field}><label htmlFor="pp-enc">Encarregado de dados (nome)</label><input id="pp-enc" className={base.input} maxLength={100} value={dados.encarregadoDeDados} onChange={e => campo('encarregadoDeDados', e.target.value)} /></div>
+          <div className={base.field}><label htmlFor="pp-priv">E-mail de privacidade</label><input id="pp-priv" type="email" className={base.input} maxLength={150} placeholder="privacidade@..." value={dados.emailPrivacidade} onChange={e => campo('emailPrivacidade', e.target.value)} /></div>
+          <div className={base.field}><label htmlFor="pp-foro">Cidade do foro</label><input id="pp-foro" className={base.input} maxLength={100} placeholder="Salvador/BA" value={dados.foroCidade} onChange={e => campo('foroCidade', e.target.value)} /></div>
+        </div>
       </section>
 
       <div style={{ display: 'flex', gap: 8 }}>

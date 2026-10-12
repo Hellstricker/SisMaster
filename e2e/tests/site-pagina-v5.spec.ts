@@ -77,7 +77,7 @@ test('V5: a gestão preenche a página pública e o site mostra só o que está 
     await page.getByRole('button', { name: 'Subir Tesoureiro' }).click();   // Tesoureiro passa a ser o 2º
     await page.getByLabel('WhatsApp').fill('(71) 9 8888-7777');
     await page.getByLabel('Instagram').fill('@ababas_oficial');
-    await page.getByLabel('E-mail').fill('contato@exemplo.org');
+    await page.getByLabel('E-mail', { exact: true }).fill('contato@exemplo.org');
     await page.getByLabel('Onde jogamos').fill('Ginásio Municipal, Salvador/BA');
     await page.screenshot({ path: 'test-results/v5-gestao.png', fullPage: true });
     await page.getByRole('button', { name: 'Salvar e publicar' }).click();

@@ -18,6 +18,11 @@ public class PaginaPublicaMapping : IEntityTypeConfiguration<PaginaPublica>
         builder.Property(p => p.Instagram).HasMaxLength(60);
         builder.Property(p => p.Email).HasMaxLength(150);
         builder.Property(p => p.OndeJogamos).HasMaxLength(150);
+        builder.Property(p => p.Cnpj).HasMaxLength(18);
+        builder.Property(p => p.Endereco).HasMaxLength(200);
+        builder.Property(p => p.EncarregadoDeDados).HasMaxLength(100);
+        builder.Property(p => p.EmailPrivacidade).HasMaxLength(150);
+        builder.Property(p => p.ForoCidade).HasMaxLength(100);
 
         builder.HasOne<Associacao>().WithMany().HasForeignKey(p => p.AssociacaoId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(p => p.Diretoria).WithOne().HasForeignKey(m => m.PaginaPublicaId).OnDelete(DeleteBehavior.Cascade);
