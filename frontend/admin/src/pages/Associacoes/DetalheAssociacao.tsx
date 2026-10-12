@@ -19,6 +19,7 @@ export default function DetalheAssociacao() {
   const [assoc, setAssoc] = useState<AssociacaoDetalhe | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
+  const [erroStatus, setErroStatus] = useState('');
 
   const [modal, setModal] = useState<ModalTipo>(null);
   const [salvando, setSalvando] = useState(false);
@@ -63,10 +64,11 @@ export default function DetalheAssociacao() {
   async function toggleAtiva() {
     if (!assoc) return;
     try {
+      setErroStatus('');
       await alterarStatusAssociacao(assoc.id, !assoc.ativa);
       setAssoc(prev => prev ? { ...prev, ativa: !prev.ativa } : prev);
-    } catch {
-      // silencioso
+    } catch (e) {
+      setErroStatus(e instanceof Error ? e.message : 'Não foi possível alterar o status.');
     }
   }
 
@@ -153,6 +155,7 @@ export default function DetalheAssociacao() {
           <button className={styles.btnToggle} onClick={toggleAtiva}>
             {assoc.ativa ? 'Desativar' : 'Ativar'}
           </button>
+          {erroStatus && <span className={styles.fieldErro} role="alert">{erroStatus}</span>}
         </div>
       </div>
 

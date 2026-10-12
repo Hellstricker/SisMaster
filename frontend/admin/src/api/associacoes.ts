@@ -1,3 +1,4 @@
+import { enviar } from './http';
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
 export interface Associacao {
@@ -43,12 +44,8 @@ export async function criarAssociacao(body: { nome: string; sigla: string; uf: s
 }
 
 export async function alterarStatusAssociacao(id: string, ativa: boolean): Promise<void> {
-  const res = await fetch(`${BASE}/api/associacoes/${id}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ativa }),
-  });
-  if (!res.ok) throw new Error('Erro ao alterar status');
+  // Só o Administrador altera: a recusa (403) volta com a mensagem da API em vez de falhar calada.
+  return enviar('PATCH', `/api/associacoes/${id}/status`, { ativa }, 'Erro ao alterar o status da associação');
 }
 
 export async function obterAssociacao(id: string): Promise<AssociacaoDetalhe> {

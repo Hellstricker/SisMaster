@@ -68,10 +68,11 @@ export default function ListaAssociacoes() {
 
   async function toggleAtiva(a: Associacao) {
     try {
+      setErro('');
       await alterarStatusAssociacao(a.id, !a.ativa);
       setAssociacoes(prev => prev.map(x => x.id === a.id ? { ...x, ativa: !x.ativa } : x));
-    } catch {
-      // silencioso — não bloqueia a UI
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível alterar o status.');
     }
   }
 

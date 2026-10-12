@@ -125,6 +125,33 @@ test('a diretoria cria uma associação pela interface', async ({ page, request 
   await expect(page.getByText(nome)).toBeVisible();
 });
 
+test('desativar e ativar uma associação pela interface', async ({ page, request }) => {
+  await tokenDoAdministrador(request);
+  await entrarNaInterface(page);
+  const nome = `Associação Status ${sufixo}`;
+  await page.getByRole('button', { name: '+ Nova associação' }).click();
+  await page.getByPlaceholder('Associação Basketball São Paulo', { exact: true }).fill(nome);
+  await page.getByPlaceholder('ABSP', { exact: true }).fill('ST');
+  await page.getByPlaceholder('SP', { exact: true }).fill('BA');
+  await page.getByRole('button', { name: 'Criar associação' }).click();
+  const cartao = page.locator('div[class*="_card_"]').filter({ hasText: nome });
+  await expect(cartao).toBeVisible();
+  await expect(cartao.getByText('Ativa', { exact: true })).toBeVisible();
+
+  const resposta = page.waitForResponse(r => r.url().includes('/status') && r.request().method() === 'PATCH');
+  await cartao.getByRole('button', { name: 'Desativar' }).click();
+  const r = await resposta;
+  expect(r.status(), `PATCH status -> ${r.status()} (página em ${page.url()})`).toBeLessThan(300);
+  await expect(cartao.getByText('Inativa', { exact: true })).toBeVisible();
+  expect(page.url(), 'a página não pode sair da gestão').toContain('/admin');
+  await page.reload();
+  expect(page.url(), 'depois de recarregar').toContain('/admin');   // o servidor guardou de verdade
+  await expect(cartao.getByText('Inativa', { exact: true })).toBeVisible();
+
+  await cartao.getByRole('button', { name: 'Ativar' }).click();
+  await expect(cartao.getByText('Ativa', { exact: true })).toBeVisible();
+});
+
 test('da associação à classificação: um jogo completo', async ({ page, request }) => {
   const ano = hoje.getFullYear();
   let associacaoId = '', categoriaId = '', campeonatoId = '', temporadaId = '', temporadaCategoriaId = '';
