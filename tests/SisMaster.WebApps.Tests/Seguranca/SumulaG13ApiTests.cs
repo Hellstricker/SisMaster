@@ -396,4 +396,37 @@ public class SumulaG13ApiTests
         (await Chamar(c.Arbitro, HttpMethod.Delete, $"/api/sumulas/{c.SumulaId}/eventos/ultimo")).Status.Should().Be(HttpStatusCode.OK);
         (await Chamar(c.Arbitro, HttpMethod.Post, $"/api/sumulas/{c.SumulaId}/reabrir", new { motivo = "de novo sem estar encerrada" })).Status.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    // ------------------------------------------------------------------ V3: o jogo na vitrine pública
+
+    [Fact]
+    public async Task Jogo_publico_mostra_placar_parciais_e_estatisticas_ao_vivo_e_depois_de_encerrado()
+    {
+        if (SemBanco) return;
+        var (c, jogador) = await IniciadaComJogadorAsync("V3Jogo");
+        var anonimo = _fabrica.ClienteCom(null);
+        var obter = async () => JsonDocument.Parse(await anonimo.GetStringAsync($"/api/publico/jogos/{c.JogoId}")).RootElement.Clone();
+        foreach (var tipo in new[] { "Ponto3", "Ponto2", "ReboteDefensivo", "FaltaPessoal" })
+            await Chamar(c.Arbitro, HttpMethod.Post, $"/api/sumulas/{c.SumulaId}/eventos",
+                new { eventoId = Guid.NewGuid(), jogadorId = jogador, tipo, periodo = 1, tempoJogoSegundos = 500 });
+
+        var vivo = await obter();
+        vivo.GetProperty("jogo").GetProperty("status").GetString().Should().Be("EmAndamento");
+        var aoVivo = vivo.GetProperty("jogo").GetProperty("aoVivo");
+        aoVivo.GetProperty("placarCasa").GetInt32().Should().Be(5);
+        aoVivo.GetProperty("periodo").GetInt32().Should().Be(1);
+        var sumula = vivo.GetProperty("sumula");
+        sumula.GetProperty("parciais").EnumerateArray().Single().GetProperty("casa").GetInt32().Should().Be(5);
+        var atleta = sumula.GetProperty("casa").GetProperty("jogadores").EnumerateArray().First(j => j.GetProperty("pontos").GetInt32() > 0);
+        atleta.GetProperty("pontos").GetInt32().Should().Be(5);
+        atleta.GetProperty("rebotes").GetInt32().Should().Be(1);
+        atleta.GetProperty("faltas").GetInt32().Should().Be(1);
+        atleta.GetRawText().ToLowerInvariant().Should().NotContain("cpf").And.NotContain("nascimento");
+
+        (await Chamar(c.Arbitro, HttpMethod.Post, $"/api/sumulas/{c.SumulaId}/encerrar", new { confirmarAntesDoTempo = true })).Status.Should().Be(HttpStatusCode.NoContent);
+        var fim = await obter();
+        fim.GetProperty("jogo").GetProperty("status").GetString().Should().Be("Encerrado");
+        fim.GetProperty("jogo").GetProperty("placarCasa").GetInt32().Should().Be(5);
+        fim.GetProperty("jogo").GetProperty("aoVivo").ValueKind.Should().Be(JsonValueKind.Null);
+    }
 }

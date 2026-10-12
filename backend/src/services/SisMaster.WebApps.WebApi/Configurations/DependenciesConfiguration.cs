@@ -48,12 +48,14 @@ public static class DependenciesConfiguration
         services.AddScoped<IFaseRepository, FaseRepository>();
         services.AddScoped<IJogoRepository, JogoRepository>();
         services.AddScoped<ILocalRepository, LocalRepository>();
+        services.AddScoped<IPaginaPublicaRepository, PaginaPublicaRepository>();
         services.AddScoped<DetalheFaseQuery>();
         services.AddScoped<ClassificacaoFaseQuery>();
         services.AddScoped<AvancoDaTemporada>();
         services.AddScoped<BonificacaoDosJogos>();
         services.AddScoped<RodizioDaSumulaQuery>();
         services.AddScoped<PublicoQuery>();
+        services.AddScoped<PublicoVitrineQuery>();
         services.AddScoped<JogosDoArbitroQuery>();
         services.AddScoped<JogosDaTemporadaQuery>();
         services.AddScoped<SisMaster.WebApps.WebApi.Application.Services.ConferenciaDeAgendaServico>();

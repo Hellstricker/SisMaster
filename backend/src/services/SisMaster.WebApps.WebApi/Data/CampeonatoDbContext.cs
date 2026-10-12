@@ -32,6 +32,8 @@ public class CampeonatoDbContext : DbContext, IUnitOfWork
     public DbSet<Domain.Sumula.Time> SumulaTimes { get; set; }
     public DbSet<Domain.Sumula.Jogador> SumulaJogadores { get; set; }
     public DbSet<Domain.Auditoria.RegistroDeAuditoria> RegistrosDeAuditoria { get; set; }
+    public DbSet<PaginaPublica> PaginasPublicas { get; set; }
+    public DbSet<MembroDaDiretoria> MembrosDaDiretoria { get; set; }
 
     public CampeonatoDbContext(DbContextOptions<CampeonatoDbContext> options) : base(options) { }
 

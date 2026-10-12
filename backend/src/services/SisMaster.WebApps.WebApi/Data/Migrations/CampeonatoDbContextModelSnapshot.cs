@@ -144,6 +144,79 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.ToTable("DescontosPorCombinacao", (string)null);
                 });
 
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.MembroDaDiretoria", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Cargo")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Nome")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PaginaPublicaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaginaPublicaId");
+
+                    b.ToTable("MembrosDaDiretoria", (string)null);
+                });
+
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.PaginaPublica", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssociacaoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("GestaoDaDiretoria")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Instagram")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Missao")
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<string>("OndeJogamos")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("QuemSomos")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Whatsapp")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssociacaoId")
+                        .IsUnique();
+
+                    b.ToTable("PaginasPublicas", (string)null);
+                });
+
             modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.Temporada", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1069,6 +1142,24 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.MembroDaDiretoria", b =>
+                {
+                    b.HasOne("SisMaster.WebApps.WebApi.Domain.Associacao.PaginaPublica", null)
+                        .WithMany("Diretoria")
+                        .HasForeignKey("PaginaPublicaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.PaginaPublica", b =>
+                {
+                    b.HasOne("SisMaster.WebApps.WebApi.Domain.Associacao.Associacao", null)
+                        .WithMany()
+                        .HasForeignKey("AssociacaoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.Temporada", b =>
                 {
                     b.HasOne("SisMaster.WebApps.WebApi.Domain.Associacao.Campeonato", "Campeonato")
@@ -1475,6 +1566,11 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
             modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.Campeonato", b =>
                 {
                     b.Navigation("Temporadas");
+                });
+
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.PaginaPublica", b =>
+                {
+                    b.Navigation("Diretoria");
                 });
 
             modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.Temporada", b =>

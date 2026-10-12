@@ -23,7 +23,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div className="wrap">
             <Link className="logo" href="/"><i />{sigla}</Link>
             <nav aria-label="Principal">
-              <Link href="/" aria-current="page">Início</Link>
+              <Link href="/">Início</Link>
+              <Link href="/campeonatos">Campeonatos</Link>
+              <Link href="/a-associacao">A associação</Link>
+              <Link href="/contato">Contato</Link>
             </nav>
           </div>
         </header>

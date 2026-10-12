@@ -18,10 +18,12 @@ public class AssociacoesController : MainController
     private readonly IAssociacaoRepository _repository;
     private readonly ICategoriaRepository _categoriaRepository;
     private readonly IAcessoDoUsuario _acesso;
+    private readonly IPaginaPublicaRepository _paginaRepository;
 
     public AssociacoesController(IMediatorHandler mediator, IAssociacaoRepository repository, ICategoriaRepository categoriaRepository,
-        IAcessoDoUsuario acesso)
+        IAcessoDoUsuario acesso, IPaginaPublicaRepository paginaRepository)
     {
+        _paginaRepository = paginaRepository;
         _acesso = acesso;
         _mediator = mediator;
         _repository = repository;
@@ -78,6 +80,57 @@ public class AssociacoesController : MainController
         command.AssociacaoId = id;
         var result = await _mediator.EnviarComando(command);
         return CustomResponse(result);
+    }
+
+    public sealed record MembroRequest(string? Cargo, string? Nome);
+    public sealed record PaginaPublicaRequest(string? Missao, string? QuemSomos, string? GestaoDaDiretoria, string? Whatsapp, string? Instagram,
+        string? Email, string? OndeJogamos, List<MembroRequest>? Diretoria);
+
+    /// <summary>O conteúdo das páginas "A associação" e "Contato" do site público (vazio se ainda não preenchido).</summary>
+    [Authorize(Policy = Politicas.Gestao)]
+    [HttpGet("{id:guid}/pagina-publica")]
+    public async Task<ActionResult> ObterPaginaPublica(Guid id, CancellationToken ct)
+    {
+        if (await _repository.ObterPorIdAsync(id, ct) is null) return NotFound();
+        var p = await _paginaRepository.ObterDaAssociacaoAsync(id, ct);
+        return CustomResponse(new
+        {
+            Missao = p?.Missao,
+            QuemSomos = p?.QuemSomos,
+            GestaoDaDiretoria = p?.GestaoDaDiretoria,
+            Whatsapp = p?.Whatsapp,
+            Instagram = p?.Instagram,
+            Email = p?.Email,
+            OndeJogamos = p?.OndeJogamos,
+            Diretoria = (p?.Diretoria ?? []).OrderBy(m => m.Ordem).Select(m => new { m.Cargo, m.Nome }).ToList()
+        });
+    }
+
+    /// <summary>Grava o conteúdo (substitui o anterior; a diretoria é a lista inteira, na ordem). Administrador ou Administrador da associação.</summary>
+    [Authorize(Policy = Politicas.Gestao)]
+    [HttpPut("{id:guid}/pagina-publica")]
+    public async Task<ActionResult> SalvarPaginaPublica(Guid id, [FromBody] PaginaPublicaRequest corpo, CancellationToken ct)
+    {
+        if (await _repository.ObterPorIdAsync(id, ct) is null) return NotFound();
+        try
+        {
+            var pagina = await _paginaRepository.ObterDaAssociacaoAsync(id, ct);
+            var nova = pagina is null;
+            pagina ??= new PaginaPublica(id);
+            var (removidos, adicionados) = pagina.Atualizar(corpo.Missao, corpo.QuemSomos, corpo.GestaoDaDiretoria, corpo.Whatsapp, corpo.Instagram,
+                corpo.Email, corpo.OndeJogamos, (corpo.Diretoria ?? []).Select(m => (m.Cargo ?? string.Empty, m.Nome)).ToList());
+
+            if (nova) _paginaRepository.Adicionar(pagina);
+            _paginaRepository.RemoverMembros(removidos);
+            _paginaRepository.AdicionarMembros(adicionados);
+            await _paginaRepository.UnitOfWork.Commit();
+            return NoContent();
+        }
+        catch (SisMaster.Core.DomainObjects.DomainException ex)
+        {
+            AdicionarErro(ex.Message);
+            return CustomResponse();
+        }
     }
 
     [Authorize(Policy = Politicas.SomenteAdministrador)]

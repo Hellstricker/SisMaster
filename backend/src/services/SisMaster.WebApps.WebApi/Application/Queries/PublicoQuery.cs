@@ -23,6 +23,24 @@ public class PublicoQuery
         return a;
     }
 
+    /// <summary>"A associação" e "Contato": só o que a associação preencheu (cargo sem nome não aparece).</summary>
+    public async Task<object?> PaginaAsync(string sigla, CancellationToken ct)
+    {
+        var a = await _context.Associacoes.AsNoTracking().FirstOrDefaultAsync(x => x.Ativa && x.Sigla == sigla, ct);
+        if (a is null) return null;
+        var p = await _context.PaginasPublicas.AsNoTracking().Include(x => x.Diretoria).FirstOrDefaultAsync(x => x.AssociacaoId == a.Id, ct);
+
+        return new
+        {
+            Associacao = new { a.Nome, a.Sigla, a.Uf },
+            Missao = p?.Missao,
+            QuemSomos = p?.QuemSomos,
+            Gestao = p?.GestaoDaDiretoria,
+            Diretoria = (p?.Diretoria ?? []).Where(m => m.Nome != null).OrderBy(m => m.Ordem).Select(m => new { m.Cargo, m.Nome }).ToList(),
+            Contato = new { p?.Whatsapp, p?.Instagram, p?.Email, p?.OndeJogamos }
+        };
+    }
+
     /// <summary>
     /// Temporadas com inscrições abertas hoje: situação "inscrições abertas", habilitadas e dentro da janela de datas
     /// (o último dia da janela ainda vale).

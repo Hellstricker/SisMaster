@@ -1,4 +1,4 @@
-import { enviar } from './http';
+import { enviar, obter } from './http';
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
 export interface Associacao {
@@ -77,4 +77,36 @@ export async function criarCampeonato(associacaoId: string, body: { nome: string
     const err = await res.json().catch(() => ({}));
     throw new Error(err?.errors?.[0] ?? 'Erro ao criar campeonato');
   }
+}
+
+export interface PaginaPublicaDados {
+  missao: string;
+  quemSomos: string;
+  gestaoDaDiretoria: string;
+  whatsapp: string;
+  instagram: string;
+  email: string;
+  ondeJogamos: string;
+  diretoria: { cargo: string; nome: string }[];
+}
+
+export interface PaginaPublicaApi {
+  missao: string | null;
+  quemSomos: string | null;
+  gestaoDaDiretoria: string | null;
+  whatsapp: string | null;
+  instagram: string | null;
+  email: string | null;
+  ondeJogamos: string | null;
+  diretoria: { cargo: string; nome: string | null }[];
+}
+
+/** O conteúdo das páginas "A associação" e "Contato" do site (vazio se ainda não preenchido). */
+export function obterPaginaPublica(associacaoId: string): Promise<PaginaPublicaApi> {
+  return obter<PaginaPublicaApi>(`/api/associacoes/${associacaoId}/pagina-publica`, 'Erro ao carregar a página pública');
+}
+
+/** Grava o conteúdo (substitui o anterior). Administrador ou Administrador da associação. */
+export function salvarPaginaPublica(associacaoId: string, d: PaginaPublicaDados): Promise<void> {
+  return enviar('PUT', `/api/associacoes/${associacaoId}/pagina-publica`, d, 'Erro ao salvar a página pública');
 }
