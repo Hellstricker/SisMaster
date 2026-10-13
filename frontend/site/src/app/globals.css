@@ -139,3 +139,28 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
 .isca { position: absolute; left: -9999px; opacity: 0; height: 0; }
 .conta-topo { margin-left: auto; display: flex; gap: 10px; align-items: center; font-size: .95rem; }
 .conta-topo .nome { opacity: .9; }
+
+
+/* ---------- assistente de inscrição ---------- */
+.passos { display: flex; gap: 6px; max-width: 640px; margin: 24px auto 0; font-size: .78rem; color: var(--text-2); }
+.passos span { flex: 1; border-top: 4px solid var(--border); padding-top: 4px; }
+.passos span.on { border-color: var(--brand); color: var(--text); font-weight: 700; }
+.passos span.ok { border-color: var(--ok); }
+@media (max-width: 520px) { .passos { font-size: .68rem; } }
+.card.conta .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .card.conta .g2 { grid-template-columns: 1fr; } }
+select { width: 100%; min-height: 46px; padding: 9px 12px; border: 1px solid var(--border-input); border-radius: 10px; font: inherit; background: var(--card); color: var(--text); }
+input[readonly] { background: color-mix(in srgb, var(--border) 40%, var(--card)); color: var(--text-2); }
+.acoes { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.cat { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+.cat input { width: 20px; height: 20px; margin-top: 3px; flex-shrink: 0; }
+.cat small { display: block; color: var(--text-2); }
+.cat.dis { opacity: .6; cursor: not-allowed; }
+.tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 99px; background: var(--warn-bg); color: var(--warn); margin-left: 6px; }
+.tag.dis { background: var(--border); color: var(--text-2); }
+.rev { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; margin: 0 0 12px; }
+.rev dt { color: var(--text-2); font-size: .88rem; }
+.rev dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.proto { font-size: 1.5rem; font-weight: 800; letter-spacing: .5px; background: var(--info-bg); color: var(--info); border-radius: 10px; padding: 8px 14px; display: inline-block; margin: 6px 0; }
+.aviso.info { background: var(--info-bg); color: var(--info); border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; font-size: .9rem; }
+.aviso.warn { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; font-size: .9rem; }

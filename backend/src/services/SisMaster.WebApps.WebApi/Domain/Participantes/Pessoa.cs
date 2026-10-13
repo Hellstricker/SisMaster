@@ -17,6 +17,9 @@ public class Pessoa : Entity, IAggregateRoot
     public string? Telefone { get; private set; }
     public PerfilPessoa Perfil { get; private set; }
 
+    /// <summary>Id da conta do site (Identidade) ligada a este cadastro. Uma conta tem um cadastro e um cadastro tem uma conta.</summary>
+    public string? ContaId { get; private set; }
+
     protected Pessoa() { }
 
     public Pessoa(string nome, string cpf, DateOnly nascimento, Sexo sexo, string email, string? telefone = null)
@@ -31,6 +34,18 @@ public class Pessoa : Entity, IAggregateRoot
         Telefone = string.IsNullOrWhiteSpace(telefone) ? null : telefone.Trim();
         Perfil = PerfilPessoa.Convidado;
     }
+
+    /// <summary>Liga o cadastro à conta do site. Nunca troca uma ligação existente (isso é com a diretoria).</summary>
+    public void VincularConta(string contaId)
+    {
+        Validacoes.ValidarSeVazio(contaId, "Conta inválida");
+        if (ContaId is not null && ContaId != contaId)
+            throw new DomainException("Este cadastro já está ligado a outra conta");
+        ContaId = contaId;
+    }
+
+    /// <summary>Menor de 18 anos na data: a inscrição é feita pela diretoria, com o responsável.</summary>
+    public static bool EhMenorDeIdade(DateOnly nascimento, DateOnly hoje) => nascimento.AddYears(18) > hoje;
 
     public void TornarAssociado() => Perfil = PerfilPessoa.Associado;
 

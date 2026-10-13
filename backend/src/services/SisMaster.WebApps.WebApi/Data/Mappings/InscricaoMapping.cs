@@ -17,6 +17,12 @@ public class InscricaoMapping : IEntityTypeConfiguration<Inscricao>
         builder.Property(i => i.NomePlanoSaude).HasMaxLength(100);
         builder.Property(i => i.DataEnvio).IsRequired();
         builder.Property(i => i.ConsentimentoLgpdEm).IsRequired();
+        builder.Property(i => i.VersaoTermos).HasMaxLength(20);
+        builder.Property(i => i.Protocolo).HasMaxLength(20);
+        builder.Property(i => i.Origem).HasMaxLength(20).IsRequired().HasDefaultValue("Diretoria");
+        // Protocolo único por temporada; código de envio único (idempotência do envio pelo site).
+        builder.HasIndex(i => new { i.TemporadaId, i.Protocolo }).IsUnique().HasFilter("[Protocolo] IS NOT NULL");
+        builder.HasIndex(i => i.CodigoDeEnvio).IsUnique().HasFilter("[CodigoDeEnvio] IS NOT NULL");
 
         builder.HasOne(i => i.Pessoa)
                .WithMany()

@@ -56,6 +56,7 @@ public static class DependenciesConfiguration
         services.AddScoped<RodizioDaSumulaQuery>();
         services.AddScoped<PublicoQuery>();
         services.AddScoped<PublicoVitrineQuery>();
+        services.AddScoped<SisMaster.WebApps.WebApi.Application.Services.InscricaoDoParticipanteServico>();
         services.AddScoped<JogosDoArbitroQuery>();
         services.AddScoped<JogosDaTemporadaQuery>();
         services.AddScoped<SisMaster.WebApps.WebApi.Application.Services.ConferenciaDeAgendaServico>();

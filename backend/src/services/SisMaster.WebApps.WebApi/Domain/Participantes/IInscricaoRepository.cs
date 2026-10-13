@@ -24,6 +24,18 @@ public interface IInscricaoRepository : IRepository<Inscricao>
     /// <summary>Alguma ficha da temporada já teve a cobrança gerada?</summary>
     Task<bool> ExisteCobrancaGeradaAsync(Guid temporadaId, CancellationToken ct = default);
 
+    /// <summary>A inscrição enviada pelo site com este código (rastreada, com os pedidos de categoria), se houver: torna o envio idempotente.</summary>
+    Task<Inscricao?> ObterPorCodigoDeEnvioAsync(Guid codigo, CancellationToken ct = default);
+
+    /// <summary>A última ficha da pessoa (para pré-preencher a ficha esportiva da próxima inscrição), somente leitura.</summary>
+    Task<Inscricao?> ObterUltimaDaPessoaAsync(Guid pessoaId, CancellationToken ct = default);
+
+    /// <summary>Os pedidos ativos (não recusados) da pessoa na temporada, com o protocolo da ficha: categoria -> protocolo (ou "—" se sem protocolo).</summary>
+    Task<IReadOnlyDictionary<Guid, string>> ListarCategoriasAtivasDaPessoaAsync(Guid pessoaId, Guid temporadaId, CancellationToken ct = default);
+
+    /// <summary>Quantas fichas a temporada já tem com protocolo (base do próximo número).</summary>
+    Task<int> ContarProtocolosAsync(Guid temporadaId, CancellationToken ct = default);
+
     void Adicionar(Inscricao inscricao);
     void AdicionarPagamento(PagamentoInscricao pagamento);
 }

@@ -144,7 +144,7 @@ test('I0/I4: conta do público dentro do fluxo da inscrição', async ({ page, r
     await page.screenshot({ path: 'test-results/i0-email-confirmado.png' });
     await page.getByRole('link', { name: 'Continuar a inscrição' }).click();
     await expect(page).toHaveURL(new RegExp(`/inscricao/${temporadaId}$`));
-    await expect(page.getByText('Sua conta está pronta')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Seus dados' })).toBeVisible();   // já conectada, direto no 1º passo da inscrição
     await expect(page.locator('.conta-topo')).toContainText('José');
   });
 

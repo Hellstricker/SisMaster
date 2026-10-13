@@ -48,6 +48,23 @@ public class InscricaoRepository : IInscricaoRepository
             .OrderByDescending(c => c.Inscricao.DataEnvio)
             .ToListAsync(ct);
 
+    public async Task<Inscricao?> ObterPorCodigoDeEnvioAsync(Guid codigo, CancellationToken ct = default) =>
+        await _context.Inscricoes.Include(i => i.Categorias).FirstOrDefaultAsync(i => i.CodigoDeEnvio == codigo, ct);
+
+    public async Task<Inscricao?> ObterUltimaDaPessoaAsync(Guid pessoaId, CancellationToken ct = default) =>
+        await _context.Inscricoes.AsNoTracking().Where(i => i.PessoaId == pessoaId).OrderByDescending(i => i.DataEnvio).FirstOrDefaultAsync(ct);
+
+    public async Task<IReadOnlyDictionary<Guid, string>> ListarCategoriasAtivasDaPessoaAsync(Guid pessoaId, Guid temporadaId, CancellationToken ct = default) =>
+        (await _context.InscricoesCategorias.AsNoTracking()
+            .Where(c => c.Inscricao.PessoaId == pessoaId && c.Inscricao.TemporadaId == temporadaId && c.Status != StatusInscricaoCategoria.Recusada)
+            .Select(c => new { c.TemporadaCategoriaId, c.Inscricao.Protocolo })
+            .ToListAsync(ct))
+        .GroupBy(x => x.TemporadaCategoriaId)
+        .ToDictionary(g => g.Key, g => g.First().Protocolo ?? "—");
+
+    public async Task<int> ContarProtocolosAsync(Guid temporadaId, CancellationToken ct = default) =>
+        await _context.Inscricoes.CountAsync(i => i.TemporadaId == temporadaId && i.Protocolo != null, ct);
+
     public async Task<bool> ExisteAtivaAsync(Guid pessoaId, Guid temporadaCategoriaId, CancellationToken ct = default) =>
         await _context.InscricoesCategorias.AnyAsync(c =>
             c.TemporadaCategoriaId == temporadaCategoriaId

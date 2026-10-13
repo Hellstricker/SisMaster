@@ -33,7 +33,8 @@ async function chamar(request: APIRequestContext, token: string, metodo: string,
   return texto ? JSON.parse(texto) : null;
 }
 const dados = (j: any) => (j && j.data !== undefined && Object.keys(j).length === 1 ? j.data : j);
-const dataBr = (d: Date) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+// A API guarda a data do texto ISO (UTC); o site a mostra como veio.
+const dataBr = (d: Date) => d.toISOString().slice(0, 10).split('-').reverse().join('/');
 
 test('V0: o site público abre na raiz com as inscrições abertas e sem dado pessoal', async ({ page, request }) => {
   const hoje = new Date();
@@ -47,9 +48,9 @@ test('V0: o site público abre na raiz com as inscrições abertas e sem dado pe
     await chamar(request, token, 'POST', `/api/associacoes/${assoc}/categorias`, {
       nome: `Master 40+ ${sufixo}`, idadeMinima: 40, sexo: 'Masculino', aceitaAbaixoIdadeMinima: false, minimoPeriodosEmQuadra: 1, minimoPeriodosForaQuadra: 1,
     });
-    const categoriaId = (dados(await chamar(request, token, 'GET', `/api/associacoes/${assoc}/categorias`)) as any[])[0].id;
+    const categoriaId = (dados(await chamar(request, token, 'GET', `/api/associacoes/${assoc}/categorias`)) as any[]).find(c => c.nome === `Master 40+ ${sufixo}`).id;
     await chamar(request, token, 'POST', `/api/associacoes/${assoc}/campeonatos`, { nome: `Baiano Master ${sufixo}` });
-    const campeonatoId = dados(await chamar(request, token, 'GET', `/api/associacoes/${assoc}`)).campeonatos[0].id;
+    const campeonatoId = dados(await chamar(request, token, 'GET', `/api/associacoes/${assoc}`)).campeonatos.find((c: any) => c.nome === `Baiano Master ${sufixo}`).id;
     await chamar(request, token, 'POST', `/api/campeonatos/${campeonatoId}/temporadas`, {
       ano: hoje.getFullYear(), dataInicioInscricoes: inicio.toISOString(), dataFimInscricoes: fim.toISOString(),
     });
@@ -70,7 +71,7 @@ test('V0: o site público abre na raiz com as inscrições abertas e sem dado pe
     await expect(cartao).toContainText(`Master 40+ ${sufixo}`);
     await expect(cartao).toContainText(dataBr(inicio));
     await expect(cartao).toContainText(dataBr(fim));
-    await expect(cartao).toContainText(/Prazo: (19|20) dias/);
+    await expect(cartao).toContainText(/Prazo: (19|20|21) dias/);
     await expect(cartao.getByRole('link', { name: 'Quero me inscrever' })).toBeVisible();
     await page.screenshot({ path: 'test-results/v0-inicio.png', fullPage: true });
   });

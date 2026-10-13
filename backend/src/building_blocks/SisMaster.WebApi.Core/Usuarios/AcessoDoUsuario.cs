@@ -12,6 +12,7 @@ public interface IAcessoDoUsuario
     bool EhAdministrador { get; }
     bool EhAdministradorDeAssociacao { get; }
     bool EhArbitro { get; }
+    bool EhParticipante { get; }
 
     /// <summary>Associações vinculadas. Vazio para o Administrador (que acessa todas).</summary>
     IReadOnlySet<Guid> Associacoes { get; }
@@ -44,6 +45,7 @@ public sealed class AcessoDoUsuario : IAcessoDoUsuario
     public bool EhAdministrador => _usuario?.IsInRole(Perfis.Administrador) == true;
     public bool EhAdministradorDeAssociacao => _usuario?.IsInRole(Perfis.AdministradorDeAssociacao) == true;
     public bool EhArbitro => _usuario?.IsInRole(Perfis.Arbitro) == true;
+    public bool EhParticipante => _usuario?.IsInRole(Perfis.Participante) == true;
     public IReadOnlySet<Guid> Associacoes => EhAdministrador ? new HashSet<Guid>() : _associacoes.Value;
     public bool PodeAcessar(Guid associacaoId) => Autenticado && (EhAdministrador || _associacoes.Value.Contains(associacaoId));
     public IReadOnlyCollection<Guid>? AssociacoesPermitidas => EhAdministrador ? null : _associacoes.Value;

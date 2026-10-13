@@ -48,7 +48,7 @@ public class PublicoController : ControllerBase
     [HttpGet("associacoes/{sigla}/inicio")]
     public async Task<ActionResult> Inicio(string sigla, CancellationToken ct)
     {
-        var r = await _vitrine.InicioAsync(sigla, DateOnly.FromDateTime(DateTime.Now), ct);
+        var r = await _vitrine.InicioAsync(sigla, Application.Services.RelogioLocal.Hoje, ct);
         if (r is null) return NotFound();
         Cache(5);
         return Ok(r);
@@ -98,7 +98,7 @@ public class PublicoController : ControllerBase
     [HttpGet("associacoes/{sigla}/inscricoes-abertas")]
     public async Task<ActionResult> InscricoesAbertas(string sigla, CancellationToken ct)
     {
-        var r = await _query.InscricoesAbertasAsync(sigla, DateTime.Now, ct);
+        var r = await _query.InscricoesAbertasAsync(sigla, Application.Services.RelogioLocal.Agora, ct);
         if (r is null) return NotFound();
         Cache(30);
         return Ok(r);

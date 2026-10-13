@@ -34,7 +34,8 @@ public sealed class EscopoDeAssociacaoFilter(IAcessoDoUsuario acesso, IResolvedo
     public async Task OnActionExecutionAsync(ActionExecutingContext contexto, ActionExecutionDelegate next)
     {
         var publica = contexto.ActionDescriptor.EndpointMetadata.OfType<IAllowAnonymous>().Any();
-        if (publica || !acesso.Autenticado || acesso.EhAdministrador)
+        // O Participante (conta do público) só alcança as rotas da própria política (ParticipanteController), que não dependem de vínculo com associação.
+        if (publica || !acesso.Autenticado || acesso.EhAdministrador || acesso.EhParticipante)
         {
             await next();
             return;

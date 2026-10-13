@@ -60,6 +60,14 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
       JwtSettings__Segredo: "${JWT_SEGREDO:?Defina JWT_SEGREDO no arquivo .env (mínimo 32 caracteres)}"
+      # E-mail do sistema (inscrição recebida e mudanças de situação): mesma configuração da Identidade.
+      Email__Provedor: "${EMAIL_PROVEDOR:-Log}"
+      Email__Host: "${SMTP_HOST:-}"
+      Email__Porta: "${SMTP_PORT:-587}"
+      Email__Usuario: "${SMTP_USER:-}"
+      Email__Senha: "${SMTP_PASSWORD:-}"
+      Email__Remetente: "${SMTP_FROM:-}"
+      Seguranca__LimiteDeVinculosPorHora: "${LIMITE_VINCULOS_POR_HORA:-8}"
       ConnectionStrings__CampeonatoConnection: "Server=sqlserver,1433;Database=${DB_NAME:-SisMaster};User Id=sa;Password=${SA_PASSWORD:?Defina SA_PASSWORD no arquivo .env};MultipleActiveResultSets=true;TrustServerCertificate=True"
     depends_on:
       sqlserver:

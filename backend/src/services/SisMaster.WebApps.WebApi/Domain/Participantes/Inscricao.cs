@@ -24,6 +24,21 @@ public class Inscricao : Entity, IAggregateRoot
     /// <summary>Consentimento LGPD: guarda o instante exato, não só um booleano.</summary>
     public DateTime ConsentimentoLgpdEm { get; private set; }
 
+    /// <summary>Autorização de uso de imagem e dados para divulgação (separada da LGPD). Nulo nas inscrições antigas e nas feitas pela diretoria.</summary>
+    public DateTime? ConsentimentoImagemEm { get; private set; }
+
+    /// <summary>Versão dos Termos e da Política vigentes quando as autorizações foram dadas.</summary>
+    public string? VersaoTermos { get; private set; }
+
+    /// <summary>Protocolo da inscrição feita pelo site (ex.: 2027-0142: ano da temporada e sequencial dela). Nulo nas feitas pela diretoria.</summary>
+    public string? Protocolo { get; private set; }
+
+    /// <summary>"Site" ou "Diretoria".</summary>
+    public string Origem { get; private set; } = "Diretoria";
+
+    /// <summary>Código gerado pela tela ao abrir o formulário: reenviar o mesmo envio (duplo clique, recarregar) não cria outra inscrição.</summary>
+    public Guid? CodigoDeEnvio { get; private set; }
+
     // Cobrança final (nula até a diretoria gerar as cobranças da temporada)
     public decimal? ValorTotal { get; private set; }
     public decimal? ValorDesconto { get; private set; }
@@ -59,6 +74,17 @@ public class Inscricao : Entity, IAggregateRoot
         NomePlanoSaude = possuiPlanoSaude ? nomePlanoSaude!.Trim() : null;
         DataEnvio = DateTime.UtcNow;
         ConsentimentoLgpdEm = DataEnvio;
+    }
+
+    /// <summary>Marca a ficha como enviada pelo site: protocolo, as duas autorizações com a versão do texto e o código de envio.</summary>
+    public void RegistrarEnvioPeloSite(string protocolo, DateTime consentimentoImagemEm, string versaoTermos, Guid codigoDeEnvio)
+    {
+        Validacoes.ValidarSeVazio(protocolo, "Protocolo inválido");
+        Protocolo = protocolo;
+        ConsentimentoImagemEm = consentimentoImagemEm;
+        VersaoTermos = string.IsNullOrWhiteSpace(versaoTermos) ? "?" : versaoTermos.Trim();
+        CodigoDeEnvio = codigoDeEnvio;
+        Origem = "Site";
     }
 
     // ---- Situação financeira

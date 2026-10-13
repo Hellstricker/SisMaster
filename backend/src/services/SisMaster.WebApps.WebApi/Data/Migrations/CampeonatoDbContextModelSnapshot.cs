@@ -713,6 +713,12 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.Property<DateTime?>("CobrancaGeradaEm")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("CodigoDeEnvio")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ConsentimentoImagemEm")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("ConsentimentoLgpdEm")
                         .HasColumnType("datetime2");
 
@@ -722,6 +728,13 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.Property<string>("NomePlanoSaude")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Origem")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Diretoria");
 
                     b.Property<int?>("PesoKg")
                         .HasColumnType("int");
@@ -736,6 +749,10 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.Property<bool>("PossuiPlanoSaude")
                         .HasColumnType("bit");
 
+                    b.Property<string>("Protocolo")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<Guid>("TemporadaId")
                         .HasColumnType("uniqueidentifier");
 
@@ -747,11 +764,23 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
 
+                    b.Property<string>("VersaoTermos")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CodigoDeEnvio")
+                        .IsUnique()
+                        .HasFilter("[CodigoDeEnvio] IS NOT NULL");
 
                     b.HasIndex("PessoaId");
 
                     b.HasIndex("TemporadaId", "PessoaId");
+
+                    b.HasIndex("TemporadaId", "Protocolo")
+                        .IsUnique()
+                        .HasFilter("[Protocolo] IS NOT NULL");
 
                     b.ToTable("Inscricoes", (string)null);
                 });
@@ -836,6 +865,10 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ContaId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -864,6 +897,10 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ContaId")
+                        .IsUnique()
+                        .HasFilter("[ContaId] IS NOT NULL");
 
                     b.ToTable("Pessoas", (string)null);
                 });

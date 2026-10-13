@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using SisMaster.WebApps.Tests.Infra;
 using SisMaster.WebApps.WebApi.Data;
+using SisMaster.WebApps.WebApi.Email;
 using Xunit;
 
 namespace SisMaster.WebApps.Tests.Seguranca;
@@ -22,6 +23,17 @@ namespace SisMaster.WebApps.Tests.Seguranca;
 public sealed class ColecaoApi : ICollectionFixture<ApiFactory>
 {
     public const string Nome = "Api";
+}
+
+public sealed class CaptadorDeEmail : IEnviadorDeEmail
+{
+    public List<(string Para, string Assunto, string Corpo)> Enviados { get; } = [];
+    public Task EnviarAsync(string para, string assunto, string corpoTexto, CancellationToken ct = default)
+    {
+        lock (Enviados) Enviados.Add((para, assunto, corpoTexto));
+        return Task.CompletedTask;
+    }
+    public int Quantos(string para, string assuntoComeca) { lock (Enviados) return Enviados.Count(e => e.Para == para && e.Assunto.StartsWith(assuntoComeca)); }
 }
 
 public sealed class ApiFactory : WebApplicationFactory<Program>
@@ -40,9 +52,29 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("JwtSettings__Segredo", Segredo);
         Environment.SetEnvironmentVariable("JwtSettings__Emissor", Emissor);
         Environment.SetEnvironmentVariable("JwtSettings__Audiencia", Audiencia);
+        Environment.SetEnvironmentVariable("Seguranca__LimiteDeVinculosPorHora", "100000");   // o limite por conta só é testado à parte
     }
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.UseEnvironment("Testing");
+    /// <summary>E-mails que a API "enviou" (os testes conferem o aviso de inscrição recebida).</summary>
+    public CaptadorDeEmail Emails { get; } = new();
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Testing");
+        builder.ConfigureServices(s => s.AddSingleton<IEnviadorDeEmail>(Emails));
+    }
+
+    /// <summary>Token de uma conta do público (Participante): o id da conta e o e-mail (já confirmado) vêm do token.</summary>
+    public static string TokenDoParticipante(Guid conta, string email)
+    {
+        var claims = new List<Claim>
+        {
+            new("sub", conta.ToString()), new("email", email), new("nome", "Participante"), new("role", "Participante"),
+        };
+        return new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(
+            Emissor, Audiencia, claims, DateTime.UtcNow.AddMinutes(-1), DateTime.UtcNow.AddMinutes(30),
+            new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Segredo)), SecurityAlgorithms.HmacSha256)));
+    }
 
     /// <summary>Token válido de um perfil, vinculado às associações informadas (o Administrador não precisa de vínculo).</summary>
     public static string Token(string perfil, params Guid[] associacoes)
