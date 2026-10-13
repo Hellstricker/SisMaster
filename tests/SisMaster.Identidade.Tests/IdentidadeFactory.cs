@@ -35,6 +35,7 @@ public sealed class IdentidadeFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("JwtSettings__MinutosParaExpirar", "30");
         Environment.SetEnvironmentVariable("JwtSettings__HorasParaExpirarArbitro", "8");
         Environment.SetEnvironmentVariable("Seguranca__LimiteDeLoginsPorMinuto", "100000"); // o limite por endereço atrapalharia os testes
+        Environment.SetEnvironmentVariable("Seguranca__LimiteDeCadastrosPorHora", "100000");
         Environment.SetEnvironmentVariable("Bootstrap__AdminEmail", AdminEmail);
         Environment.SetEnvironmentVariable("Bootstrap__AdminSenha", AdminSenha);
         Environment.SetEnvironmentVariable("Bootstrap__AdminNome", "Admin Teste");

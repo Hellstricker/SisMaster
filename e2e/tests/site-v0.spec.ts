@@ -71,7 +71,7 @@ test('V0: o site público abre na raiz com as inscrições abertas e sem dado pe
     await expect(cartao).toContainText(dataBr(inicio));
     await expect(cartao).toContainText(dataBr(fim));
     await expect(cartao).toContainText(/Prazo: (19|20) dias/);
-    await expect(cartao.getByText('Inscrição online em breve')).toBeVisible();
+    await expect(cartao.getByRole('link', { name: 'Quero me inscrever' })).toBeVisible();
     await page.screenshot({ path: 'test-results/v0-inicio.png', fullPage: true });
   });
 

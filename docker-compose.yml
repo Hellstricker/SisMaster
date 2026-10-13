@@ -33,6 +33,7 @@ services:
       # Administrador inicial: criado só se ainda não existir nenhum usuário. Troca de senha obrigatória no primeiro acesso.
       # Tentativas de login por minuto e por endereço (o padrão vale para uso real; o ambiente de teste sobe com mais).
       Seguranca__LimiteDeLoginsPorMinuto: "${LIMITE_LOGINS_POR_MINUTO:-20}"
+      Seguranca__LimiteDeCadastrosPorHora: "${LIMITE_CADASTROS_POR_HORA:-5}"
       Bootstrap__AdminEmail: "${ADMIN_EMAIL:-}"
       Bootstrap__AdminNome: "${ADMIN_NOME:-Administrador}"
       Bootstrap__AdminSenha: "${ADMIN_SENHA_INICIAL:-}"

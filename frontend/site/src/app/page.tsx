@@ -90,7 +90,7 @@ export default async function Inicio() {
                   {t.categorias.map(c => c.nome).join(' · ')}
                 </p>
                 <div className="row">
-                  <span className="btn primary" role="link" aria-disabled="true">Inscrição online em breve</span>
+                  <Link className="btn primary" href={`/inscricao/${t.temporadaId}`}>Quero me inscrever</Link>
                   <span className="small muted">
                     {t.diasRestantes === 0 ? 'Último dia' : `Prazo: ${t.diasRestantes} ${t.diasRestantes === 1 ? 'dia' : 'dias'}`}
                   </span>

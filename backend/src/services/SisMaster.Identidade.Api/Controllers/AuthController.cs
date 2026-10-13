@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SisMaster.Identidade.Api.Email;
 using SisMaster.Identidade.Api.Models;
+using SisMaster.Identidade.Api.Services;
 using SisMaster.WebApi.Core.Autorizacao;
 using SisMaster.WebApi.Core.Controllers;
 using SisMaster.WebApi.Core.Identities;
@@ -28,10 +29,12 @@ public class AuthController : MainController
     private readonly IEnviadorDeEmail _email;
     private readonly ILogger<AuthController> _log;
     private readonly IConfiguration _configuracao;
+    private readonly EmissorDeToken _emissor;
 
     public AuthController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, IOptions<JwtSettings> jwtSettings,
-        IEnviadorDeEmail email, ILogger<AuthController> log, IConfiguration configuracao)
+        IEnviadorDeEmail email, ILogger<AuthController> log, IConfiguration configuracao, EmissorDeToken emissor)
     {
+        _emissor = emissor;
         _email = email;
         _log = log;
         _configuracao = configuracao;
@@ -76,8 +79,18 @@ public class AuthController : MainController
             return CustomResponse();
         }
 
+        // Conta do público: só entra depois de confirmar o e-mail (a senha já estava certa, então não revela nada a estranhos).
+        if (!user.EmailConfirmed && await _userManager.IsInRoleAsync(user, Perfis.Participante))
+        {
+            AdicionarErro(MensagemEmailNaoConfirmado);
+            return CustomResponse();
+        }
+
         return CustomResponse(await GerarResposta(user));
     }
+
+    /// <summary>Mensagem do login de conta do público que ainda não confirmou o e-mail (a tela a reconhece para oferecer o reenvio).</summary>
+    public const string MensagemEmailNaoConfirmado = "Você ainda não confirmou o e-mail desta conta. Abra o link que enviamos ou peça um novo.";
 
     /// <summary>
     /// "Esqueci minha senha": envia ao e-mail da conta um link de uso único (válido por 1 hora) para definir uma nova senha.
@@ -137,6 +150,12 @@ public class AuthController : MainController
             await _userManager.RemoveClaimAsync(user, marca);
         await _userManager.SetLockoutEndDateAsync(user, null);
         await _userManager.ResetAccessFailedCountAsync(user);
+        // Quem abriu o link recebido no e-mail provou que controla esse e-mail: a conta do público fica confirmada.
+        if (!user.EmailConfirmed && await _userManager.IsInRoleAsync(user, Perfis.Participante))
+        {
+            user.EmailConfirmed = true;
+            await _userManager.UpdateAsync(user);
+        }
 
         return CustomResponse(new { mensagem = "Senha alterada. Entre com a nova senha." });
     }
@@ -152,7 +171,8 @@ public class AuthController : MainController
         await _userManager.AddClaimAsync(user, new Claim(TiposDeClaim.RecuperacaoEm, agora.ToString()));
 
         var raiz = (_configuracao["App:UrlPublica"] ?? "http://localhost:3000").TrimEnd('/');
-        var link = $"{raiz}/admin/redefinir-senha?email={Uri.EscapeDataString(user.Email!)}&token={Uri.EscapeDataString(ficha)}";
+        var area = await _userManager.IsInRoleAsync(user, Perfis.Participante) ? "" : "/admin";   // participante usa o site; a equipe, a gestão
+        var link = $"{raiz}{area}/redefinir-senha?email={Uri.EscapeDataString(user.Email!)}&token={Uri.EscapeDataString(ficha)}";
 
         try
         {
@@ -214,52 +234,5 @@ public class AuthController : MainController
     private async Task<bool> Desativado(IdentityUser user) =>
         (await _userManager.GetClaimsAsync(user)).Any(c => c.Type == TiposDeClaim.Desativado && c.Value == "1");
 
-    private async Task<UsuarioRespostaLogin> GerarResposta(IdentityUser user)
-    {
-        var claimsDoUsuario = await _userManager.GetClaimsAsync(user);
-        var perfis = await _userManager.GetRolesAsync(user);
-
-        var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, user.Id),
-            new(JwtRegisteredClaimNames.Email, user.Email!),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(TiposDeClaim.Nome, claimsDoUsuario.FirstOrDefault(c => c.Type == TiposDeClaim.Nome)?.Value ?? user.Email!),
-        };
-        claims.AddRange(perfis.Select(p => new Claim(TiposDeClaim.Papel, p)));
-        // O Administrador acessa todas as associações; os outros levam no token só as vinculadas.
-        if (!perfis.Contains(Perfis.Administrador))
-            claims.AddRange(claimsDoUsuario.Where(c => c.Type == TiposDeClaim.Associacao).Select(c => new Claim(TiposDeClaim.Associacao, c.Value)));
-        var trocarSenha = claimsDoUsuario.Any(c => c.Type == TiposDeClaim.TrocarSenha && c.Value == "1");
-        if (trocarSenha) claims.Add(new Claim(TiposDeClaim.TrocarSenha, "1"));
-
-        // Árbitro: sessão longa (cobre um jogo inteiro). Administradores: curta, renovada enquanto usam o sistema.
-        var duracao = perfis.Contains(Perfis.Arbitro)
-            ? TimeSpan.FromHours(_jwtSettings.HorasParaExpirarArbitro)
-            : TimeSpan.FromMinutes(_jwtSettings.MinutosParaExpirar);
-
-        var token = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(
-            issuer: _jwtSettings.Emissor,
-            audience: _jwtSettings.Audiencia,
-            claims: claims,
-            notBefore: DateTime.UtcNow,
-            expires: DateTime.UtcNow.Add(duracao),
-            signingCredentials: new SigningCredentials(
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Segredo!)), SecurityAlgorithms.HmacSha256)));
-
-        return new UsuarioRespostaLogin
-        {
-            AccessToken = token,
-            ExpiresIn = duracao.TotalSeconds,
-            UserToken = new UsuarioToken
-            {
-                Id = user.Id,
-                Email = user.Email,
-                Nome = claims.First(c => c.Type == TiposDeClaim.Nome).Value,
-                Perfil = perfis.FirstOrDefault(),
-                Associacoes = claims.Where(c => c.Type == TiposDeClaim.Associacao).Select(c => c.Value).ToList(),
-                TrocarSenha = trocarSenha
-            }
-        };
-    }
+    private Task<UsuarioRespostaLogin> GerarResposta(IdentityUser user) => _emissor.GerarAsync(user);
 }

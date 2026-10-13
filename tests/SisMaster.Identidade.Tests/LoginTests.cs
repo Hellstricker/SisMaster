@@ -49,14 +49,14 @@ public class LoginTests
     }
 
     [Fact]
-    public async Task Os_tres_perfis_existem()
+    public async Task Os_quatro_perfis_existem()
     {
         if (SemBanco) return;
         using var escopo = _fabrica.Services.CreateScope();
         var roles = escopo.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        foreach (var perfil in new[] { "Administrador", "AdministradorDeAssociacao", "Arbitro" })
+        foreach (var perfil in new[] { "Administrador", "AdministradorDeAssociacao", "Arbitro", "Participante" })
             (await roles.RoleExistsAsync(perfil)).Should().BeTrue(perfil);
-        roles.Roles.Count().Should().Be(3);
+        roles.Roles.Count().Should().Be(4);
     }
 
     [Fact]

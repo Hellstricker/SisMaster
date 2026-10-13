@@ -66,6 +66,29 @@ public class SegurancaApiTests
         (await Status(_fabrica.ClienteCom(null), new HttpMethod(metodo), url, metodo == "POST" ? new { } : null)).Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    /// <summary>A conta do público (Participante) tem token válido, mas nenhuma rota da gestão, da mesa ou da súmula a aceita.</summary>
+    [Theory]
+    [MemberData(nameof(RotasDeGestaoEDaMesa))]
+    public async Task Participante_nao_alcanca_nenhuma_rota_da_equipe(string metodo, string url)
+    {
+        if (SemBanco) return;
+        var participante = _fabrica.ClienteCom(ApiFactory.Token("Participante"));
+        (await Status(participante, new HttpMethod(metodo), url, metodo == "POST" ? new { } : null)).Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public void Toda_rota_nao_publica_declara_a_politica_e_nao_depende_so_do_padrao()
+    {
+        // O padrão (sem política) já exclui o Participante, mas toda rota deve dizer de propósito quem pode usá-la.
+        var semPolitica = _fabrica.Services.GetRequiredService<IActionDescriptorCollectionProvider>().ActionDescriptors.Items
+            .OfType<ControllerActionDescriptor>()
+            .Where(a => !a.EndpointMetadata.OfType<IAllowAnonymous>().Any())
+            .Where(a => !a.EndpointMetadata.OfType<IAuthorizeData>().Any(d => !string.IsNullOrEmpty(d.Policy) || !string.IsNullOrEmpty(d.Roles)))
+            .Select(a => $"{a.ControllerName}.{a.ActionName}").Distinct().ToList();
+
+        semPolitica.Should().BeEmpty("toda rota não pública precisa de [Authorize(Policy = ...)] (na ação ou no controller)");
+    }
+
     [Fact]
     public async Task Placar_e_jogadores_da_partida_continuam_publicos()
     {

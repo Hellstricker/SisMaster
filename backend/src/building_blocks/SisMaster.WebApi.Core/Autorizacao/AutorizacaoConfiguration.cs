@@ -16,10 +16,13 @@ public static class AutorizacaoConfiguration
         services.AddScoped<IAcessoDoUsuario, AcessoDoUsuario>();
 
         services.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            // Padrão para toda rota sem política própria: só a EQUIPE. Assim a conta do público (Participante) nunca alcança,
+            // por esquecimento, uma rota da gestão; ela só usa as rotas que declaram a política Participante.
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().RequireRole(Perfis.Equipe).Build())
             .AddPolicy(Politicas.Gestao, p => p.RequireRole(Perfis.Administrador, Perfis.AdministradorDeAssociacao))
             .AddPolicy(Politicas.Arbitragem, p => p.RequireRole(Perfis.Administrador, Perfis.AdministradorDeAssociacao, Perfis.Arbitro))
-            .AddPolicy(Politicas.SomenteAdministrador, p => p.RequireRole(Perfis.Administrador));
+            .AddPolicy(Politicas.SomenteAdministrador, p => p.RequireRole(Perfis.Administrador))
+            .AddPolicy(Politicas.Participante, p => p.RequireRole(Perfis.Participante));
         return services;
     }
 }

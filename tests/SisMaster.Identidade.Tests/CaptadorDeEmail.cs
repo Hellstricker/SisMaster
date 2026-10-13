@@ -24,6 +24,18 @@ public sealed class CaptadorDeEmail : IEnviadorDeEmail
         return (consulta["email"]!, consulta["token"]!);
     }
 
+    /// <summary>Lê o link de confirmação de e-mail do último e-mail enviado a <paramref name="email"/>: e-mail, token e o caminho de retorno (se houver).</summary>
+    public (string Email, string Token, string? Voltar) ConfirmacaoEnviadaPara(string email)
+    {
+        string corpo;
+        lock (Enviados) corpo = Enviados.Last(e => e.Para == email && e.Assunto.StartsWith("Confirme")).Corpo;
+        var linha = corpo.Split('\n').Single(l => l.Contains("/confirmar-email?")).Trim();
+        var consulta = System.Web.HttpUtility.ParseQueryString(new Uri(linha).Query);
+        return (consulta["email"]!, consulta["token"]!, consulta["voltar"]);
+    }
+
+    public int Quantos(string email, string assuntoComeca) { lock (Enviados) return Enviados.Count(e => e.Para == email && e.Assunto.StartsWith(assuntoComeca)); }
+
     public string SenhaEnviadaPara(string email)
     {
         string corpo;

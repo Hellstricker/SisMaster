@@ -8,6 +8,10 @@ public static class Perfis
     public const string Administrador = nameof(PerfilUsuario.Administrador);
     public const string AdministradorDeAssociacao = nameof(PerfilUsuario.AdministradorDeAssociacao);
     public const string Arbitro = nameof(PerfilUsuario.Arbitro);
+    public const string Participante = nameof(PerfilUsuario.Participante);
+
+    /// <summary>Os perfis da equipe (quem opera o sistema). O Participante, conta do público, não está aqui.</summary>
+    public static readonly string[] Equipe = [Administrador, AdministradorDeAssociacao, Arbitro];
 }
 
 /// <summary>Políticas de autorização. Tudo exige usuário autenticado; estas restringem por perfil.</summary>
@@ -21,6 +25,9 @@ public static class Politicas
 
     /// <summary>Só o Administrador (global).</summary>
     public const string SomenteAdministrador = "SomenteAdministrador";
+
+    /// <summary>Conta do público (Participante): suas próprias inscrições. Rotas da equipe nunca usam esta política.</summary>
+    public const string Participante = "Participante";
 }
 
 /// <summary>Tipos de claim que o token carrega além dos padrões.</summary>
@@ -38,6 +45,14 @@ public static class TiposDeClaim
 
     /// <summary>Presente (valor "1") numa conta desativada: não consegue entrar, mas nada é apagado.</summary>
     public const string Desativado = "desativado";
+
+    /// <summary>Versão dos Termos de uso e da Política de privacidade aceita no cadastro, e quando (Unix, segundos).</summary>
+    public const string TermosVersao = "termos-versao";
+    public const string TermosEm = "termos-em";
+
+    /// <summary>Quando a conta do público foi criada e quando foi pedido o último e-mail de confirmação (Unix, segundos).</summary>
+    public const string CriadaEm = "criada-em";
+    public const string ConfirmacaoEm = "confirmacao-em";
 
     /// <summary>Quando (segundos Unix) a pessoa pediu a última recuperação de senha; limita a um pedido a cada poucos minutos.</summary>
     public const string RecuperacaoEm = "recuperacao-em";

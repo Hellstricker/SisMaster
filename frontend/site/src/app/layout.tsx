@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
+import ContaDoUsuario from '@/components/conta/ContaDoUsuario';
 import { obterAssociacao } from '@/lib/api';
 
 export const dynamic = 'force-dynamic'; // os dados vêm da API em tempo de acesso, não do build
@@ -28,6 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/a-associacao">A associação</Link>
               <Link href="/contato">Contato</Link>
             </nav>
+            <ContaDoUsuario />
           </div>
         </header>
         {children}

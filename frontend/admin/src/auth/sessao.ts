@@ -74,7 +74,11 @@ function dessa(r: RespostaLogin): Sessao {
 
 async function receber(res: Response, erroPadrao: string): Promise<Sessao> {
   if (!res.ok) throw await lerErro(res, erroPadrao);
-  const sessao = dessa(await res.json() as RespostaLogin);
+  const resposta = await res.json() as RespostaLogin;
+  // Conta do público (participante) não usa a gestão nem a mesa: não guarda sessão aqui e orienta a entrar pelo site.
+  if ((resposta.userToken.perfil as string | null) === 'Participante')
+    throw new Error('Esta conta é do site público. Entre pelo endereço /entrar do site (não pela gestão).');
+  const sessao = dessa(resposta);
   salvar(sessao);
   return sessao;
 }

@@ -33,6 +33,7 @@ public class UsuariosController(
         foreach (var u in todos)
         {
             var r = await Resumir(u);
+            if (r.Perfil == Perfis.Participante) continue;   // contas do público não são gerenciadas aqui
             if (acesso.EhAdministrador || r.Id == acesso.Id || PodeGerenciar(r)) resumos.Add(r);
         }
         return CustomResponse(resumos);
@@ -169,13 +170,15 @@ public class UsuariosController(
     private async Task<(IdentityUser? Usuario, IActionResult? Erro)> Alvo(string id)
     {
         var usuario = await usuarios.FindByIdAsync(id);
-        if (usuario is null || !PodeGerenciar(await Resumir(usuario))) return (null, NotFound());
+        if (usuario is null) return (null, NotFound());
+        var resumo = await Resumir(usuario);
+        if (resumo.Perfil == Perfis.Participante || !PodeGerenciar(resumo)) return (null, NotFound());
         return (usuario, null);
     }
 
     private bool ValidarPerfilEAssociacoes(string perfil, List<Guid> associacoes)
     {
-        if (!Enum.GetNames<PerfilUsuario>().Contains(perfil))
+        if (!Enum.GetNames<PerfilUsuario>().Contains(perfil) || perfil == Perfis.Participante)
         {
             AdicionarErro("Perfil inválido.");
             return false;

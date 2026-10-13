@@ -45,14 +45,49 @@ public sealed class EnviadorDeEmailSmtp(IOptions<OpcoesDeEmail> opcoes) : IEnvia
     }
 }
 
+/// <summary>
+/// SÓ PARA O AMBIENTE DE TESTE: guarda os e-mails na memória para o teste de navegador ler o link de confirmação (rota /api/identidade/teste/emails).
+/// Só liga com Email:Provedor = "Memoria" e a subida recusa esse modo fora de localhost: nunca num servidor real.
+/// </summary>
+public sealed class EnviadorDeEmailMemoria : IEnviadorDeEmail
+{
+    private readonly List<(DateTimeOffset Em, string Para, string Assunto, string Corpo)> _enviados = [];
+
+    public Task EnviarAsync(string para, string assunto, string corpoTexto, CancellationToken ct = default)
+    {
+        lock (_enviados)
+        {
+            _enviados.Add((DateTimeOffset.UtcNow, para, assunto, corpoTexto));
+            if (_enviados.Count > 200) _enviados.RemoveAt(0);
+        }
+        return Task.CompletedTask;
+    }
+
+    public IReadOnlyList<object> Mensagens(string para)
+    {
+        lock (_enviados)
+            return _enviados.Where(e => string.Equals(e.Para, para, StringComparison.OrdinalIgnoreCase))
+                .Select(e => (object)new { e.Em, e.Assunto, e.Corpo }).ToList();
+    }
+}
+
 public static class EmailConfiguration
 {
     /// <summary>Email:Provedor = "Smtp" envia de verdade (Email:Host, Porta, Usuario, Senha, Remetente); qualquer outro valor só registra no log.</summary>
     public static IServiceCollection AddEmail(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<OpcoesDeEmail>(configuration.GetSection("Email"));
-        if (string.Equals(configuration["Email:Provedor"], "Smtp", StringComparison.OrdinalIgnoreCase))
+        var provedor = configuration["Email:Provedor"];
+        if (string.Equals(provedor, "Smtp", StringComparison.OrdinalIgnoreCase))
             services.AddSingleton<IEnviadorDeEmail, EnviadorDeEmailSmtp>();
+        else if (string.Equals(provedor, "Memoria", StringComparison.OrdinalIgnoreCase))
+        {
+            var url = configuration["App:UrlPublica"] ?? "http://localhost:3000";
+            if (!url.StartsWith("http://localhost", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Email:Provedor = Memoria é só para o ambiente de teste (localhost): ele expõe os e-mails por uma rota pública.");
+            services.AddSingleton<EnviadorDeEmailMemoria>();
+            services.AddSingleton<IEnviadorDeEmail>(p => p.GetRequiredService<EnviadorDeEmailMemoria>());
+        }
         else
             services.AddSingleton<IEnviadorDeEmail, EnviadorDeEmailLog>();
         return services;

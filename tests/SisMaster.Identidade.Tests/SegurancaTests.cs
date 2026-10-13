@@ -16,7 +16,7 @@ public class SegurancaTests
     public SegurancaTests(IdentidadeFactory fabrica) => _fabrica = fabrica;
 
     [Fact]
-    public void So_login_e_recuperacao_sao_publicos()
+    public void So_login_recuperacao_e_conta_do_publico_sao_publicos()
     {
         if (SemBanco) return;
         var acoes = _fabrica.Services.GetRequiredService<IActionDescriptorCollectionProvider>().ActionDescriptors.Items;
@@ -24,7 +24,8 @@ public class SegurancaTests
         var publicas = acoes.Where(a => a.EndpointMetadata.OfType<IAllowAnonymous>().Any())
             .Select(a => a.AttributeRouteInfo?.Template).ToList();
 
-        publicas.Should().BeEquivalentTo(["api/identidade/autenticar", "api/identidade/esqueci-senha", "api/identidade/redefinir-senha"]);
+        publicas.Should().BeEquivalentTo(["api/identidade/autenticar", "api/identidade/esqueci-senha", "api/identidade/redefinir-senha",
+            "api/identidade/cadastrar", "api/identidade/confirmar-email", "api/identidade/reenviar-confirmacao", "api/identidade/teste/emails"]);
         acoes.Should().NotBeEmpty();
     }
 

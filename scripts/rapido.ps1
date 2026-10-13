@@ -40,6 +40,8 @@ $env:DB_NAME = 'SisMasterRapido'
 $env:SA_PASSWORD = 'Teste#Verif2026x'
 $env:JWT_SEGREDO = 'segredo-de-teste-descartavel-0123456789abcdef'
 $env:SITE_ASSOCIACAO_SIGLA = 'SITEE2E'
+$env:EMAIL_PROVEDOR = 'Memoria'
+$env:LIMITE_CADASTROS_POR_HORA = '1000'
 $env:LIMITE_LOGINS_POR_MINUTO = '500'
 $env:ADMIN_EMAIL = 'admin@teste.local'; $env:ADMIN_NOME = 'Admin Teste'; $env:ADMIN_SENHA_INICIAL = 'Teste#Admin2026'
 

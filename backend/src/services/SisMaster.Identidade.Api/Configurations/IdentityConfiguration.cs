@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SisMaster.Identidade.Api.Data;
 using SisMaster.Identidade.Api.Email;
 using SisMaster.Identidade.Api.Extensions;
+using SisMaster.Identidade.Api.Services;
 using SisMaster.WebApi.Core.Autorizacao;
 using SisMaster.WebApi.Core.Configurations;
 
@@ -31,6 +32,8 @@ namespace SisMaster.Identidade.Api.Configurations
                 options.Password.RequireUppercase = false;
                 options.Password.RequireLowercase = false;
                 options.User.RequireUniqueEmail = true;
+                // O link de confirmação de e-mail vale 24 h (o de recuperação de senha, 1 h): provedor próprio.
+                options.Tokens.EmailConfirmationTokenProvider = "ConfirmacaoDeEmail";
 
                 // 5 erros seguidos bloqueiam a conta por 15 minutos (um administrador pode liberar).
                 options.Lockout.AllowedForNewUsers = true;
@@ -40,7 +43,10 @@ namespace SisMaster.Identidade.Api.Configurations
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddErrorDescriber<IdentityPortugueseMessages>()
             .AddPasswordValidator<SenhaComLetraValidator>()
-            .AddDefaultTokenProviders();
+            .AddDefaultTokenProviders()
+            .AddTokenProvider<ProvedorDoTokenDeConfirmacao>("ConfirmacaoDeEmail");
+            services.AddScoped<EmissorDeToken>();
+            services.AddHostedService<LimpezaDeContasNaoConfirmadas>();
 
             // Link de recuperação de senha: vale por 1 hora.
             services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = TimeSpan.FromHours(1));
@@ -54,6 +60,15 @@ namespace SisMaster.Identidade.Api.Configurations
             services.AddRateLimiter(o =>
             {
                 o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                // Cadastro e reenvio de confirmação: poucos por hora por endereço (contra cadastro em massa e para não lotar caixas de e-mail).
+                // O limite é lido na hora de criar a janela de cada endereço (e não na subida), para poder ser ajustado por configuração.
+                o.AddPolicy("cadastro", contexto => RateLimitPartition.GetFixedWindowLimiter(
+                    contexto.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = contexto.RequestServices.GetRequiredService<IConfiguration>().GetValue("Seguranca:LimiteDeCadastrosPorHora", 5),
+                        Window = TimeSpan.FromHours(1), QueueLimit = 0
+                    }));
                 o.AddPolicy("login", contexto => RateLimitPartition.GetFixedWindowLimiter(
                     contexto.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                     _ => new FixedWindowRateLimiterOptions { PermitLimit = limiteDeLogins, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));

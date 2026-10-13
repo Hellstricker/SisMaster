@@ -37,6 +37,8 @@ function Subir-StackTeste([string]$projeto = 'sismaster-teste', [int]$portaFront
     # Acesso (login) do ambiente de teste: tudo descartavel, existe so enquanto o ambiente existir.
     $env:JWT_SEGREDO = 'segredo-de-teste-descartavel-0123456789abcdef'
     $env:SITE_ASSOCIACAO_SIGLA = 'SITEE2E'   # a associação que o site público do ambiente de teste mostra (o teste a cria)
+    $env:EMAIL_PROVEDOR = 'Memoria'          # e-mails na memoria (o teste de navegador le o link de confirmacao); so aceito em localhost
+    $env:LIMITE_CADASTROS_POR_HORA = '1000'  # os testes criam varias contas por hora a partir do mesmo endereco
     $env:LIMITE_LOGINS_POR_MINUTO = '500'   # os testes de navegador entram muitas vezes por minuto; so no ambiente de teste
     $env:ADMIN_EMAIL = 'admin@teste.local'; $env:ADMIN_NOME = 'Admin Teste'; $env:ADMIN_SENHA_INICIAL = 'Teste#Admin2026'
     Push-Location $script:Raiz
