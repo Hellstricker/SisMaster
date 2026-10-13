@@ -1,0 +1,5 @@
+{$DOMINIO} {
+	encode gzip zstd
+	# Tudo passa pelo nginx do sistema (site público, /admin, /arbitros, /api, /hubs). O WebSocket do placar atravessa sem configuração extra.
+	reverse_proxy frontend:80
+}

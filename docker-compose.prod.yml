@@ -1,0 +1,44 @@
+# Produção: use SEMPRE junto do arquivo base, num servidor Linux com Docker:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Diferenças para o uso diário: nada fica exposto na internet além das portas 80 e 443 do proxy (que cuida do HTTPS sozinho),
+# o banco e as APIs não publicam porta, e tudo volta sozinho depois de uma queda ou de um reinício do servidor.
+# Variáveis novas no .env: DOMINIO (ex.: sistema.suaassociacao.org.br, já apontando para o IP do servidor) e APP_URL=https://<DOMINIO>.
+services:
+  sqlserver:
+    restart: unless-stopped
+    ports: !reset []
+
+  identidade-api:
+    restart: unless-stopped
+
+  campeonato-api:
+    restart: unless-stopped
+    ports: !reset []
+
+  site:
+    restart: unless-stopped
+
+  frontend:
+    restart: unless-stopped
+    ports: !reset []
+
+  # Porta de entrada: HTTPS com certificado automático (Let's Encrypt) e redirecionamento de http para https.
+  proxy:
+    image: caddy:2
+    container_name: ${COMPOSE_PROJECT_NAME:-sismaster}-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: "${DOMINIO:?Defina DOMINIO no arquivo .env (o endereço público do sistema)}"
+    volumes:
+      - ./scripts/producao/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+
+volumes:
+  caddy_data:
+  caddy_config:
