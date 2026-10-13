@@ -196,6 +196,9 @@ input[readonly] { background: color-mix(in srgb, var(--border) 40%, var(--card))
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
 .kv dt { color: var(--text-2); }
 .kv dd { margin: 0; font-weight: 600; }
+.historico-legal { margin-top: 12px; font-size: .9rem; }
+.historico-legal summary { cursor: pointer; font-weight: 600; }
+.historico-legal ul { padding-left: 20px; margin: 8px 0 0; }
 .caixa-conta { max-width: 720px; margin: 0 auto; }
 .abas { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
 .abas button { padding: 8px 16px; min-height: 40px; border-radius: 999px; border: 1px solid var(--border-input); background: var(--card); cursor: pointer; font-size: .92rem; }

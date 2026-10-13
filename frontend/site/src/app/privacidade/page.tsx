@@ -1,16 +1,22 @@
 import type { Metadata } from 'next';
-import { obterPagina } from '@/lib/api';
-import { VERSAO_LEGAL, VIGENTE_DESDE, dadosLegais } from '@/lib/legal';
+import HistoricoLegal from '@/components/HistoricoLegal';
+import TextoLegal from '@/components/TextoLegal';
+import { obterLegal, obterPagina } from '@/lib/api';
+import { dadosLegais, dataLegal, preencherTexto } from '@/lib/legal';
 
 export const metadata: Metadata = { title: 'Política de privacidade' };
 
 export default async function Privacidade() {
-  const d = dadosLegais(await obterPagina());
+  const [pagina, legal] = await Promise.all([obterPagina(), obterLegal()]);
+  const d = dadosLegais(pagina);
+  const proprio = legal.textoPrivacidade;
   return (
     <main className="wrap">
       <article className="texto-legal">
         <h1>Política de privacidade</h1>
-        <p className="sub">Versão {VERSAO_LEGAL} · em vigor desde {VIGENTE_DESDE}</p>
+        <p className="sub">Versão {legal.versao} · em vigor desde {dataLegal(legal.vigenteDesde)}</p>
+        {proprio ? <TextoLegal texto={preencherTexto(proprio, d)} /> : (
+        <>
 
         <h2>1. Quem somos</h2>
         <p>
@@ -134,7 +140,9 @@ export default async function Privacidade() {
         <p>
           Podemos atualizar esta política. A versão em vigor mostra a data e o número da última alteração. Mudanças relevantes serão avisadas no sistema ou por e-mail.
         </p>
-        <p className="muted small">Última atualização: {VIGENTE_DESDE} · Versão {VERSAO_LEGAL}</p>
+        </>
+        )}
+        <HistoricoLegal legal={legal} />
       </article>
     </main>
   );

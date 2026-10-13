@@ -1,17 +1,23 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { obterPagina } from '@/lib/api';
-import { VERSAO_LEGAL, VIGENTE_DESDE, dadosLegais } from '@/lib/legal';
+import HistoricoLegal from '@/components/HistoricoLegal';
+import TextoLegal from '@/components/TextoLegal';
+import { obterLegal, obterPagina } from '@/lib/api';
+import { dadosLegais, dataLegal, preencherTexto } from '@/lib/legal';
 
 export const metadata: Metadata = { title: 'Termos de uso' };
 
 export default async function Termos() {
-  const d = dadosLegais(await obterPagina());
+  const [pagina, legal] = await Promise.all([obterPagina(), obterLegal()]);
+  const d = dadosLegais(pagina);
+  const proprio = legal.textoTermos;
   return (
     <main className="wrap">
       <article className="texto-legal">
         <h1>Termos de uso</h1>
-        <p className="sub">Versão {VERSAO_LEGAL} · em vigor desde {VIGENTE_DESDE}</p>
+        <p className="sub">Versão {legal.versao} · em vigor desde {dataLegal(legal.vigenteDesde)}</p>
+        {proprio ? <TextoLegal texto={preencherTexto(proprio, d)} /> : (
+        <>
 
         <h2>1. Aceitação</h2>
         <p>
@@ -91,7 +97,9 @@ export default async function Termos() {
             : <>Fica eleito o foro da comarca do domicílio do usuário, salvo disposição legal em contrário.</>}
         </p>
         <p><b>Contato:</b> {d.emailContato}</p>
-        <p className="muted small">Última atualização: {VIGENTE_DESDE} · Versão {VERSAO_LEGAL}</p>
+        </>
+        )}
+        <HistoricoLegal legal={legal} />
       </article>
     </main>
   );

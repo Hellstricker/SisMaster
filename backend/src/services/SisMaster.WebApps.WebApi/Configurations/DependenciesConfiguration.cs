@@ -49,6 +49,7 @@ public static class DependenciesConfiguration
         services.AddScoped<IJogoRepository, JogoRepository>();
         services.AddScoped<ILocalRepository, LocalRepository>();
         services.AddScoped<IPaginaPublicaRepository, PaginaPublicaRepository>();
+        services.AddScoped<IVersaoLegalRepository, VersaoLegalRepository>();
         services.AddScoped<DetalheFaseQuery>();
         services.AddScoped<ClassificacaoFaseQuery>();
         services.AddScoped<AvancoDaTemporada>();

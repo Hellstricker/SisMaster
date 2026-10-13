@@ -18,6 +18,7 @@ import FasesTemporada from './pages/Fases/FasesTemporada';
 import DetalheFase from './pages/Fases/DetalheFase';
 import LocaisAssociacao from './pages/Locais/LocaisAssociacao';
 import PaginaPublica from './pages/Associacoes/PaginaPublica';
+import TextosLegais from './pages/Associacoes/TextosLegais';
 import ClassificacaoFase from './pages/Fases/ClassificacaoFase';
 import JogosTemporada from './pages/Jogos/JogosTemporada';
 import DetalheJogo from './pages/Jogos/DetalheJogo';
@@ -62,6 +63,7 @@ export default function App() {
                     <Route path="/associacoes/:id/categorias" element={<CategoriasAssociacao />} />
                     <Route path="/associacoes/:id/locais" element={<LocaisAssociacao />} />
                     <Route path="/associacoes/:id/pagina-publica" element={<PaginaPublica />} />
+                    <Route path="/associacoes/:id/textos-legais" element={<TextosLegais />} />
                     <Route path="/campeonatos/:id" element={<DetalheCampeonato />} />
                     <Route path="/temporadas/:id" element={<DetalheTemporada />} />
                     <Route path="/temporadas/:id/inscricoes" element={<InscricoesTemporada />} />

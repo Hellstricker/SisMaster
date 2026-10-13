@@ -44,6 +44,16 @@ public class PublicoController : ControllerBase
         return Ok(r);
     }
 
+    /// <summary>Versão vigente e histórico dos textos legais (política de privacidade e termos de uso).</summary>
+    [HttpGet("associacoes/{sigla}/legal")]
+    public async Task<ActionResult> Legal(string sigla, CancellationToken ct)
+    {
+        var r = await _query.LegalAsync(sigla, ct);
+        if (r is null) return NotFound();
+        Cache(30);
+        return Ok(r);
+    }
+
     /// <summary>Início do site: jogos ao vivo, de hoje, próximos e últimos resultados.</summary>
     [HttpGet("associacoes/{sigla}/inicio")]
     public async Task<ActionResult> Inicio(string sigla, CancellationToken ct)

@@ -335,6 +335,56 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.ToTable("TemporadaCategorias", (string)null);
                 });
 
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.VersaoLegal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssociacaoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Numero")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PublicadaEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PublicadaPor")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<bool>("Relevante")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Resumo")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("TextoPrivacidade")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TextoTermos")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Versao")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateOnly>("VigenteDesde")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssociacaoId", "Numero")
+                        .IsUnique();
+
+                    b.ToTable("VersoesLegais", (string)null);
+                });
+
             modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Auditoria.RegistroDeAuditoria", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1245,6 +1295,15 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.Navigation("Categoria");
 
                     b.Navigation("Temporada");
+                });
+
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.VersaoLegal", b =>
+                {
+                    b.HasOne("SisMaster.WebApps.WebApi.Domain.Associacao.Associacao", null)
+                        .WithMany()
+                        .HasForeignKey("AssociacaoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Equipes.Atleta", b =>

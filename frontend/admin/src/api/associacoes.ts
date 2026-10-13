@@ -1,4 +1,4 @@
-import { enviar, obter } from './http';
+import { enviar, enviarComResposta, obter } from './http';
 const BASE = import.meta.env.VITE_API_URL ?? '';
 
 export interface Associacao {
@@ -120,4 +120,37 @@ export function obterPaginaPublica(associacaoId: string): Promise<PaginaPublicaA
 /** Grava o conteúdo (substitui o anterior). Administrador ou Administrador da associação. */
 export function salvarPaginaPublica(associacaoId: string, d: PaginaPublicaDados): Promise<void> {
   return enviar('PUT', `/api/associacoes/${associacaoId}/pagina-publica`, d, 'Erro ao salvar a página pública');
+}
+
+export interface VersaoLegalApi {
+  versao: string;
+  relevante: boolean;
+  resumo: string;
+  /** AAAA-MM-DD */
+  vigenteDesde: string;
+  publicadaPor: string;
+  publicadaEm: string;
+  temTextoPrivacidade: boolean;
+  temTextoTermos: boolean;
+  textoPrivacidade: string | null;
+  textoTermos: string | null;
+}
+
+export interface TextosLegaisApi {
+  vigente: string;
+  /** Da mais nova à mais antiga. */
+  versoes: VersaoLegalApi[];
+}
+
+/** O histórico de versões dos textos legais (política de privacidade e termos de uso). */
+export function obterTextosLegais(associacaoId: string): Promise<TextosLegaisApi> {
+  return obter<TextosLegaisApi>(`/api/associacoes/${associacaoId}/textos-legais`, 'Erro ao carregar os textos legais');
+}
+
+/** Publica uma versão nova (nunca edita as anteriores). Texto em branco = texto padrão do sistema. */
+export function publicarTextoLegal(
+  associacaoId: string,
+  d: { relevante: boolean; resumo: string; textoPrivacidade: string; textoTermos: string },
+): Promise<{ versao: string }> {
+  return enviarComResposta('POST', `/api/associacoes/${associacaoId}/textos-legais`, d, 'Erro ao publicar os textos legais');
 }

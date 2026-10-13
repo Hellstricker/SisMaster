@@ -34,6 +34,7 @@ public class CampeonatoDbContext : DbContext, IUnitOfWork
     public DbSet<Domain.Auditoria.RegistroDeAuditoria> RegistrosDeAuditoria { get; set; }
     public DbSet<PaginaPublica> PaginasPublicas { get; set; }
     public DbSet<MembroDaDiretoria> MembrosDaDiretoria { get; set; }
+    public DbSet<VersaoLegal> VersoesLegais { get; set; }
 
     public CampeonatoDbContext(DbContextOptions<CampeonatoDbContext> options) : base(options) { }
 

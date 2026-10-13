@@ -195,6 +195,25 @@ export interface PaginaDaAssociacao {
 
 export const obterPagina = () => obter<PaginaDaAssociacao>(`${assoc}/pagina`, 0);
 
+/** A versão vigente dos textos legais. Texto nulo = vale o texto padrão do sistema (escrito nas páginas). */
+export interface LegalVigente {
+  versao: string;
+  /** AAAA-MM-DD */
+  vigenteDesde: string;
+  relevante: boolean;
+  resumo: string | null;
+  textoPrivacidade: string | null;
+  textoTermos: string | null;
+  historico: { versao: string; vigenteDesde: string; relevante: boolean; resumo: string }[];
+}
+
+const LEGAL_PADRAO: LegalVigente = { versao: '1.0', vigenteDesde: '2026-10-12', relevante: false, resumo: null, textoPrivacidade: null, textoTermos: null, historico: [] };
+
+/** Sem resposta da API, o site segue com o texto padrão (1.0): nunca deixa de mostrar a política e os termos. */
+export async function obterLegal(): Promise<LegalVigente> {
+  return (await obter<LegalVigente>(`${assoc}/legal`, 0)) ?? LEGAL_PADRAO;
+}
+
 /** WhatsApp digitado como "(71) 9 0000-0000" -> link wa.me com o DDI do Brasil. */
 export function linkWhatsapp(texto: string): string | null {
   const d = texto.replace(/\D/g, '');

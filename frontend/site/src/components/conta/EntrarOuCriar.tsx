@@ -6,7 +6,6 @@ import { useState, type FormEvent } from 'react';
 import { caminhoSeguro, entrar, enviarParaIdentidade } from '@/lib/sessao';
 import CampoSenha, { senhaValida } from './CampoSenha';
 
-const VERSAO_TERMOS = '1.0';
 
 type Aba = 'criar' | 'entrar';
 
@@ -14,7 +13,7 @@ type Aba = 'criar' | 'entrar';
  * Entrar ou criar conta. Vindo da inscrição, o cadastro acontece aqui mesmo: cria a conta, pede para confirmar o e-mail e,
  * ao confirmar, a pessoa volta direto para o passo seguinte da inscrição (`voltar`).
  */
-export default function EntrarOuCriar({ abaInicial, voltar, contexto }: { abaInicial: Aba; voltar: string | null; contexto: string | null }) {
+export default function EntrarOuCriar({ abaInicial, voltar, contexto, versaoTermos }: { abaInicial: Aba; voltar: string | null; contexto: string | null; versaoTermos: string }) {
   const router = useRouter();
   const destino = caminhoSeguro(voltar);
   const [aba, setAba] = useState<Aba>(abaInicial);
@@ -43,7 +42,7 @@ export default function EntrarOuCriar({ abaInicial, voltar, contexto }: { abaIni
     if (!senhaValida(senha)) return setErro('A senha precisa de 8 caracteres, com letra e número.');
     if (!aceite) return setErro('É preciso aceitar os Termos de uso e a Política de privacidade.');
     setOcupado(true);
-    const r = await enviarParaIdentidade('cadastrar', { nome: nome.trim(), email: email.trim(), senha, aceiteTermos: aceite, versaoTermos: VERSAO_TERMOS, voltar: destino, site: isca });
+    const r = await enviarParaIdentidade('cadastrar', { nome: nome.trim(), email: email.trim(), senha, aceiteTermos: aceite, versaoTermos, voltar: destino, site: isca });
     setOcupado(false);
     if (!r.ok) return setErro(r.erro);
     setEnviado(email.trim());
@@ -104,7 +103,7 @@ export default function EntrarOuCriar({ abaInicial, voltar, contexto }: { abaIni
             <input className="isca" type="text" name="site" tabIndex={-1} autoComplete="off" aria-hidden="true" value={isca} onChange={e => setIsca(e.target.value)} />
             <label className="check">
               <input type="checkbox" checked={aceite} onChange={e => setAceite(e.target.checked)} />
-              <span>Li e aceito os <Link href="/termos" target="_blank">Termos de uso</Link> e a <Link href="/privacidade" target="_blank">Política de privacidade</Link> (versão {VERSAO_TERMOS}).</span>
+              <span>Li e aceito os <Link href="/termos" target="_blank">Termos de uso</Link> e a <Link href="/privacidade" target="_blank">Política de privacidade</Link> (versão {versaoTermos}).</span>
             </label>
             <button className="btn primary block" type="submit" disabled={!aceite || ocupado}>{ocupado ? 'Criando...' : 'Criar conta e continuar'}</button>
             <p className="small muted centro" style={{ margin: '14px 0 0' }}>Só pedimos nome, e-mail e senha agora. CPF e demais dados vêm na inscrição.</p>

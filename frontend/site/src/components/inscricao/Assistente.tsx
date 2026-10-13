@@ -8,7 +8,6 @@ import {
 } from '@/lib/inscricao';
 import { chamarApi, lerSessao, type SessaoDoSite } from '@/lib/sessao';
 
-const VERSAO_TERMOS = '1.0';
 const NOMES = ['Seus dados', 'Ficha', 'Categorias', 'Autorizações', 'Revisão'];
 
 type Ficha = { altura: string; peso: string; posicao: string; plano: 'nao' | 'sim'; nomePlano: string };
@@ -28,7 +27,7 @@ function codigoDeEnvio(temporadaId: string): string {
 }
 const limparCodigo = (temporadaId: string) => { try { sessionStorage.removeItem(`sismaster.inscricao.codigo.${temporadaId}`); } catch { /* ok */ } };
 
-export default function Assistente({ temporadaId }: { temporadaId: string }) {
+export default function Assistente({ temporadaId, versaoTermos }: { temporadaId: string; versaoTermos: string }) {
   const [sessao, setSessao] = useState<SessaoDoSite | null | undefined>(undefined);
   const [preparo, setPreparo] = useState<Preparo | null>(null);
   const [erroCarga, setErroCarga] = useState('');
@@ -165,7 +164,7 @@ export default function Assistente({ temporadaId }: { temporadaId: string }) {
       posicao: ficha.posicao || null,
       possuiPlanoSaude: ficha.plano === 'sim',
       nomePlanoSaude: ficha.plano === 'sim' ? ficha.nomePlano.trim() : null,
-      aceiteDados, aceiteImagem, versaoTermos: VERSAO_TERMOS,
+      aceiteDados, aceiteImagem, versaoTermos,
       categoriaIds: [...escolhidas],
     });
     setOcupado(false);
@@ -291,7 +290,7 @@ export default function Assistente({ temporadaId }: { temporadaId: string }) {
         {passo === 4 && (
           <>
             <h1>Autorizações</h1>
-            <p className="muted">As duas são necessárias para participar. Ficam registradas com data, hora e a versão do texto ({VERSAO_TERMOS}).</p>
+            <p className="muted">As duas são necessárias para participar. Ficam registradas com data, hora e a versão do texto ({versaoTermos}).</p>
             <label className="cat"><input type="checkbox" checked={aceiteDados} onChange={e => setAceiteDados(e.target.checked)} />
               <span><b>Tratamento dos meus dados pessoais (LGPD)</b><small>Autorizo a associação a tratar os dados informados para analisar a inscrição, organizar campeonatos, súmulas e estatísticas, e entrar em contato comigo. <Link href="/privacidade" target="_blank">Política de privacidade</Link></small></span></label>
             <label className="cat"><input type="checkbox" checked={aceiteImagem} onChange={e => setAceiteImagem(e.target.checked)} />

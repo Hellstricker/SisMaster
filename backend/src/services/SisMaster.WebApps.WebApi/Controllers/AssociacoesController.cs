@@ -19,10 +19,12 @@ public class AssociacoesController : MainController
     private readonly ICategoriaRepository _categoriaRepository;
     private readonly IAcessoDoUsuario _acesso;
     private readonly IPaginaPublicaRepository _paginaRepository;
+    private readonly IVersaoLegalRepository _versoesLegais;
 
     public AssociacoesController(IMediatorHandler mediator, IAssociacaoRepository repository, ICategoriaRepository categoriaRepository,
-        IAcessoDoUsuario acesso, IPaginaPublicaRepository paginaRepository)
+        IAcessoDoUsuario acesso, IPaginaPublicaRepository paginaRepository, IVersaoLegalRepository versoesLegais)
     {
+        _versoesLegais = versoesLegais;
         _paginaRepository = paginaRepository;
         _acesso = acesso;
         _mediator = mediator;
@@ -132,6 +134,51 @@ public class AssociacoesController : MainController
             _paginaRepository.AdicionarMembros(adicionados);
             await _paginaRepository.UnitOfWork.Commit();
             return NoContent();
+        }
+        catch (SisMaster.Core.DomainObjects.DomainException ex)
+        {
+            AdicionarErro(ex.Message);
+            return CustomResponse();
+        }
+    }
+
+    public sealed record PublicarVersaoLegalRequest(bool Relevante, string? Resumo, string? TextoPrivacidade, string? TextoTermos, DateOnly? VigenteDesde);
+
+    /// <summary>O histórico de versões dos textos legais (política de privacidade e termos de uso), da mais nova à mais antiga.</summary>
+    [Authorize(Policy = Politicas.Gestao)]
+    [HttpGet("{id:guid}/textos-legais")]
+    public async Task<ActionResult> ListarTextosLegais(Guid id, CancellationToken ct)
+    {
+        if (await _repository.ObterPorIdAsync(id, ct) is null) return NotFound();
+        var versoes = await _versoesLegais.ListarAsync(id, ct);
+        return CustomResponse(new
+        {
+            Vigente = versoes.FirstOrDefault()?.Versao ?? VersaoLegal.VersaoInicial,
+            Versoes = versoes.Select(v => new
+            {
+                v.Versao, v.Relevante, v.Resumo, VigenteDesde = v.VigenteDesde.ToString("yyyy-MM-dd"), v.PublicadaPor,
+                PublicadaEm = Application.Services.RelogioLocal.DeUtc(v.PublicadaEm),
+                TemTextoPrivacidade = v.TextoPrivacidade != null, TemTextoTermos = v.TextoTermos != null,
+                v.TextoPrivacidade, v.TextoTermos
+            })
+        });
+    }
+
+    /// <summary>Publica uma versão nova dos textos legais. Não edita nem apaga as anteriores. Administrador ou Administrador da associação.</summary>
+    [Authorize(Policy = Politicas.Gestao)]
+    [HttpPost("{id:guid}/textos-legais")]
+    public async Task<ActionResult> PublicarTextoLegal(Guid id, [FromBody] PublicarVersaoLegalRequest corpo, CancellationToken ct)
+    {
+        if (await _repository.ObterPorIdAsync(id, ct) is null) return NotFound();
+        try
+        {
+            var vigente = await _versoesLegais.ObterVigenteAsync(id, ct);
+            var autor = User.FindFirst("nome")?.Value ?? User.FindFirst("email")?.Value ?? "?";
+            var nova = new VersaoLegal(id, vigente, corpo.Relevante, corpo.Resumo ?? string.Empty, corpo.TextoPrivacidade, corpo.TextoTermos,
+                corpo.VigenteDesde ?? Application.Services.RelogioLocal.Hoje, autor);
+            _versoesLegais.Adicionar(nova);
+            await _versoesLegais.UnitOfWork.Commit();
+            return CustomResponse(new { nova.Versao });
         }
         catch (SisMaster.Core.DomainObjects.DomainException ex)
         {

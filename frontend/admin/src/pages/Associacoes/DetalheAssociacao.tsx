@@ -152,6 +152,9 @@ export default function DetalheAssociacao() {
           <button className={styles.btnSecondary} onClick={() => navigate(`/associacoes/${assoc.id}/pagina-publica`)}>
             Página pública
           </button>
+          <button className={styles.btnSecondary} onClick={() => navigate(`/associacoes/${assoc.id}/textos-legais`)}>
+            Textos legais
+          </button>
           <button className={styles.btnSecondary} onClick={() => setModal('editar')}>
             Editar
           </button>

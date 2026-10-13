@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import EntrarOuCriar from '@/components/conta/EntrarOuCriar';
-import { obterTemporada } from '@/lib/api';
+import { obterLegal, obterTemporada } from '@/lib/api';
 
 export const metadata: Metadata = { title: 'Entrar ou criar conta' };
 
@@ -15,9 +15,10 @@ export default async function Entrar({ searchParams }: { searchParams: Promise<{
     if (t) contexto = `Você escolheu ${t.campeonato} · ${t.ano}. Crie sua conta (leva 1 minuto) e depois você volta direto para a inscrição.`;
   }
 
+  const legal = await obterLegal();
   return (
     <main className="wrap">
-      <EntrarOuCriar abaInicial={aba === 'entrar' ? 'entrar' : 'criar'} voltar={voltar ?? null} contexto={contexto} />
+      <EntrarOuCriar abaInicial={aba === 'entrar' ? 'entrar' : 'criar'} voltar={voltar ?? null} contexto={contexto} versaoTermos={legal.versao} />
     </main>
   );
 }

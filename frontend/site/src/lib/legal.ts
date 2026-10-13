@@ -1,9 +1,5 @@
 import type { PaginaDaAssociacao } from './api';
 
-/** Versão e data de vigência dos textos legais. Quando o texto mudar, suba a versão e a data (e, se a mudança for relevante, avise os usuários). */
-export const VERSAO_LEGAL = '1.0';
-export const VIGENTE_DESDE = '12/10/2026';
-
 const A_INFORMAR = 'a informar pela associação';
 
 /** Os dados da controladora que o texto cita, vindos do cadastro da associação (gestão > Página pública); o que falta aparece como "a informar". */
@@ -19,3 +15,14 @@ export function dadosLegais(p: PaginaDaAssociacao | null) {
     emailContato: p?.contato?.email ?? p?.legal?.emailPrivacidade ?? A_INFORMAR,
   };
 }
+
+export type DadosLegais = ReturnType<typeof dadosLegais>;
+
+/** Troca {{nome}}, {{sigla}}, {{cnpj}}, {{endereco}}, {{encarregado}}, {{emailPrivacidade}}, {{foro}} e {{emailContato}} pelos dados da associação. */
+export function preencherTexto(texto: string, d: DadosLegais): string {
+  const valores: Record<string, string> = { ...d, foro: d.foro ?? A_INFORMAR };
+  return texto.replace(/\{\{\s*(\w+)\s*\}\}/g, (inteiro, chave: string) => valores[chave] ?? inteiro);
+}
+
+/** "2026-10-12" -> "12/10/2026". */
+export const dataLegal = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');

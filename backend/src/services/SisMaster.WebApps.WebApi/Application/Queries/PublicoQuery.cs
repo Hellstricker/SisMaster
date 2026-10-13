@@ -44,6 +44,28 @@ public class PublicoQuery
     }
 
     /// <summary>
+    /// A versão vigente dos textos legais e o histórico (sem os textos antigos). Sem versão publicada: 1.0 com os textos padrão do sistema
+    /// (texto nulo). Os textos podem trazer {{nome}}, {{cnpj}} etc., que o site troca pelos dados da associação.
+    /// </summary>
+    public async Task<object?> LegalAsync(string sigla, CancellationToken ct)
+    {
+        var a = await _context.Associacoes.AsNoTracking().FirstOrDefaultAsync(x => x.Ativa && x.Sigla == sigla, ct);
+        if (a is null) return null;
+        var versoes = await _context.VersoesLegais.AsNoTracking().Where(v => v.AssociacaoId == a.Id).OrderByDescending(v => v.Numero).ToListAsync(ct);
+        var v = versoes.FirstOrDefault();
+        return new
+        {
+            Versao = v?.Versao ?? VersaoLegal.VersaoInicial,
+            VigenteDesde = (v?.VigenteDesde ?? new DateOnly(2026, 10, 12)).ToString("yyyy-MM-dd"),
+            Relevante = v?.Relevante ?? false,
+            Resumo = v?.Resumo,
+            TextoPrivacidade = v?.TextoPrivacidade,
+            TextoTermos = v?.TextoTermos,
+            Historico = versoes.Select(x => new { x.Versao, VigenteDesde = x.VigenteDesde.ToString("yyyy-MM-dd"), x.Relevante, x.Resumo })
+        };
+    }
+
+    /// <summary>
     /// Temporadas com inscrições abertas hoje: situação "inscrições abertas", habilitadas e dentro da janela de datas
     /// (o último dia da janela ainda vale).
     /// </summary>
