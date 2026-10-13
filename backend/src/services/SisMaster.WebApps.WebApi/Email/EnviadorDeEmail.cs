@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Mail;
+using System.Text;
+using SisMaster.WebApi.Core.Email;
 using Microsoft.Extensions.Options;
 
 namespace SisMaster.WebApps.WebApi.Email;
@@ -29,6 +31,9 @@ public sealed class OpcoesDeEmail
     public string? Usuario { get; set; }
     public string? Senha { get; set; }
     public string? Remetente { get; set; }
+
+    /// <summary>Nome que aparece como remetente e no topo do e-mail (por exemplo, a sigla da associação). Padrão: SisMaster.</summary>
+    public string? NomeExibicao { get; set; }
 }
 
 public sealed class EnviadorDeEmailSmtp(IOptions<OpcoesDeEmail> opcoes) : IEnviadorDeEmail
@@ -36,9 +41,31 @@ public sealed class EnviadorDeEmailSmtp(IOptions<OpcoesDeEmail> opcoes) : IEnvia
     public async Task EnviarAsync(string para, string assunto, string corpoTexto, CancellationToken ct = default)
     {
         var o = opcoes.Value;
-        using var cliente = new SmtpClient(o.Host, o.Porta) { EnableSsl = true, Credentials = new NetworkCredential(o.Usuario, o.Senha) };
-        using var mensagem = new MailMessage(o.Remetente ?? o.Usuario!, para, assunto, corpoTexto);
+        using var cliente = new SmtpClient(o.Host, o.Porta)
+        {
+            EnableSsl = true,
+            Credentials = new NetworkCredential(o.Usuario, o.Senha)
+        };
+        using var mensagem = MontarMensagem(o, para, assunto, corpoTexto);
         await cliente.SendMailAsync(mensagem, ct);
+    }
+
+    /// <summary>E-mail com o texto simples e a versão HTML (multipart/alternative): quem lê em texto, ou um filtro, vê a mesma mensagem.</summary>
+    public static MailMessage MontarMensagem(OpcoesDeEmail o, string para, string assunto, string corpoTexto)
+    {
+        var nome = string.IsNullOrWhiteSpace(o.NomeExibicao) ? "SisMaster" : o.NomeExibicao.Trim();
+        var mensagem = new MailMessage
+        {
+            From = new MailAddress(o.Remetente ?? o.Usuario!, nome, Encoding.UTF8),
+            Subject = assunto,
+            SubjectEncoding = Encoding.UTF8,
+            Body = corpoTexto,
+            BodyEncoding = Encoding.UTF8,
+        };
+        mensagem.To.Add(para);
+        mensagem.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(corpoTexto, Encoding.UTF8, "text/plain"));
+        mensagem.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(ModeloDeEmailHtml.Montar(assunto, corpoTexto, nome), Encoding.UTF8, "text/html"));
+        return mensagem;
     }
 }
 

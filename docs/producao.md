@@ -19,7 +19,7 @@ O que já está pronto no repositório e o que só você pode decidir ou fazer. 
 | **D2 Domínio e HTTPS** | Escolher o domínio (lembrando que `ababas.org.br` está comprometido) e apontar o DNS para o IP do servidor. O certificado é automático assim que o DNS responde. Depois, configurar SPF/DKIM do e-mail desse domínio. |
 | **D7 Ensaio em produção** | Diretoria e mesários fazendo um jogo de ponta a ponta, sem o desenvolvedor, no servidor de verdade. |
 | **D8 Go-live** | Congelar a versão (`git tag v1.0`), avisar os usuários e combinar quem atende nas primeiras semanas. |
-| E-mail real | `EMAIL_PROVEDOR=Smtp` e os dados do SMTP no `.env` do servidor; testar a chegada do e-mail de confirmação de conta. |
+| E-mail real | `EMAIL_PROVEDOR=Smtp` e os dados do SMTP no `.env` do servidor, e `EMAIL_NOME` (ex.: a sigla da associação) para o remetente e o topo dos e-mails. Os e-mails saem em HTML com versão em texto; testar a chegada do e-mail de confirmação de conta e ver se não cai no spam (SPF/DKIM dependem do domínio, D2). |
 | Textos legais | A diretoria revisa a política de privacidade e os termos e preenche CNPJ, endereço, encarregado e foro (Gestão > Associação > Página pública e Textos legais). |
 
 ## Primeira instalação no servidor

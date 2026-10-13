@@ -14,11 +14,12 @@ Do cadastro à classificação, na área de **Gestão** (`/admin`). Cada perfil 
 
 Cada pessoa se inscreve pelo site (ou a diretoria cadastra em **+ Nova inscrição**, ou importa uma planilha). Na tela **Inscrições** da temporada:
 
-- **Aprovar ou recusar por categoria.** Se a idade ou o sexo fogem do esperado, o sistema avisa e pede uma justificativa para aprovar mesmo assim. A recusa exige o motivo, que a pessoa vê no site; quem se inscreveu pelo site recebe e-mail a cada aprovação, recusa e pagamento confirmado.
-- **Registrar a taxa.** Com a taxa paga, os pedidos aprovados viram *Efetivada* e a pessoa passa a Associado. Estorne um pagamento errado em **Ações > Ver / estornar pagamentos** (com motivo; o lançamento fica no histórico).
+- **Aprovar ou recusar por categoria.** Se a idade ou o sexo fogem do esperado, o sistema avisa e pede uma justificativa para aprovar mesmo assim. A recusa exige o motivo, que a pessoa vê no site; quem se inscreveu pelo site recebe e-mail a cada aprovação, recusa e pagamento confirmado. Nas fichas feitas pela diretoria o aviso é opcional: marque **Avisar a pessoa por e-mail** na janela (o e-mail do cadastro pode estar desatualizado).
+- **Registrar a taxa.** Com a taxa paga, os pedidos aprovados viram *Efetivada* e a pessoa é **Associada naquela temporada**: a associação vale por temporada, então a lista mostra "Associado na temporada" ou "Não associado na temporada", e a pessoa vê isso em Minha conta > Associação. Estorne um pagamento errado em **Ações > Ver / estornar pagamentos** (com motivo; o lançamento fica no histórico).
 - **Corrigir dados** da ficha (altura, peso, posição, plano, e-mail, telefone) em **Ações**. Nome, CPF, nascimento e sexo só o Administrador corrige, em **Corrigir identificação** (fica na auditoria).
 - **Desfazer aprovação** e **Reabrir pedido recusado** ficam em **Ações**. Quem já está em equipe precisa sair dela antes.
 - **Cadastro duplicado?** O Administrador usa **Ações > Unir cadastro duplicado**, informando o CPF do duplicado: as fichas e a conta do site passam para o cadastro principal e o duplicado é apagado. Não desfaz; fica na auditoria.
+- **Conta criada com outro e-mail?** O Administrador usa **Ações > Autorizar ligação com conta do site**, informando o e-mail da conta. Quando a pessoa entrar nessa conta (e-mail confirmado) e digitar o CPF certo, o cadastro é ligado a ela, sem mudar nenhum dado. A autorização some depois de usada e pode ser cancelada (e-mail em branco).
 - A coluna da pessoa mostra se a inscrição veio do **Site** (com o protocolo, por exemplo 2027-0142) ou da **Diretoria**, e se a conta do site está ligada.
 - **Exportar** gera a lista em planilha (CPF e contato só saem se você marcar; cada exportação fica registrada).
 - Depois de encerrar as inscrições, **Gerar cobranças** calcula o total por pessoa (categorias menos descontos) e o saldo em aberto; registre os pagamentos do saldo na ficha.
@@ -46,4 +47,4 @@ A mesa opera o jogo pelo celular (veja o *Manual da mesa*). A diretoria:
 
 ## 6. Dados pessoais (LGPD)
 
-Peça de cópia, correção ou eliminação de dados chega pelo e-mail de privacidade informado na política. Corrija o que for possível na ficha; a eliminação de um cadastro com histórico de jogos deve ser decidida pela diretoria. Mantenha os **Textos legais** atualizados: cada mudança é uma versão nova; marque "mudança relevante" quando alterar finalidades ou o uso de imagem.
+Peça de cópia, correção ou eliminação de dados chega pelo e-mail de privacidade informado na política. Corrija o que for possível na ficha; a eliminação de um cadastro com histórico de jogos deve ser decidida pela diretoria. Mantenha os **Textos legais** atualizados: cada mudança é uma versão nova; marque "mudança relevante" quando alterar finalidades ou o uso de imagem. Mudança relevante sobe o número principal (2.0) e **todas as contas do site precisam aceitar de novo** no próximo acesso (aparece o resumo da mudança que você escreveu); mudança pequena (1.1) não pede nada.
