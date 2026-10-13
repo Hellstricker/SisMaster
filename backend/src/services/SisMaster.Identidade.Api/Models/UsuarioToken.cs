@@ -7,6 +7,9 @@ public class UsuarioToken
     public string? Email { get; internal set; }
     public string? Nome { get; internal set; }
     public string? Perfil { get; internal set; }
+    /// <summary>Versão dos Termos e da Política que a conta do público aceitou por último (o site pede novo aceite quando sai versão relevante).</summary>
+    public string? TermosVersao { get; internal set; }
+
     public IReadOnlyList<string> Associacoes { get; internal set; } = [];
 
     /// <summary>Verdadeiro enquanto a pessoa usa uma senha temporária: o front leva direto para a troca.</summary>

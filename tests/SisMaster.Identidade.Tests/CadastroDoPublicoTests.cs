@@ -300,4 +300,62 @@ public class CadastroDoPublicoTests
         respostas.Count(s => s == HttpStatusCode.OK).Should().Be(3);
         respostas.Count(s => s == HttpStatusCode.TooManyRequests).Should().Be(2);
     }
+
+    private async Task<HttpClient> ClienteLogadoAsync(string email, string senha = "Senha1234")
+    {
+        var login = await Entrar(email, senha);
+        var corpo = JsonDocument.Parse(await login.Content.ReadAsStringAsync()).RootElement;
+        var cliente = _fabrica.CreateClient();
+        cliente.DefaultRequestHeaders.Authorization = new("Bearer", corpo.GetProperty("accessToken").GetString());
+        return cliente;
+    }
+
+    [Fact]
+    public async Task Aceitar_termos_registra_a_versao_nova_e_o_token_ja_traz_a_versao_aceita()
+    {
+        if (SemBanco) return;
+        var email = await ContaConfirmadaAsync();
+
+        // o login já informa a versão aceita no cadastro
+        var login = JsonDocument.Parse(await (await Entrar(email)).Content.ReadAsStringAsync()).RootElement;
+        login.GetProperty("userToken").GetProperty("termosVersao").GetString().Should().Be("1.0");
+
+        var cliente = await ClienteLogadoAsync(email);
+        var r = await cliente.PostAsJsonAsync("/api/identidade/aceitar-termos", new { versao = "2.0" });
+        r.StatusCode.Should().Be(HttpStatusCode.OK);
+        var corpo = JsonDocument.Parse(await r.Content.ReadAsStringAsync()).RootElement;
+        corpo.GetProperty("userToken").GetProperty("termosVersao").GetString().Should().Be("2.0");
+
+        using var escopo = _fabrica.Services.CreateScope();
+        var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var claims = await usuarios.GetClaimsAsync((await usuarios.FindByEmailAsync(email))!);
+        claims.Where(c => c.Type == "termos-versao").Select(c => c.Value).Should().Equal("2.0");
+        claims.Where(c => c.Type == "termos-em").Should().HaveCount(1, "o aceite antigo é trocado, não acumulado");
+
+        var depois = JsonDocument.Parse(await (await Entrar(email)).Content.ReadAsStringAsync()).RootElement;
+        depois.GetProperty("userToken").GetProperty("termosVersao").GetString().Should().Be("2.0");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("abc")]
+    [InlineData("1.0; DROP")]
+    [InlineData("1234567890123")]
+    public async Task Aceitar_termos_recusa_versao_invalida(string versao)
+    {
+        if (SemBanco) return;
+        var cliente = await ClienteLogadoAsync(await ContaConfirmadaAsync());
+        (await cliente.PostAsJsonAsync("/api/identidade/aceitar-termos", new { versao })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Aceitar_termos_so_vale_para_participante_logado()
+    {
+        if (SemBanco) return;
+        (await _fabrica.CreateClient().PostAsJsonAsync("/api/identidade/aceitar-termos", new { versao = "2.0" })).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var arbitro = await _fabrica.CriarUsuarioAsync("Arbitro");
+        var cliente = await ClienteLogadoAsync(arbitro);
+        (await cliente.PostAsJsonAsync("/api/identidade/aceitar-termos", new { versao = "2.0" })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
 }

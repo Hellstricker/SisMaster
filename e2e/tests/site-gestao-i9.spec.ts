@@ -41,8 +41,13 @@ function cpfValido(n: number): string {
 }
 const mascara = (c: string) => `${c.slice(0, 3)}.${c.slice(3, 6)}.${c.slice(6, 9)}-${c.slice(9)}`;
 
+/** Versão dos termos em vigor: a conta nasce com ela aceita (senão o site pediria novo aceite se outro teste já publicou uma versão relevante). */
+async function versaoVigente(request: APIRequestContext): Promise<string> {
+  return (await (await request.get('/api/publico/associacoes/SITEE2E/legal')).json()).versao as string;
+}
+
 async function contaConfirmada(request: APIRequestContext, email: string, nome: string) {
-  await request.post('/api/identidade/cadastrar', { data: { nome, email, senha: 'basquete2027', aceiteTermos: true, versaoTermos: '1.0' } });
+  await request.post('/api/identidade/cadastrar', { data: { nome, email, senha: 'basquete2027', aceiteTermos: true, versaoTermos: await versaoVigente(request) } });
   let corpo = '';
   for (let i = 0; i < 30 && !corpo; i++) {
     const lista = (await (await request.get(`/api/identidade/teste/emails?para=${encodeURIComponent(email)}`)).json()) as { assunto: string; corpo: string }[];

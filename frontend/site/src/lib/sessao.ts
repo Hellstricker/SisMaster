@@ -10,6 +10,8 @@ export interface UsuarioDoSite {
   email: string;
   nome: string;
   perfil: string | null;
+  /** Versão dos Termos e da Política aceita por último. Ausente em sessões antigas (o site renova o token para descobrir). */
+  termosVersao?: string | null;
 }
 
 export interface SessaoDoSite {
@@ -73,7 +75,7 @@ export async function enviarParaIdentidade<T = unknown>(caminho: string, corpo: 
 interface RespostaDeLogin {
   accessToken: string;
   expiresIn: number;
-  userToken: { id: string; email: string; nome: string; perfil: string | null };
+  userToken: { id: string; email: string; nome: string; perfil: string | null; termosVersao?: string | null };
 }
 
 /** Guarda a sessão de uma resposta de login. Contas da equipe não entram pelo site: devolve o motivo. */
@@ -84,10 +86,32 @@ export function iniciarSessao(r: RespostaDeLogin): { ok: true; sessao: SessaoDoS
   const sessao: SessaoDoSite = {
     accessToken: r.accessToken,
     expiraEm: Date.now() + r.expiresIn * 1000,
-    usuario: { id: r.userToken.id, email: r.userToken.email, nome: r.userToken.nome, perfil: r.userToken.perfil },
+    usuario: { id: r.userToken.id, email: r.userToken.email, nome: r.userToken.nome, perfil: r.userToken.perfil, termosVersao: r.userToken.termosVersao ?? null },
   };
   guardar(sessao);
   return { ok: true, sessao };
+}
+
+/** Pede um token novo (traz os dados atuais da conta, como a versão dos termos aceita). */
+export async function atualizarSessao(): Promise<SessaoDoSite | null> {
+  const atual = lerSessao();
+  if (!atual) return null;
+  try {
+    const r = await fetch('/api/identidade/renovar', { method: 'POST', headers: { Authorization: `Bearer ${atual.accessToken}` } });
+    if (!r.ok) return atual;
+    const s = iniciarSessao((await r.json()) as RespostaDeLogin);
+    return s.ok ? s.sessao : atual;
+  } catch {
+    return atual;
+  }
+}
+
+/** A conta aceita a versão vigente dos Termos e da Política (depois de uma mudança relevante); a sessão passa a trazer a versão nova. */
+export async function aceitarTermos(versao: string): Promise<{ ok: true } | { ok: false; erro: string }> {
+  const r = await chamarApi<RespostaDeLogin>('POST', '/api/identidade/aceitar-termos', { versao });
+  if (!r.ok) return { ok: false, erro: r.erro };
+  const s = iniciarSessao(r.dados);
+  return s.ok ? { ok: true } : { ok: false, erro: s.erro };
 }
 
 export async function entrar(email: string, senha: string): Promise<{ ok: true; sessao: SessaoDoSite } | { ok: false; erro: string; naoConfirmado: boolean }> {

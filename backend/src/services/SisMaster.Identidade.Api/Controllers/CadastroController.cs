@@ -42,6 +42,12 @@ public class ConfirmacaoDeEmailPedido
     public string? Token { get; set; }
 }
 
+public class AceiteDeTermosPedido
+{
+    [Required(ErrorMessage = "Informe a versão dos termos."), MaxLength(10, ErrorMessage = "Versão inválida.")]
+    public string? Versao { get; set; }
+}
+
 public class ReenvioDeConfirmacaoPedido
 {
     [Required(ErrorMessage = "Informe o e-mail."), EmailAddress(ErrorMessage = "E-mail inválido.")]
@@ -135,6 +141,37 @@ public class CadastroController : MainController
         ]);
         await EnviarConfirmacaoAsync(usuario, model.Nome!.Trim(), voltar);
         return CustomResponse(new { mensagem = MensagemDoCadastro });
+    }
+
+    /// <summary>
+    /// A conta do público aceita a versão vigente dos Termos e da Política (depois de uma mudança relevante). Registra a versão e o
+    /// instante e devolve um token novo, que já traz a versão aceita. Só o perfil Participante.
+    /// </summary>
+    [Authorize]
+    [HttpPost("aceitar-termos")]
+    public async Task<IActionResult> AceitarTermos([FromBody] AceiteDeTermosPedido model)
+    {
+        if (!ModelState.IsValid) return CustomResponse(ModelState);
+        var id = User.FindFirstValue("sub");
+        var usuario = id is null ? null : await _userManager.FindByIdAsync(id);
+        if (usuario is null || !await _userManager.IsInRoleAsync(usuario, Perfis.Participante)) return Forbid();
+
+        var versao = model.Versao!.Trim();
+        if (versao.Length == 0 || !versao.All(c => char.IsDigit(c) || c == '.'))
+        {
+            AdicionarErro("Versão inválida.");
+            return CustomResponse();
+        }
+
+        var claims = await _userManager.GetClaimsAsync(usuario);
+        foreach (var antiga in claims.Where(c => c.Type is TiposDeClaim.TermosVersao or TiposDeClaim.TermosEm).ToList())
+            await _userManager.RemoveClaimAsync(usuario, antiga);
+        await _userManager.AddClaimsAsync(usuario,
+        [
+            new(TiposDeClaim.TermosVersao, versao),
+            new(TiposDeClaim.TermosEm, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
+        ]);
+        return CustomResponse(await _emissor.GerarAsync(usuario));
     }
 
     /// <summary>

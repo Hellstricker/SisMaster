@@ -66,7 +66,8 @@ public class EmissorDeToken
                 Nome = claims.First(c => c.Type == TiposDeClaim.Nome).Value,
                 Perfil = perfis.FirstOrDefault(),
                 Associacoes = claims.Where(c => c.Type == TiposDeClaim.Associacao).Select(c => c.Value).ToList(),
-                TrocarSenha = trocarSenha
+                TrocarSenha = trocarSenha,
+                TermosVersao = claimsDoUsuario.FirstOrDefault(c => c.Type == TiposDeClaim.TermosVersao)?.Value
             }
         };
     }

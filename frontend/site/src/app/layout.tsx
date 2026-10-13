@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
 import ContaDoUsuario from '@/components/conta/ContaDoUsuario';
-import { obterAssociacao } from '@/lib/api';
+import GuardaDeAceite from '@/components/conta/GuardaDeAceite';
+import { obterAssociacao, obterLegal } from '@/lib/api';
 
 export const dynamic = 'force-dynamic'; // os dados vêm da API em tempo de acesso, não do build
 
@@ -15,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const a = await obterAssociacao();
+  const [a, legal] = await Promise.all([obterAssociacao(), obterLegal()]);
   const sigla = a?.sigla ?? 'SisMaster';
   return (
     <html lang="pt-BR">
@@ -32,6 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <ContaDoUsuario />
           </div>
         </header>
+        <GuardaDeAceite versao={legal.versao} resumo={legal.resumo} />
         {children}
         <footer className="rodape">
           <div className="wrap">

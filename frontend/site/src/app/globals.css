@@ -196,6 +196,10 @@ input[readonly] { background: color-mix(in srgb, var(--border) 40%, var(--card))
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
 .kv dt { color: var(--text-2); }
 .kv dd { margin: 0; font-weight: 600; }
+.aceite-fundo { position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.aceite-janela { max-width: 520px; width: 100%; margin: 0; }
+.aceite-botoes { display: flex; gap: 10px; flex-wrap: wrap; }
+.faixa-aceite { background: var(--warn-bg); color: var(--warn); padding: 10px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
 .historico-legal { margin-top: 12px; font-size: .9rem; }
 .historico-legal summary { cursor: pointer; font-weight: 600; }
 .historico-legal ul { padding-left: 20px; margin: 8px 0 0; }
