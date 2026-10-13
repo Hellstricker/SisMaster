@@ -145,6 +145,47 @@ public class InscricaoDoParticipanteServico
         };
     }
 
+    // ------------------------------------------------------------------ minhas inscrições (I6)
+
+    /// <summary>Situação resumida da ficha: Aguardando pagamento (algum pedido aprovado), Em análise, Efetivada ou Recusada (todos recusados).</summary>
+    public static string SituacaoDaFicha(IEnumerable<InscricaoCategoria> pedidos)
+    {
+        var lista = pedidos.ToList();
+        if (lista.All(c => c.Status == StatusInscricaoCategoria.Recusada)) return "Recusada";
+        var ativas = lista.Where(c => c.Ativa).ToList();
+        if (ativas.Any(c => c.Status == StatusInscricaoCategoria.AguardandoPagamento)) return "AguardandoPagamento";
+        if (ativas.Any(c => c.Status == StatusInscricaoCategoria.Pendente)) return "EmAnalise";
+        return "Efetivada";
+    }
+
+    /// <summary>As fichas da conta, da mais recente à mais antiga, com a situação de cada categoria. Conta sem cadastro: lista vazia.</summary>
+    public async Task<object> ListarMinhasAsync(string contaId, CancellationToken ct)
+    {
+        var pessoa = await _pessoas.ObterPorContaAsync(contaId, ct);
+        if (pessoa is null) return new { Inscricoes = Array.Empty<object>(), AcaoNecessaria = false };
+
+        var fichas = await _inscricoes.ListarDaPessoaAsync(pessoa.Id, ct);
+        var itens = fichas.Select(i =>
+        {
+            var temporada = i.Categorias.Select(c => c.TemporadaCategoria.Temporada).FirstOrDefault();
+            return new
+            {
+                i.Id,
+                i.Protocolo,
+                i.Origem,
+                EnviadaEm = i.DataEnvio,
+                TemporadaId = i.TemporadaId,
+                Campeonato = temporada?.Campeonato.Nome,
+                Ano = temporada?.Ano,
+                AssociacaoSigla = temporada?.Campeonato.Associacao.Sigla,
+                Situacao = SituacaoDaFicha(i.Categorias),
+                Categorias = i.Categorias.OrderBy(c => c.TemporadaCategoria.Nome).Select(c => new { c.Id, Nome = c.TemporadaCategoria.Nome, Status = c.Status.ToString() }).ToList()
+            };
+        }).ToList();
+
+        return new { Inscricoes = itens, AcaoNecessaria = itens.Any(x => x.Situacao == "AguardandoPagamento") };
+    }
+
     // ------------------------------------------------------------------ envio (I3)
 
     /// <summary>Grava a inscrição (ou devolve a que já foi gravada com o mesmo código de envio) e avisa a pessoa por e-mail.</summary>

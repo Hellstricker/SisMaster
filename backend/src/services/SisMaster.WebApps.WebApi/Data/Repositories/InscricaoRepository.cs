@@ -54,6 +54,15 @@ public class InscricaoRepository : IInscricaoRepository
     public async Task<Inscricao?> ObterUltimaDaPessoaAsync(Guid pessoaId, CancellationToken ct = default) =>
         await _context.Inscricoes.AsNoTracking().Where(i => i.PessoaId == pessoaId).OrderByDescending(i => i.DataEnvio).FirstOrDefaultAsync(ct);
 
+    public async Task<IReadOnlyList<Inscricao>> ListarDaPessoaAsync(Guid pessoaId, CancellationToken ct = default) =>
+        await _context.Inscricoes
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(i => i.Categorias).ThenInclude(c => c.TemporadaCategoria).ThenInclude(tc => tc.Temporada).ThenInclude(t => t.Campeonato).ThenInclude(c => c.Associacao)
+            .Where(i => i.PessoaId == pessoaId)
+            .OrderByDescending(i => i.DataEnvio)
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyDictionary<Guid, string>> ListarCategoriasAtivasDaPessoaAsync(Guid pessoaId, Guid temporadaId, CancellationToken ct = default) =>
         (await _context.InscricoesCategorias.AsNoTracking()
             .Where(c => c.Inscricao.PessoaId == pessoaId && c.Inscricao.TemporadaId == temporadaId && c.Status != StatusInscricaoCategoria.Recusada)

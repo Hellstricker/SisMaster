@@ -30,6 +30,9 @@ public interface IInscricaoRepository : IRepository<Inscricao>
     /// <summary>A última ficha da pessoa (para pré-preencher a ficha esportiva da próxima inscrição), somente leitura.</summary>
     Task<Inscricao?> ObterUltimaDaPessoaAsync(Guid pessoaId, CancellationToken ct = default);
 
+    /// <summary>Todas as fichas da pessoa (somente leitura), da mais recente à mais antiga, com os pedidos de categoria e a temporada.</summary>
+    Task<IReadOnlyList<Inscricao>> ListarDaPessoaAsync(Guid pessoaId, CancellationToken ct = default);
+
     /// <summary>Os pedidos ativos (não recusados) da pessoa na temporada, com o protocolo da ficha: categoria -> protocolo (ou "—" se sem protocolo).</summary>
     Task<IReadOnlyDictionary<Guid, string>> ListarCategoriasAtivasDaPessoaAsync(Guid pessoaId, Guid temporadaId, CancellationToken ct = default);
 

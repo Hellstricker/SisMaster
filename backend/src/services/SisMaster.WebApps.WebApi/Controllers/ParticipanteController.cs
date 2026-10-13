@@ -83,6 +83,14 @@ public class ParticipanteController : MainController
         }
     }
 
+    /// <summary>As inscrições da própria conta (I6), da mais recente à mais antiga.</summary>
+    [HttpGet("inscricoes")]
+    public async Task<ActionResult> Minhas(CancellationToken ct)
+    {
+        if (ContaId is null) return Unauthorized();
+        return CustomResponse(await _servico.ListarMinhasAsync(ContaId, ct));
+    }
+
     /// <summary>Envia a inscrição. Reenviar com o mesmo código de envio devolve a mesma inscrição, sem duplicar.</summary>
     [HttpPost("inscricoes")]
     public async Task<ActionResult> Enviar([FromBody] EnvioRequest corpo, CancellationToken ct)

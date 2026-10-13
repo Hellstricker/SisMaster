@@ -99,3 +99,36 @@ export function foraDoEsperado(c: CategoriaDoFormulario, nascimentoIso: string, 
 }
 
 export const POSICOES = ['Armador', 'Ala-armador', 'Ala', 'Ala-pivô', 'Pivô'];
+
+// ---------- minhas inscrições ----------
+
+export type SituacaoDaFicha = 'AguardandoPagamento' | 'EmAnalise' | 'Efetivada' | 'Recusada';
+export type StatusDoPedido = 'Pendente' | 'AguardandoPagamento' | 'Efetivada' | 'Recusada';
+
+export interface MinhaInscricao {
+  id: string;
+  protocolo: string | null;
+  origem: string;
+  enviadaEm: string;
+  temporadaId: string;
+  campeonato: string | null;
+  ano: number | null;
+  situacao: SituacaoDaFicha;
+  categorias: { id: string; nome: string; status: StatusDoPedido }[];
+}
+
+export interface MinhasInscricoes {
+  inscricoes: MinhaInscricao[];
+  acaoNecessaria: boolean;
+}
+
+export const ROTULO_FICHA: Record<SituacaoDaFicha, string> = {
+  AguardandoPagamento: 'Aguardando pagamento', EmAnalise: 'Em análise', Efetivada: 'Efetivada', Recusada: 'Recusada',
+};
+
+export const ROTULO_PEDIDO: Record<StatusDoPedido, string> = {
+  Pendente: 'Em análise', AguardandoPagamento: 'Aprovada', Efetivada: 'Efetivada', Recusada: 'Recusada',
+};
+
+/** Data/hora ISO do servidor (hora da Bahia, sem fuso) -> "08/10/2026". */
+export const dataCurta = (iso: string) => isoParaBr(iso.slice(0, 10));

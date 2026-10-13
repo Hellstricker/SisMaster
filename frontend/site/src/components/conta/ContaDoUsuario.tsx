@@ -20,6 +20,7 @@ export default function ContaDoUsuario() {
   if (!sessao) return <span className="conta-topo"><Link className="btn ghost" href="/entrar?aba=entrar">Entrar</Link></span>;
   return (
     <span className="conta-topo">
+      <Link className="nome" href="/minhas-inscricoes">Minhas inscrições</Link>
       <span className="nome" title={sessao.usuario.email}>{sessao.usuario.nome.split(' ')[0]}</span>
       <button className="btn ghost" type="button" onClick={() => sair()}>Sair</button>
     </span>

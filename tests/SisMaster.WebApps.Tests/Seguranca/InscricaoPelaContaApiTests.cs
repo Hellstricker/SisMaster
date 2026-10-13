@@ -328,6 +328,52 @@ public class InscricaoPelaContaApiTests
         e.Status.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    // ------------------------------------------------------------------ minhas inscrições (I6)
+
+    private static JsonElement Dados(JsonElement j) => j.TryGetProperty("data", out var d) ? d : j;
+
+    [Fact]
+    public async Task Minhas_inscricoes_mostra_so_as_da_propria_conta_com_a_situacao_de_cada_categoria()
+    {
+        if (SemBanco) return;
+        var c = await NovoAsync("MinhasIns");
+        var conta = Conta(out _, out _);
+        var outra = Conta(out _, out _);
+
+        // sem cadastro: lista vazia
+        var vazia = Dados((await Chamar(conta, HttpMethod.Get, "/api/participante/inscricoes")).Json);
+        vazia.GetProperty("inscricoes").GetArrayLength().Should().Be(0);
+        vazia.GetProperty("acaoNecessaria").GetBoolean().Should().BeFalse();
+
+        await Chamar(conta, HttpMethod.Post, "/api/participante/vinculo", Vinculo(CpfValido(_semente++)));
+        await Chamar(outra, HttpMethod.Post, "/api/participante/vinculo", Vinculo(CpfValido(_semente++), nome: "Maria Souza"));
+        await Chamar(conta, HttpMethod.Post, "/api/participante/inscricoes", Envio(c, Guid.NewGuid(), [c.CategoriaMaster, c.CategoriaHiper]));
+        await Chamar(outra, HttpMethod.Post, "/api/participante/inscricoes", Envio(c, Guid.NewGuid(), [c.CategoriaMaster]));
+
+        var lista = Dados((await Chamar(conta, HttpMethod.Get, "/api/participante/inscricoes")).Json);
+        var ficha = lista.GetProperty("inscricoes").EnumerateArray().Single();
+        ficha.GetProperty("protocolo").GetString().Should().Be($"{c.Ano}-0001");
+        ficha.GetProperty("campeonato").GetString().Should().Be("Campeonato do Site");
+        ficha.GetProperty("situacao").GetString().Should().Be("EmAnalise");
+        ficha.GetProperty("categorias").EnumerateArray().Select(x => x.GetProperty("nome").GetString()).Should().Equal("Hipermaster 60+", "Master 40+");
+        lista.GetProperty("acaoNecessaria").GetBoolean().Should().BeFalse();
+
+        // a diretoria aprova uma e recusa outra: a ficha passa a aguardar pagamento e pede ação
+        var pedidos = ficha.GetProperty("categorias").EnumerateArray().ToDictionary(x => x.GetProperty("nome").GetString()!, x => x.GetProperty("id").GetGuid());
+        (await Chamar(c.Admin, HttpMethod.Patch, $"/api/inscricoes-categorias/{pedidos["Master 40+"]}/aprovar", new { })).Status.Should().Be(HttpStatusCode.NoContent);
+        (await Chamar(c.Admin, HttpMethod.Patch, $"/api/inscricoes-categorias/{pedidos["Hipermaster 60+"]}/recusar", new { motivo = "Fora da idade" })).Status.Should().Be(HttpStatusCode.NoContent);
+
+        var depois = Dados((await Chamar(conta, HttpMethod.Get, "/api/participante/inscricoes")).Json);
+        var f2 = depois.GetProperty("inscricoes").EnumerateArray().Single();
+        f2.GetProperty("situacao").GetString().Should().Be("AguardandoPagamento");
+        depois.GetProperty("acaoNecessaria").GetBoolean().Should().BeTrue();
+        f2.GetProperty("categorias").EnumerateArray().Select(x => x.GetProperty("status").GetString()).Should().Equal("Recusada", "AguardandoPagamento");
+
+        // a outra conta só enxerga a dela
+        var dela = Dados((await Chamar(outra, HttpMethod.Get, "/api/participante/inscricoes")).Json);
+        dela.GetProperty("inscricoes").EnumerateArray().Single().GetProperty("protocolo").GetString().Should().Be($"{c.Ano}-0002");
+    }
+
     // ------------------------------------------------------------------ isolamento
 
     [Theory]
@@ -340,6 +386,8 @@ public class InscricaoPelaContaApiTests
         var equipe = _fabrica.ClienteCom(ApiFactory.Token(perfil));
         (await Chamar(equipe, HttpMethod.Post, "/api/participante/vinculo", Vinculo("12345678909"))).Status.Should().Be(HttpStatusCode.Forbidden);
         (await Chamar(equipe, HttpMethod.Get, $"/api/participante/temporadas/{Guid.NewGuid()}/inscricao/preparo")).Status.Should().Be(HttpStatusCode.Forbidden);
+        (await Chamar(equipe, HttpMethod.Get, "/api/participante/inscricoes")).Status.Should().Be(HttpStatusCode.Forbidden);
         (await Chamar(_fabrica.ClienteCom(null), HttpMethod.Post, "/api/participante/inscricoes", new { })).Status.Should().Be(HttpStatusCode.Unauthorized);
+        (await Chamar(_fabrica.ClienteCom(null), HttpMethod.Get, "/api/participante/inscricoes")).Status.Should().Be(HttpStatusCode.Unauthorized);
     }
 }
