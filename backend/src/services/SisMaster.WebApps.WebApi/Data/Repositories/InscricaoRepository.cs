@@ -63,6 +63,23 @@ public class InscricaoRepository : IInscricaoRepository
             .OrderByDescending(i => i.DataEnvio)
             .ToListAsync(ct);
 
+    public async Task<Inscricao?> ObterDaPessoaAsync(Guid inscricaoId, Guid pessoaId, CancellationToken ct = default) =>
+        await _context.Inscricoes
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(i => i.Pagamentos)
+            .Include(i => i.Categorias).ThenInclude(c => c.TemporadaCategoria).ThenInclude(tc => tc.Temporada).ThenInclude(t => t.Campeonato).ThenInclude(c => c.Associacao)
+            .FirstOrDefaultAsync(i => i.Id == inscricaoId && i.PessoaId == pessoaId, ct);
+
+    public async Task<IReadOnlyDictionary<Guid, string>> ListarEquipesDosPedidosAsync(IReadOnlyCollection<Guid> inscricaoCategoriaIds, CancellationToken ct = default) =>
+        await _context.Atletas.AsNoTracking()
+            .Where(a => inscricaoCategoriaIds.Contains(a.InscricaoCategoriaId))
+            .Join(_context.Equipes, a => a.EquipeId, e => e.Id, (a, e) => new { a.InscricaoCategoriaId, e.Nome })
+            .ToDictionaryAsync(x => x.InscricaoCategoriaId, x => x.Nome, ct);
+
+    public async Task<IReadOnlyList<Inscricao>> ListarParaUniaoAsync(Guid pessoaId, CancellationToken ct = default) =>
+        await _context.Inscricoes.Include(i => i.Categorias).Where(i => i.PessoaId == pessoaId).ToListAsync(ct);
+
     public async Task<IReadOnlyDictionary<Guid, string>> ListarCategoriasAtivasDaPessoaAsync(Guid pessoaId, Guid temporadaId, CancellationToken ct = default) =>
         (await _context.InscricoesCategorias.AsNoTracking()
             .Where(c => c.Inscricao.PessoaId == pessoaId && c.Inscricao.TemporadaId == temporadaId && c.Status != StatusInscricaoCategoria.Recusada)

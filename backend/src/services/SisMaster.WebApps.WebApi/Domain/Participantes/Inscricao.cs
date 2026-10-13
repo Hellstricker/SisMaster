@@ -76,6 +76,13 @@ public class Inscricao : Entity, IAggregateRoot
         ConsentimentoLgpdEm = DataEnvio;
     }
 
+    /// <summary>Passa a ficha para outra pessoa (união de cadastros duplicados, feita pelo Administrador).</summary>
+    public void ReatribuirPara(Guid pessoaId)
+    {
+        Validacoes.ValidarSeVerdadeiro(pessoaId == Guid.Empty, "Pessoa inválida");
+        PessoaId = pessoaId;
+    }
+
     /// <summary>Marca a ficha como enviada pelo site: protocolo, as duas autorizações com a versão do texto e o código de envio.</summary>
     public void RegistrarEnvioPeloSite(string protocolo, DateTime consentimentoImagemEm, string versaoTermos, Guid codigoDeEnvio)
     {

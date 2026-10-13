@@ -1,6 +1,7 @@
 using FluentValidation.Results;
 using MediatR;
 using SisMaster.Core.DomainObjects;
+using SisMaster.WebApps.WebApi.Application.Services;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
 using SisMaster.WebApps.WebApi.Domain.Participantes;
 
@@ -10,11 +11,13 @@ public class RegistrarPagamentoTaxaCommandHandler : IRequestHandler<RegistrarPag
 {
     private readonly IInscricaoRepository _inscricaoRepository;
     private readonly ITemporadaRepository _temporadaRepository;
+    private readonly AvisosDeInscricao _avisos;
 
-    public RegistrarPagamentoTaxaCommandHandler(IInscricaoRepository inscricaoRepository, ITemporadaRepository temporadaRepository)
+    public RegistrarPagamentoTaxaCommandHandler(IInscricaoRepository inscricaoRepository, ITemporadaRepository temporadaRepository, AvisosDeInscricao avisos)
     {
         _inscricaoRepository = inscricaoRepository;
         _temporadaRepository = temporadaRepository;
+        _avisos = avisos;
     }
 
     public async Task<ValidationResult> Handle(RegistrarPagamentoTaxaCommand request, CancellationToken cancellationToken)
@@ -44,6 +47,7 @@ public class RegistrarPagamentoTaxaCommandHandler : IRequestHandler<RegistrarPag
             ficha.Pessoa.TornarAssociado();
 
             await _inscricaoRepository.UnitOfWork.Commit();
+            await _avisos.TaxaConfirmadaAsync(ficha, cancellationToken);
 
             return request.ValidationResult;
         }

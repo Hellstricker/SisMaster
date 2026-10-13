@@ -297,3 +297,5 @@
 .barraAcoes { display: flex; gap: 8px; flex-wrap: wrap; }
 .mutado { color: var(--text-secondary); font-size: 12px; }
 .menuWrap > button { white-space: nowrap; }
+
+.origem { display: block; color: var(--text-secondary); font-size: 12px; }

@@ -330,7 +330,7 @@ public class InscricaoPelaContaApiTests
 
     // ------------------------------------------------------------------ minhas inscrições (I6)
 
-    private static JsonElement Dados(JsonElement j) => j.TryGetProperty("data", out var d) ? d : j;
+    private static JsonElement Dados(JsonElement j) => j.ValueKind == JsonValueKind.Object && j.TryGetProperty("data", out var d) ? d : j;
 
     [Fact]
     public async Task Minhas_inscricoes_mostra_so_as_da_propria_conta_com_a_situacao_de_cada_categoria()
@@ -372,6 +372,201 @@ public class InscricaoPelaContaApiTests
         // a outra conta só enxerga a dela
         var dela = Dados((await Chamar(outra, HttpMethod.Get, "/api/participante/inscricoes")).Json);
         dela.GetProperty("inscricoes").EnumerateArray().Single().GetProperty("protocolo").GetString().Should().Be($"{c.Ano}-0002");
+    }
+
+    // ------------------------------------------------------------------ detalhe da inscrição (I7)
+
+    [Fact]
+    public async Task Detalhe_mostra_motivo_da_recusa_e_dinheiro_so_ao_dono_e_outra_conta_recebe_404()
+    {
+        if (SemBanco) return;
+        var c = await NovoAsync("DetalheIns");
+        var conta = Conta(out _, out _);
+        var outra = Conta(out _, out _);
+        await Chamar(conta, HttpMethod.Post, "/api/participante/vinculo", Vinculo(CpfValido(_semente++)));
+        await Chamar(outra, HttpMethod.Post, "/api/participante/vinculo", Vinculo(CpfValido(_semente++), nome: "Maria Souza"));
+        await Chamar(conta, HttpMethod.Post, "/api/participante/inscricoes", Envio(c, Guid.NewGuid(), [c.CategoriaMaster, c.CategoriaHiper]));
+
+        var ficha = Dados((await Chamar(conta, HttpMethod.Get, "/api/participante/inscricoes")).Json).GetProperty("inscricoes").EnumerateArray().Single();
+        var id = ficha.GetProperty("id").GetGuid();
+        var pedidos = ficha.GetProperty("categorias").EnumerateArray().ToDictionary(x => x.GetProperty("nome").GetString()!, x => x.GetProperty("id").GetGuid());
+
+        // em análise: dono vê a ficha, sem motivo de recusa; a outra conta e quem não entrou não veem
+        var d0 = await Chamar(conta, HttpMethod.Get, $"/api/participante/inscricoes/{id}");
+        d0.Status.Should().Be(HttpStatusCode.OK, d0.Corpo);
+        Dados(d0.Json).GetProperty("ficha").GetProperty("alturaCm").GetInt32().Should().Be(182);
+        (await Chamar(outra, HttpMethod.Get, $"/api/participante/inscricoes/{id}")).Status.Should().Be(HttpStatusCode.NotFound);
+        (await Chamar(conta, HttpMethod.Get, $"/api/participante/inscricoes/{Guid.NewGuid()}")).Status.Should().Be(HttpStatusCode.NotFound);
+        (await Chamar(_fabrica.ClienteCom(null), HttpMethod.Get, $"/api/participante/inscricoes/{id}")).Status.Should().Be(HttpStatusCode.Unauthorized);
+
+        (await Chamar(c.Admin, HttpMethod.Patch, $"/api/inscricoes-categorias/{pedidos["Master 40+"]}/aprovar", new { })).Status.Should().Be(HttpStatusCode.NoContent);
+        (await Chamar(c.Admin, HttpMethod.Patch, $"/api/inscricoes-categorias/{pedidos["Hipermaster 60+"]}/recusar", new { motivo = "Categoria completa" })).Status.Should().Be(HttpStatusCode.NoContent);
+
+        var d1 = Dados((await Chamar(conta, HttpMethod.Get, $"/api/participante/inscricoes/{id}")).Json);
+        d1.GetProperty("situacao").GetString().Should().Be("AguardandoPagamento");
+        var cats = d1.GetProperty("categorias").EnumerateArray().ToDictionary(x => x.GetProperty("nome").GetString()!);
+        cats["Hipermaster 60+"].GetProperty("motivoRecusa").GetString().Should().Be("Categoria completa");
+        cats["Master 40+"].GetProperty("status").GetString().Should().Be("AguardandoPagamento");
+        var fin = d1.GetProperty("financeiro");
+        fin.GetProperty("algumPedidoAprovado").GetBoolean().Should().BeTrue();
+        fin.GetProperty("taxaPaga").GetBoolean().Should().BeFalse();
+        fin.GetProperty("pago").GetDecimal().Should().Be(0);
+    }
+
+    // ------------------------------------------------------------------ minha conta (I8)
+
+    [Fact]
+    public async Task Minha_conta_mostra_so_o_cadastro_e_as_autorizacoes_da_propria_conta_com_cpf_mascarado()
+    {
+        if (SemBanco) return;
+        var c = await NovoAsync("MinhaConta");
+        var conta = Conta(out _, out _);
+        var outra = Conta(out _, out _);
+
+        var vazia = Dados((await Chamar(conta, HttpMethod.Get, "/api/participante/conta")).Json);
+        vazia.GetProperty("pessoa").ValueKind.Should().Be(JsonValueKind.Null);
+        vazia.GetProperty("autorizacoes").GetArrayLength().Should().Be(0);
+
+        var cpf = CpfValido(_semente++);
+        await Chamar(conta, HttpMethod.Post, "/api/participante/vinculo", Vinculo(cpf));
+        await Chamar(outra, HttpMethod.Post, "/api/participante/vinculo", Vinculo(CpfValido(_semente++), nome: "Maria Souza"));
+        await Chamar(conta, HttpMethod.Post, "/api/participante/inscricoes", Envio(c, Guid.NewGuid(), [c.CategoriaMaster]));
+
+        var r = await Chamar(conta, HttpMethod.Get, "/api/participante/conta");
+        r.Status.Should().Be(HttpStatusCode.OK, r.Corpo);
+        r.Corpo.Should().NotContain(cpf, "o CPF inteiro nunca volta");
+        var d = Dados(r.Json);
+        d.GetProperty("pessoa").GetProperty("nome").GetString().Should().Be("José Santana");
+        d.GetProperty("pessoa").GetProperty("cpfMascarado").GetString().Should().Be($"***.{cpf[3..6]}.{cpf[6..9]}-**");
+        var a = d.GetProperty("autorizacoes").EnumerateArray().Single();
+        a.GetProperty("protocolo").GetString().Should().Be($"{c.Ano}-0001");
+        a.GetProperty("versao").GetString().Should().Be("1.0");
+        a.GetProperty("imagem").ValueKind.Should().NotBe(JsonValueKind.Null);
+
+        // a outra conta não vê a inscrição da primeira
+        Dados((await Chamar(outra, HttpMethod.Get, "/api/participante/conta")).Json).GetProperty("autorizacoes").GetArrayLength().Should().Be(0);
+
+        // a equipe e quem não entrou não usam a rota
+        (await Chamar(_fabrica.ClienteCom(ApiFactory.Token("Administrador")), HttpMethod.Get, "/api/participante/conta")).Status.Should().Be(HttpStatusCode.Forbidden);
+        (await Chamar(_fabrica.ClienteCom(null), HttpMethod.Get, "/api/participante/conta")).Status.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    // ------------------------------------------------------------------ ajustes da gestão (I9)
+
+    [Fact]
+    public async Task Gestao_avisa_por_email_quem_se_inscreveu_pelo_site_ao_aprovar_recusar_e_confirmar_a_taxa_e_mostra_protocolo_e_origem()
+    {
+        if (SemBanco) return;
+        var c = await NovoAsync("AvisosGest");
+        await Chamar(c.Admin, HttpMethod.Patch, $"/api/temporadas/{c.TemporadaId}/taxa-inscricao", new { taxa = 100 });
+        var conta = Conta(out _, out var email);
+        await Chamar(conta, HttpMethod.Post, "/api/participante/vinculo", Vinculo(CpfValido(_semente++)));
+        await Chamar(conta, HttpMethod.Post, "/api/participante/inscricoes", Envio(c, Guid.NewGuid(), [c.CategoriaMaster, c.CategoriaHiper]));
+
+        // a gestão enxerga protocolo, origem, conta ligada e as duas autorizações
+        var fichas = Dados((await Chamar(c.Admin, HttpMethod.Get, $"/api/temporadas/{c.TemporadaId}/inscricoes")).Json);
+        var f = fichas.EnumerateArray().Single();
+        f.GetProperty("protocolo").GetString().Should().Be($"{c.Ano}-0001");
+        f.GetProperty("origem").GetString().Should().Be("Site");
+        f.GetProperty("contaLigada").GetBoolean().Should().BeTrue();
+        f.GetProperty("autorizacoes").GetProperty("imagem").ValueKind.Should().NotBe(JsonValueKind.Null);
+        f.GetProperty("autorizacoes").GetProperty("versaoTermos").GetString().Should().Be("1.0");
+        var pedidos = f.GetProperty("categorias").EnumerateArray().ToDictionary(x => x.GetProperty("nome").GetString()!, x => x.GetProperty("id").GetGuid());
+
+        (await Chamar(c.Admin, HttpMethod.Patch, $"/api/inscricoes-categorias/{pedidos["Master 40+"]}/aprovar", new { })).Status.Should().Be(HttpStatusCode.NoContent);
+        _fabrica.Emails.Quantos(email, "Inscrição aprovada").Should().Be(1);
+
+        (await Chamar(c.Admin, HttpMethod.Patch, $"/api/inscricoes-categorias/{pedidos["Hipermaster 60+"]}/recusar", new { motivo = "Categoria completa" })).Status.Should().Be(HttpStatusCode.NoContent);
+        _fabrica.Emails.Quantos(email, "Inscrição recusada").Should().Be(1);
+        string corpo;
+        lock (_fabrica.Emails.Enviados) corpo = _fabrica.Emails.Enviados.Last(e => e.Para == email && e.Assunto.StartsWith("Inscrição recusada")).Corpo;
+        corpo.Should().Contain("Categoria completa");
+
+        var ficha = f.GetProperty("id").GetGuid();
+        (await Chamar(c.Admin, HttpMethod.Post, $"/api/inscricoes/{ficha}/pagamentos/taxa", new { dataPagamento = "2026-10-09" })).Status.Should().Be(HttpStatusCode.NoContent);
+        _fabrica.Emails.Quantos(email, "Pagamento confirmado").Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Gestao_nao_manda_email_de_status_para_ficha_feita_pela_diretoria()
+    {
+        if (SemBanco) return;
+        var c = await NovoAsync("SemAviso");
+        var email = $"diretoria.{Guid.NewGuid():N}@exemplo.com";
+        await DadosDeTeste.Enviar(c.Admin, HttpMethod.Post, "/api/inscricoes", new
+        {
+            temporadaId = c.TemporadaId, nome = "Feita Pela Diretoria", cpf = CpfValido(_semente++), nascimento = "1970-01-02", sexo = "Masculino", email,
+            consentimentoLgpd = true, temporadaCategoriaIds = new[] { c.CategoriaMaster },
+        });
+        var f = Dados((await Chamar(c.Admin, HttpMethod.Get, $"/api/temporadas/{c.TemporadaId}/inscricoes")).Json).EnumerateArray().Single();
+        f.GetProperty("origem").GetString().Should().Be("Diretoria");
+        f.GetProperty("contaLigada").GetBoolean().Should().BeFalse();
+        var pedido = f.GetProperty("categorias").EnumerateArray().Single().GetProperty("id").GetGuid();
+        (await Chamar(c.Admin, HttpMethod.Patch, $"/api/inscricoes-categorias/{pedido}/aprovar", new { })).Status.Should().Be(HttpStatusCode.NoContent);
+        _fabrica.Emails.Quantos(email, "Inscrição aprovada").Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Administrador_une_cadastro_duplicado_levando_fichas_e_conta_e_so_ele_pode()
+    {
+        if (SemBanco) return;
+        var c = await NovoAsync("UnirCad");
+        // principal: cadastro da diretoria, sem conta
+        var cpfPrincipal = CpfValido(_semente++);
+        await DadosDeTeste.Enviar(c.Admin, HttpMethod.Post, "/api/inscricoes", new
+        {
+            temporadaId = c.TemporadaId, nome = "José de Jesus Santana", cpf = cpfPrincipal, nascimento = "1975-05-10", sexo = "Masculino", email = "jose.diretoria@exemplo.com",
+            consentimentoLgpd = true, temporadaCategoriaIds = new[] { c.CategoriaMaster },
+        });
+        // duplicado: criado pela conta do site com o CPF digitado errado
+        var conta = Conta(out _, out _);
+        var cpfDuplicado = CpfValido(_semente++);
+        await Chamar(conta, HttpMethod.Post, "/api/participante/vinculo", Vinculo(cpfDuplicado));
+        await Chamar(conta, HttpMethod.Post, "/api/participante/inscricoes", Envio(c, Guid.NewGuid(), [c.CategoriaHiper]));
+
+        var fichas = Dados((await Chamar(c.Admin, HttpMethod.Get, $"/api/temporadas/{c.TemporadaId}/inscricoes")).Json).EnumerateArray().ToList();
+        fichas.Should().HaveCount(2);
+        var principalId = fichas.Single(x => x.GetProperty("origem").GetString() == "Diretoria").GetProperty("pessoa").GetProperty("id").GetGuid();
+
+        // só o Administrador une
+        var gestor = _fabrica.ClienteCom(ApiFactory.Token("AdministradorDeAssociacao"));
+        (await Chamar(gestor, HttpMethod.Post, $"/api/pessoas/{principalId}/unir", new { cpfDuplicada = cpfDuplicado })).Status.Should().Be(HttpStatusCode.Forbidden);
+
+        // recusas: CPF inexistente, o próprio cadastro
+        (await Chamar(c.Admin, HttpMethod.Post, $"/api/pessoas/{principalId}/unir", new { cpfDuplicada = CpfValido(_semente++) })).Status.Should().Be(HttpStatusCode.BadRequest);
+        (await Chamar(c.Admin, HttpMethod.Post, $"/api/pessoas/{principalId}/unir", new { cpfDuplicada = cpfPrincipal })).Status.Should().Be(HttpStatusCode.BadRequest);
+
+        var ok = await Chamar(c.Admin, HttpMethod.Post, $"/api/pessoas/{principalId}/unir", new { cpfDuplicada = cpfDuplicado });
+        ok.Status.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NoContent);
+
+        // as duas fichas agora são do principal, que ficou com a conta; o cadastro duplicado sumiu e a conta enxerga as duas inscrições
+        var depois = Dados((await Chamar(c.Admin, HttpMethod.Get, $"/api/temporadas/{c.TemporadaId}/inscricoes")).Json).EnumerateArray().ToList();
+        depois.Select(x => x.GetProperty("pessoa").GetProperty("id").GetGuid()).Distinct().Should().Equal(principalId);
+        depois.Should().OnlyContain(x => x.GetProperty("contaLigada").GetBoolean());
+        Dados((await Chamar(conta, HttpMethod.Get, "/api/participante/inscricoes")).Json).GetProperty("inscricoes").GetArrayLength().Should().Be(2);
+        Dados((await Chamar(conta, HttpMethod.Get, "/api/participante/conta")).Json).GetProperty("pessoa").GetProperty("nome").GetString().Should().Be("José de Jesus Santana");
+    }
+
+    [Fact]
+    public async Task Uniao_recusa_quando_os_dois_cadastros_tem_pedido_ativo_na_mesma_categoria()
+    {
+        if (SemBanco) return;
+        var c = await NovoAsync("UnirConf");
+        var cpfA = CpfValido(_semente++);
+        var cpfB = CpfValido(_semente++);
+        foreach (var (cpf, nome) in new[] { (cpfA, "Pessoa Principal"), (cpfB, "Pessoa Duplicada") })
+            await DadosDeTeste.Enviar(c.Admin, HttpMethod.Post, "/api/inscricoes", new
+            {
+                temporadaId = c.TemporadaId, nome, cpf, nascimento = "1975-05-10", sexo = "Masculino", email = $"{Guid.NewGuid():N}@exemplo.com",
+                consentimentoLgpd = true, temporadaCategoriaIds = new[] { c.CategoriaMaster },
+            });
+        var a = Dados((await Chamar(c.Admin, HttpMethod.Get, $"/api/temporadas/{c.TemporadaId}/inscricoes")).Json).EnumerateArray()
+            .Single(x => x.GetProperty("pessoa").GetProperty("nome").GetString() == "Pessoa Principal").GetProperty("pessoa").GetProperty("id").GetGuid();
+
+        var r = await Chamar(c.Admin, HttpMethod.Post, $"/api/pessoas/{a}/unir", new { cpfDuplicada = cpfB });
+        r.Status.Should().Be(HttpStatusCode.BadRequest);
+        r.Corpo.Should().Contain("pedido ativo");
+        Dados((await Chamar(c.Admin, HttpMethod.Get, $"/api/temporadas/{c.TemporadaId}/inscricoes")).Json).GetArrayLength().Should().Be(2);
     }
 
     // ------------------------------------------------------------------ isolamento

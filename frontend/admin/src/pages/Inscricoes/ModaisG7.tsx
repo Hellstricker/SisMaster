@@ -140,6 +140,31 @@ export function ModalIdentificacao({ ficha, anoTemporada, onConfirmar, onFechar 
   );
 }
 
+// ---- Unir cadastro duplicado (só o Administrador; fica na auditoria)
+
+export function ModalUnir({ ficha, onConfirmar, onFechar }: { ficha: Ficha; onConfirmar: Confirmar<string>; onFechar: () => void }) {
+  const [cpf, setCpf] = useState('');
+  const { erro, setErro, salvando, salvar } = useSalvar(onConfirmar);
+
+  function confirmar() {
+    if (cpf.replace(/\D/g, '').length !== 11) return setErro('Informe o CPF completo do cadastro duplicado.');
+    salvar(cpf);
+  }
+
+  return (
+    <Modal titulo="Unir cadastro duplicado" largo erro={erro} salvando={salvando} rotuloConfirmar="Unir cadastros" onConfirmar={confirmar} onFechar={onFechar}>
+      <p className={styles.modalTexto}>Cadastro que fica: <b>{ficha.pessoa.nome}</b> ({ficha.pessoa.cpf}).</p>
+      <div className={styles.field}><label htmlFor="u-cpf">CPF do cadastro duplicado</label>
+        <input id="u-cpf" className={styles.input} inputMode="numeric" value={cpf} onChange={e => { setCpf(aplicarMascaraCpf(e.target.value)); setErro(''); }} /></div>
+      <div className={styles.aviso}>
+        As fichas do cadastro duplicado e a conta do site dele (se houver) passam para <b>{ficha.pessoa.nome}</b>, e o cadastro duplicado é apagado.
+        Os dados de {ficha.pessoa.nome} não mudam. Não dá para desfazer; a união fica registrada na auditoria (CPFs mascarados).
+        Não une se os dois tiverem pedido ativo na mesma categoria ou contas diferentes.
+      </div>
+    </Modal>
+  );
+}
+
 // ---- Pagamentos da ficha: histórico e estorno
 
 export function ModalPagamentos({ ficha, somenteLeitura, onEstornar, onFechar }: {

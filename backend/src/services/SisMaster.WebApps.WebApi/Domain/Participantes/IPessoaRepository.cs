@@ -9,4 +9,5 @@ public interface IPessoaRepository : IRepository<Pessoa>
     /// <summary>O cadastro ligado à conta do site (rastreado), se houver.</summary>
     Task<Pessoa?> ObterPorContaAsync(string contaId, CancellationToken ct = default);
     void Adicionar(Pessoa pessoa);
+    void Remover(Pessoa pessoa);
 }

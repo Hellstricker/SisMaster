@@ -8,6 +8,7 @@ using SisMaster.WebApi.Core.Controllers;
 using SisMaster.WebApi.Core.Usuarios;
 using SisMaster.WebApps.WebApi.Application.Services;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
+using SisMaster.WebApps.WebApi.Seguranca;
 
 namespace SisMaster.WebApps.WebApi.Controllers;
 
@@ -83,12 +84,30 @@ public class ParticipanteController : MainController
         }
     }
 
+    /// <summary>Os dados do cadastro e as autorizações dadas, da própria conta (I8).</summary>
+    [HttpGet("conta")]
+    public async Task<ActionResult> MinhaConta(CancellationToken ct)
+    {
+        if (ContaId is null) return Unauthorized();
+        return CustomResponse(await _servico.MinhaContaAsync(ContaId, ct));
+    }
+
     /// <summary>As inscrições da própria conta (I6), da mais recente à mais antiga.</summary>
     [HttpGet("inscricoes")]
     public async Task<ActionResult> Minhas(CancellationToken ct)
     {
         if (ContaId is null) return Unauthorized();
         return CustomResponse(await _servico.ListarMinhasAsync(ContaId, ct));
+    }
+
+    /// <summary>O detalhe de uma inscrição da própria conta (I7). De outra conta: 404, igual a inexistente.</summary>
+    [IdEh(Recurso.Inscricao)]
+    [HttpGet("inscricoes/{id:guid}")]
+    public async Task<ActionResult> Detalhe(Guid id, CancellationToken ct)
+    {
+        if (ContaId is null) return Unauthorized();
+        var r = await _servico.DetalharMinhaAsync(ContaId, id, ct);
+        return r is null ? NotFound() : CustomResponse(r);
     }
 
     /// <summary>Envia a inscrição. Reenviar com o mesmo código de envio devolve a mesma inscrição, sem duplicar.</summary>

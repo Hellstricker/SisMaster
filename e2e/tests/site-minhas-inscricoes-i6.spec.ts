@@ -127,6 +127,33 @@ test('I6: minhas inscrições com situação por categoria, ação necessária, 
     await page.screenshot({ path: 'test-results/i6-minhas-inscricoes.png', fullPage: true });
   });
 
+  await test.step('I7: o cartão abre o detalhe, com linha do tempo por categoria, motivo da recusa e pagamento só leitura', async () => {
+    await page.goto('/minhas-inscricoes');
+    await page.locator('.ficha', { hasText: `Min ${sufixo}` }).click();
+    await expect(page).toHaveURL(/\/minhas-inscricoes\/[0-9a-f-]{36}$/);
+    await expect(page.getByTestId('situacao')).toHaveText('Aguardando pagamento');
+    const master = page.locator('.card', { hasText: nomes.master }).filter({ has: page.locator('.tl') });
+    await expect(master).toContainText('Aprovada pela diretoria');
+    await expect(master).toContainText('Falta pagar a taxa para efetivar');
+    const hiper = page.locator('[data-categoria]', { hasText: nomes.hiper });
+    await expect(hiper).toContainText('Recusada');
+    await expect(hiper).toContainText('Fora da idade');
+    await expect(page.getByText(`Sua inscrição em ${nomes.master} foi aprovada.`)).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Nova inscrição' })).toBeVisible();   // há pedido recusado
+    await expect(page.getByTestId('pagamento')).toContainText('Pagamento online em breve');
+    await expect(page.getByText('182 cm / 84 kg')).toBeVisible();
+    await expect(page.getByText(/Dados e imagem · termos v1\.0/)).toBeVisible();
+    await page.screenshot({ path: 'test-results/i7-detalhe.png', fullPage: true });
+
+    // a ficha de outra conta não abre: mesma resposta de inexistente
+    const url = page.url();
+    await conectar(page, await contaConfirmada(request, `outra.${sufixo}@exemplo.com`, 'Maria Souza'));
+    await page.goto(url);
+    await expect(page.getByRole('heading', { name: 'Inscrição não encontrada' })).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('Fora da idade');
+    await conectar(page, sessao);
+  });
+
   await test.step('o cabeçalho tem o atalho e, no celular, a página cabe na tela', async () => {
     await page.goto('/');
     await page.getByRole('link', { name: 'Minhas inscrições' }).click();

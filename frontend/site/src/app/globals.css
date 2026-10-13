@@ -178,3 +178,32 @@ input[readonly] { background: color-mix(in srgb, var(--border) 40%, var(--card))
 .badge.st-Recusada { background: var(--bad-bg); color: var(--bad); }
 .conta-topo a.nome { color: inherit; text-decoration: none; }
 .conta-topo a.nome:hover { text-decoration: underline; }
+
+/* detalhe da inscrição */
+.grid-detalhe { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; margin-top: 16px; }
+.tl { list-style: none; margin: 0; padding: 0 0 0 22px; border-left: 3px solid var(--border); }
+.tl li { position: relative; padding: 0 0 18px 14px; }
+.tl li:last-child { padding-bottom: 0; }
+.tl li::before { content: ""; position: absolute; left: -31px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--card); border: 3px solid var(--border-input); }
+.tl li.done::before { background: var(--ok); border-color: var(--ok); }
+.tl li.now::before { background: var(--brand); border-color: var(--brand); box-shadow: 0 0 0 5px color-mix(in srgb, var(--brand) 25%, transparent); }
+.tl li.bad::before { background: var(--bad); border-color: var(--bad); }
+.tl li.wait { color: var(--text-2); }
+.tl b { display: block; }
+.dinheiro { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; }
+.dinheiro .tot { font-weight: 800; border-top: 1px solid var(--border); padding-top: 8px; }
+.dinheiro .pago { color: var(--ok); }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
+.kv dt { color: var(--text-2); }
+.kv dd { margin: 0; font-weight: 600; }
+.caixa-conta { max-width: 720px; margin: 0 auto; }
+.abas { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.abas button { padding: 8px 16px; min-height: 40px; border-radius: 999px; border: 1px solid var(--border-input); background: var(--card); cursor: pointer; font-size: .92rem; }
+.abas button.on { background: var(--court); color: #fff; border-color: var(--court); }
+.tabela-rolavel { overflow-x: auto; }
+.tabela-rolavel table { width: 100%; border-collapse: collapse; }
+.tabela-rolavel th { text-align: left; font-size: .8rem; color: var(--text-2); padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.tabela-rolavel td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.card .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 16px; }
+a.card.ficha { display: block; text-decoration: none; color: inherit; }
+a.card.ficha:hover { border-color: var(--brand); }

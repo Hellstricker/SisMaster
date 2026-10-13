@@ -61,6 +61,12 @@ export interface Ficha {
     nomePlanoSaude: string | null;
   };
   dataEnvio: string;
+  /** Número do pedido feito pelo site (ex.: 2027-0142); nulo nas fichas feitas pela diretoria. */
+  protocolo: string | null;
+  origem: 'Site' | 'Diretoria';
+  /** O cadastro está ligado a uma conta do site. */
+  contaLigada: boolean;
+  autorizacoes: { dados: string; imagem: string | null; versaoTermos: string | null };
   financeiro: Financeiro;
   categorias: CategoriaPedida[];
 }
@@ -144,6 +150,11 @@ export interface Identificacao {
 /** Só o Administrador: nome, CPF, nascimento e sexo definem a elegibilidade. */
 export function corrigirIdentificacao(pessoaId: string, dados: Identificacao): Promise<void> {
   return enviar('PATCH', `/api/pessoas/${pessoaId}/identificacao`, dados, 'Erro ao corrigir a identificação');
+}
+
+/** Só o Administrador: passa as fichas (e a conta do site) do cadastro duplicado, achado pelo CPF, para este cadastro e apaga o duplicado. */
+export function unirCadastros(pessoaId: string, cpfDuplicada: string): Promise<void> {
+  return enviar('POST', `/api/pessoas/${pessoaId}/unir`, { cpfDuplicada }, 'Erro ao unir os cadastros');
 }
 
 export interface FiltroDeExportacao {

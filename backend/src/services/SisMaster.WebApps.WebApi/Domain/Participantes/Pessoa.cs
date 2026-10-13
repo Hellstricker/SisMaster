@@ -44,6 +44,14 @@ public class Pessoa : Entity, IAggregateRoot
         ContaId = contaId;
     }
 
+    /// <summary>Solta a conta do cadastro (usado ao unir duplicidades, antes de a conta passar ao cadastro principal).</summary>
+    public string? DesligarConta()
+    {
+        var anterior = ContaId;
+        ContaId = null;
+        return anterior;
+    }
+
     /// <summary>Menor de 18 anos na data: a inscrição é feita pela diretoria, com o responsável.</summary>
     public static bool EhMenorDeIdade(DateOnly nascimento, DateOnly hoje) => nascimento.AddYears(18) > hoje;
 

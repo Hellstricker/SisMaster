@@ -33,6 +33,15 @@ public interface IInscricaoRepository : IRepository<Inscricao>
     /// <summary>Todas as fichas da pessoa (somente leitura), da mais recente à mais antiga, com os pedidos de categoria e a temporada.</summary>
     Task<IReadOnlyList<Inscricao>> ListarDaPessoaAsync(Guid pessoaId, CancellationToken ct = default);
 
+    /// <summary>A ficha da pessoa (somente leitura) com pedidos, temporada, associação e pagamentos; nulo se não existir ou for de outra pessoa.</summary>
+    Task<Inscricao?> ObterDaPessoaAsync(Guid inscricaoId, Guid pessoaId, CancellationToken ct = default);
+
+    /// <summary>Equipe de cada pedido efetivado já colocado em equipe: pedido -> nome da equipe.</summary>
+    Task<IReadOnlyDictionary<Guid, string>> ListarEquipesDosPedidosAsync(IReadOnlyCollection<Guid> inscricaoCategoriaIds, CancellationToken ct = default);
+
+    /// <summary>Todas as fichas da pessoa para alteração (rastreadas), com os pedidos de categoria.</summary>
+    Task<IReadOnlyList<Inscricao>> ListarParaUniaoAsync(Guid pessoaId, CancellationToken ct = default);
+
     /// <summary>Os pedidos ativos (não recusados) da pessoa na temporada, com o protocolo da ficha: categoria -> protocolo (ou "—" se sem protocolo).</summary>
     Task<IReadOnlyDictionary<Guid, string>> ListarCategoriasAtivasDaPessoaAsync(Guid pessoaId, Guid temporadaId, CancellationToken ct = default);
 

@@ -23,5 +23,7 @@ public class PessoaRepository : IPessoaRepository
 
     public void Adicionar(Pessoa pessoa) => _context.Pessoas.Add(pessoa);
 
+    public void Remover(Pessoa pessoa) => _context.Pessoas.Remove(pessoa);
+
     public void Dispose() => _context.Dispose();
 }

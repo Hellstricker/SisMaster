@@ -1,6 +1,7 @@
 using FluentValidation.Results;
 using MediatR;
 using SisMaster.Core.DomainObjects;
+using SisMaster.WebApps.WebApi.Application.Services;
 using SisMaster.WebApps.WebApi.Domain.Participantes;
 
 namespace SisMaster.WebApps.WebApi.Application.Commands.Handlers;
@@ -8,10 +9,12 @@ namespace SisMaster.WebApps.WebApi.Application.Commands.Handlers;
 public class RecusarInscricaoCategoriaCommandHandler : IRequestHandler<RecusarInscricaoCategoriaCommand, ValidationResult>
 {
     private readonly IInscricaoRepository _repository;
+    private readonly AvisosDeInscricao _avisos;
 
-    public RecusarInscricaoCategoriaCommandHandler(IInscricaoRepository repository)
+    public RecusarInscricaoCategoriaCommandHandler(IInscricaoRepository repository, AvisosDeInscricao avisos)
     {
         _repository = repository;
+        _avisos = avisos;
     }
 
     public async Task<ValidationResult> Handle(RecusarInscricaoCategoriaCommand request, CancellationToken cancellationToken)
@@ -27,8 +30,10 @@ public class RecusarInscricaoCategoriaCommandHandler : IRequestHandler<RecusarIn
                 return request.ValidationResult;
             }
 
-            ficha.Categorias.First(c => c.Id == request.InscricaoCategoriaId).Recusar(request.Motivo);
+            var pedido = ficha.Categorias.First(c => c.Id == request.InscricaoCategoriaId);
+            pedido.Recusar(request.Motivo);
             await _repository.UnitOfWork.Commit();
+            await _avisos.RecusadaAsync(ficha, pedido, cancellationToken);
 
             return request.ValidationResult;
         }

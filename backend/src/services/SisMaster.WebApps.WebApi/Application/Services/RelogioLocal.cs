@@ -21,5 +21,10 @@ public static class RelogioLocal
     }
 
     public static DateTime Agora => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, Fuso);
+    /// <summary>Converte um instante gravado em UTC (o banco guarda UtcNow) para a hora local, para mostrar à pessoa.</summary>
+    public static DateTime DeUtc(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Fuso);
+
+    public static DateTime? DeUtc(DateTime? utc) => utc is null ? null : DeUtc(utc.Value);
+
     public static DateOnly Hoje => DateOnly.FromDateTime(Agora);
 }

@@ -21,7 +21,7 @@ export default function ContaDoUsuario() {
   return (
     <span className="conta-topo">
       <Link className="nome" href="/minhas-inscricoes">Minhas inscrições</Link>
-      <span className="nome" title={sessao.usuario.email}>{sessao.usuario.nome.split(' ')[0]}</span>
+      <Link className="nome" href="/minha-conta" title={sessao.usuario.email}>{sessao.usuario.nome.split(' ')[0]}</Link>
       <button className="btn ghost" type="button" onClick={() => sair()}>Sair</button>
     </span>
   );

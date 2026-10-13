@@ -173,7 +173,7 @@ public class InscricaoDoParticipanteServico
                 i.Id,
                 i.Protocolo,
                 i.Origem,
-                EnviadaEm = i.DataEnvio,
+                EnviadaEm = RelogioLocal.DeUtc(i.DataEnvio),
                 TemporadaId = i.TemporadaId,
                 Campeonato = temporada?.Campeonato.Nome,
                 Ano = temporada?.Ano,
@@ -184,6 +184,99 @@ public class InscricaoDoParticipanteServico
         }).ToList();
 
         return new { Inscricoes = itens, AcaoNecessaria = itens.Any(x => x.Situacao == "AguardandoPagamento") };
+    }
+
+    /// <summary>O detalhe de uma ficha da conta: pedidos com motivo de recusa e equipe, dinheiro (só leitura) e dados da ficha. Ficha de outra conta: nulo.</summary>
+    public async Task<object?> DetalharMinhaAsync(string contaId, Guid inscricaoId, CancellationToken ct)
+    {
+        var pessoa = await _pessoas.ObterPorContaAsync(contaId, ct);
+        if (pessoa is null) return null;
+        var i = await _inscricoes.ObterDaPessoaAsync(inscricaoId, pessoa.Id, ct);
+        if (i is null) return null;
+
+        var temporada = i.Categorias.Select(c => c.TemporadaCategoria.Temporada).FirstOrDefault();
+        var equipes = await _inscricoes.ListarEquipesDosPedidosAsync(i.Categorias.Select(c => c.Id).ToList(), ct);
+        var algumPedidoAprovado = i.Categorias.Any(c => c.Status is StatusInscricaoCategoria.AguardandoPagamento or StatusInscricaoCategoria.Efetivada);
+        var todosRecusados = i.Categorias.All(c => !c.Ativa);
+
+        return new
+        {
+            i.Id,
+            i.Protocolo,
+            i.Origem,
+            EnviadaEm = RelogioLocal.DeUtc(i.DataEnvio),
+            Campeonato = temporada?.Campeonato.Nome,
+            Ano = temporada?.Ano,
+            TemporadaId = i.TemporadaId,
+            Situacao = SituacaoDaFicha(i.Categorias),
+            Categorias = i.Categorias.OrderBy(c => c.TemporadaCategoria.Nome).Select(c => new
+            {
+                c.Id,
+                Nome = c.TemporadaCategoria.Nome,
+                Status = c.Status.ToString(),
+                c.MotivoRecusa,
+                RecusadaEm = RelogioLocal.DeUtc(c.RecusadaEm),
+                Equipe = equipes.TryGetValue(c.Id, out var eq) ? eq : null
+            }).ToList(),
+            // Dinheiro só para leitura: sem pagamento online. A taxa só importa quando algum pedido foi aprovado.
+            Financeiro = todosRecusados ? null : new
+            {
+                Taxa = temporada?.TaxaInscricao,
+                Pago = i.TotalPago,
+                TaxaPaga = i.TaxaPaga,
+                AlgumPedidoAprovado = algumPedidoAprovado,
+                CobrancaGerada = i.CobrancaGerada,
+                ValorTotal = i.ValorTotal,
+                Desconto = i.ValorDesconto,
+                ValorFinal = i.ValorFinal,
+                Saldo = i.Saldo
+            },
+            Ficha = new
+            {
+                i.AlturaCm, i.PesoKg, i.Posicao, i.PossuiPlanoSaude, i.NomePlanoSaude,
+                AutorizouDados = RelogioLocal.DeUtc(i.ConsentimentoLgpdEm),
+                AutorizouImagem = RelogioLocal.DeUtc(i.ConsentimentoImagemEm),
+                i.VersaoTermos
+            }
+        };
+    }
+
+    // ------------------------------------------------------------------ minha conta (I8)
+
+    /// <summary>Os dados do cadastro ligado à conta e as autorizações dadas em cada inscrição (data e versão do termo). Conta sem cadastro: Pessoa nula.</summary>
+    public async Task<object> MinhaContaAsync(string contaId, CancellationToken ct)
+    {
+        var pessoa = await _pessoas.ObterPorContaAsync(contaId, ct);
+        if (pessoa is null) return new { Pessoa = (object?)null, Autorizacoes = Array.Empty<object>() };
+
+        var fichas = await _inscricoes.ListarDaPessoaAsync(pessoa.Id, ct);
+        var autorizacoes = fichas.Select(i =>
+        {
+            var temporada = i.Categorias.Select(c => c.TemporadaCategoria.Temporada).FirstOrDefault();
+            return new
+            {
+                i.Protocolo,
+                Campeonato = temporada?.Campeonato.Nome,
+                Ano = temporada?.Ano,
+                Dados = RelogioLocal.DeUtc(i.ConsentimentoLgpdEm),
+                Imagem = RelogioLocal.DeUtc(i.ConsentimentoImagemEm),
+                Versao = i.VersaoTermos
+            };
+        }).ToList();
+
+        return new
+        {
+            Pessoa = new
+            {
+                pessoa.Nome,
+                CpfMascarado = Mascarar(pessoa.Cpf.Numero),
+                Nascimento = pessoa.Nascimento.ToString("yyyy-MM-dd"),
+                Sexo = pessoa.Sexo.ToString(),
+                pessoa.Telefone,
+                pessoa.Email
+            },
+            Autorizacoes = autorizacoes
+        };
     }
 
     // ------------------------------------------------------------------ envio (I3)

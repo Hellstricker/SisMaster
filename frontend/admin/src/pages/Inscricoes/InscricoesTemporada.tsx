@@ -11,6 +11,7 @@ import {
   registrarPagamentoSaldo,
   registrarPagamentoTaxa,
   corrigirIdentificacao,
+  unirCadastros,
   desfazerAprovacao,
   editarDadosDaFicha,
   estornarPagamento,
@@ -36,7 +37,7 @@ import {
   ModalValoresCategorias,
 } from './ModaisDiretoria';
 import {
-  ModalDesfazerAprovacao, ModalEditarFicha, ModalExportar, ModalIdentificacao, ModalImportar, ModalPagamentos, ModalReabrir,
+  ModalDesfazerAprovacao, ModalEditarFicha, ModalExportar, ModalIdentificacao, ModalImportar, ModalPagamentos, ModalReabrir, ModalUnir,
 } from './ModaisG7';
 import styles from './Inscricoes.module.css';
 
@@ -68,6 +69,7 @@ type Modal =
   | { tipo: 'cobranca' }
   | { tipo: 'editar'; ficha: Ficha }
   | { tipo: 'identificacao'; ficha: Ficha }
+  | { tipo: 'unir'; ficha: Ficha }
   | { tipo: 'pagamentos'; ficha: Ficha }
   | { tipo: 'reabrir'; ficha: Ficha; pedido: CategoriaPedida }
   | { tipo: 'desfazer'; ficha: Ficha; pedido: CategoriaPedida }
@@ -362,6 +364,11 @@ export default function InscricoesTemporada() {
                   <td className={styles.pessoa}>
                     <b>{f.pessoa.nome}</b>
                     <span>{f.pessoa.cpf} · {f.pessoa.idade} anos · {f.pessoa.perfil}</span>
+                    <span className={styles.origem}>
+                      {f.origem === 'Site' ? `Site · #${f.protocolo}` : 'Diretoria'}
+                      {f.contaLigada && ' · conta ligada'}
+                      {f.origem === 'Site' && f.autorizacoes.imagem && <span title={`Dados e imagem autorizados em ${formatarData(f.autorizacoes.dados)} (termos v${f.autorizacoes.versaoTermos})`}> · autorizações ok</span>}
+                    </span>
                   </td>
                   <td className={styles.mutado}>
                     {f.dados.alturaCm ? `${f.dados.alturaCm} cm` : '—'} · {f.dados.pesoKg ? `${f.dados.pesoKg} kg` : '—'} · {f.dados.posicao ?? '—'}
@@ -429,6 +436,11 @@ export default function InscricoesTemporada() {
                                 Corrigir identificação<small>nome, CPF, nascimento e sexo (Administrador)</small>
                               </button>
                             )}
+                            {ehAdministrador && (
+                              <button className={styles.menuItem} role="menuitem" disabled={encerrada} onClick={() => { setMenuAberto(null); setModal({ tipo: 'unir', ficha: f }); }}>
+                                Unir cadastro duplicado<small>passa as fichas e a conta do duplicado para este (Administrador)</small>
+                              </button>
+                            )}
                             <button className={styles.menuItem} role="menuitem" disabled={fin.pagamentos.length === 0} onClick={() => { setMenuAberto(null); setModal({ tipo: 'pagamentos', ficha: f }); }}>
                               Ver / estornar pagamentos<small>{fin.pagamentos.length === 0 ? 'sem pagamentos' : `${fin.pagamentos.length} lançamento(s)`}</small>
                             </button>
@@ -489,6 +501,10 @@ export default function InscricoesTemporada() {
       {modal?.tipo === 'identificacao' && (
         <ModalIdentificacao ficha={modal.ficha} anoTemporada={temporada.ano} onFechar={() => setModal(null)}
           onConfirmar={dados => executar(() => corrigirIdentificacao(modal.ficha.pessoa.id, dados), 'Identificação corrigida e registrada na auditoria.')} />
+      )}
+      {modal?.tipo === 'unir' && (
+        <ModalUnir ficha={modal.ficha} onFechar={() => setModal(null)}
+          onConfirmar={cpf => executar(() => unirCadastros(modal.ficha.pessoa.id, cpf), 'Cadastros unidos e registrados na auditoria.')} />
       )}
       {modal?.tipo === 'pagamentos' && (
         <ModalPagamentos ficha={fichas.find(x => x.id === modal.ficha.id) ?? modal.ficha} somenteLeitura={encerrada} onFechar={() => setModal(null)}

@@ -7,6 +7,7 @@ using SisMaster.Core.DomainObjects;
 using SisMaster.WebApps.WebApi.Application.Commands;
 using SisMaster.WebApps.WebApi.Application.Importacao;
 using SisMaster.WebApps.WebApi.Application.Queries;
+using SisMaster.WebApps.WebApi.Application.Services;
 using SisMaster.WebApps.WebApi.Domain.Excecoes;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
 using SisMaster.WebApps.WebApi.Domain.Participantes;
@@ -23,10 +24,12 @@ public class InscricoesController : MainController
     private readonly ITemporadaRepository _temporadaRepository;
     private readonly ExportacaoDeInscricoesQuery _exportacao;
     private readonly ImportacaoDeInscricoes _importacao;
+    private readonly UniaoDeCadastros _uniao;
 
     public InscricoesController(IMediatorHandler mediator, IInscricaoRepository repository, ITemporadaRepository temporadaRepository,
-        ExportacaoDeInscricoesQuery exportacao, ImportacaoDeInscricoes importacao)
+        ExportacaoDeInscricoesQuery exportacao, ImportacaoDeInscricoes importacao, UniaoDeCadastros uniao)
     {
+        _uniao = uniao;
         _mediator = mediator;
         _repository = repository;
         _temporadaRepository = temporadaRepository;
@@ -77,6 +80,10 @@ public class InscricoesController : MainController
             Pessoa = ProjetarPessoa(i.Pessoa, temporada.Ano),
             Dados = new { i.AlturaCm, i.PesoKg, i.Posicao, i.PossuiPlanoSaude, i.NomePlanoSaude },
             i.DataEnvio,
+            i.Protocolo,
+            i.Origem,
+            ContaLigada = i.Pessoa.ContaId != null,
+            Autorizacoes = new { Dados = RelogioLocal.DeUtc(i.ConsentimentoLgpdEm), Imagem = RelogioLocal.DeUtc(i.ConsentimentoImagemEm), i.VersaoTermos },
             Financeiro = ProjetarFinanceiro(i),
             Categorias = i.Categorias
                 .OrderBy(c => c.TemporadaCategoria.Nome)
@@ -194,6 +201,21 @@ public class InscricoesController : MainController
     {
         command.PessoaId = pessoaId;
         return CustomResponse(await _mediator.EnviarComando(command));
+    }
+
+    public sealed record CorpoDaUniao(string? CpfDuplicada);
+
+    /// <summary>Une um cadastro duplicado (pelo CPF) a este: as fichas e a conta do site passam para este, e o duplicado é apagado. Só o Administrador.</summary>
+    [Authorize(Policy = Politicas.SomenteAdministrador)]
+    [HttpPost("pessoas/{pessoaId:guid}/unir")]
+    public async Task<ActionResult> Unir(Guid pessoaId, [FromBody] CorpoDaUniao corpo, CancellationToken ct)
+    {
+        try
+        {
+            await _uniao.UnirAsync(pessoaId, corpo.CpfDuplicada ?? string.Empty, ct);
+            return CustomResponse();
+        }
+        catch (DomainException ex) { AdicionarErro(ex.Message); return CustomResponse(); }
     }
 
     /// <summary>CSV das fichas do filtro atual. CPF, contato e dados da ficha só saem se pedidos; cada exportação é registrada.</summary>

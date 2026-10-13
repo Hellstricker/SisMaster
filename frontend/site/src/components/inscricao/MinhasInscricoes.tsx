@@ -52,7 +52,7 @@ export default function MinhasInscricoes() {
           <Link className="btn primary" href="/#ins">Ver inscrições abertas</Link>
         </div>
       ) : dados.inscricoes.map(i => (
-        <div className="card ficha" key={i.id} data-protocolo={i.protocolo ?? ''}>
+        <Link className="card ficha" key={i.id} href={`/minhas-inscricoes/${i.id}`} data-protocolo={i.protocolo ?? ''}>
           <div className="linha entre">
             <div>
               <h3>{i.campeonato} · {i.ano}</h3>
@@ -65,7 +65,7 @@ export default function MinhasInscricoes() {
           <div className="cats">
             {i.categorias.map(c => <span key={c.id}>{c.nome} <b className={`badge st-${c.status}`}>{ROTULO_PEDIDO[c.status]}</b></span>)}
           </div>
-        </div>
+        </Link>
       ))}
     </>
   );
