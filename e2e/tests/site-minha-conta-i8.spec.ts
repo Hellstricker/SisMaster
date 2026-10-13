@@ -125,6 +125,25 @@ test('I8: minha conta com dados, troca de senha e autorizações', async ({ page
     await expect(page.locator('body')).not.toContainText(cpf);
   });
 
+  await test.step('associação é por temporada: em andamento até a taxa, associado depois', async () => {
+    await page.getByRole('tab', { name: 'Associação' }).click();
+    const linha = page.locator('tbody tr', { hasText: `Conta ${sufixo}` });
+    await expect(linha).toContainText('Em andamento');
+    await expect(page.getByText('O vínculo vale por temporada')).toBeVisible();
+
+    await chamar(request, token, 'PATCH', `/api/temporadas/${temporada}/taxa-inscricao`, { taxa: 100 });
+    const ficha = (dados(await chamar(request, token, 'GET', `/api/temporadas/${temporada}/inscricoes`)) as any[]).find(f => f.pessoa.nome === 'José Santana');
+    await chamar(request, token, 'PATCH', `/api/inscricoes-categorias/${ficha.categorias[0].id}/aprovar`, {});
+    await chamar(request, token, 'POST', `/api/inscricoes/${ficha.id}/pagamentos/taxa`, { dataPagamento: hoje.toISOString().slice(0, 10) });
+    await page.reload();
+    await page.getByRole('tab', { name: 'Associação' }).click();
+    await expect(linha).toContainText('Associado');
+    await expect(linha).toContainText(categoria);
+    await expect(linha).toContainText('desde');
+    await page.screenshot({ path: 'test-results/i8-associacao.png', fullPage: true });
+    await page.getByRole('tab', { name: 'Dados pessoais' }).click();
+  });
+
   await test.step('autorizações: as duas, com data e versão do termo', async () => {
     await page.getByRole('tab', { name: 'Autorizações' }).click();
     const linhas = page.locator('tbody tr');

@@ -47,7 +47,7 @@ public class RegistrarPagamentoTaxaCommandHandler : IRequestHandler<RegistrarPag
             ficha.Pessoa.TornarAssociado();
 
             await _inscricaoRepository.UnitOfWork.Commit();
-            await _avisos.TaxaConfirmadaAsync(ficha, cancellationToken);
+            await _avisos.TaxaConfirmadaAsync(ficha, request.AvisarPorEmail, cancellationToken);
 
             return request.ValidationResult;
         }

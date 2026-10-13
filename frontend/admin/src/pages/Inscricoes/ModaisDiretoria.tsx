@@ -26,16 +26,17 @@ function useSalvar<T>(onConfirmar: Confirmar<T>) {
 
 // ---- Aprovar (com justificativa de exceção quando idade/sexo fogem do esperado)
 
-export function ModalAprovar({ nome, foraDoEsperado, onConfirmar, onFechar }: {
-  nome: string; foraDoEsperado: string[]; onConfirmar: Confirmar<string | undefined>; onFechar: () => void;
+export function ModalAprovar({ nome, foraDoEsperado, avisoDaDiretoria = false, onConfirmar, onFechar }: {
+  nome: string; foraDoEsperado: string[]; avisoDaDiretoria?: boolean; onConfirmar: Confirmar<{ justificativa?: string; avisar: boolean }>; onFechar: () => void;
 }) {
   const [justificativa, setJustificativa] = useState('');
+  const [avisar, setAvisar] = useState(false);
   const { erro, setErro, salvando, salvar } = useSalvar(onConfirmar);
   const excecao = foraDoEsperado.length > 0;
 
   function confirmar() {
     if (excecao && !justificativa.trim()) { setErro('Informe a justificativa para aprovar mesmo assim.'); return; }
-    salvar(excecao ? justificativa.trim() : undefined);
+    salvar({ justificativa: excecao ? justificativa.trim() : undefined, avisar });
   }
 
   return (
@@ -54,21 +55,27 @@ export function ModalAprovar({ nome, foraDoEsperado, onConfirmar, onFechar }: {
       ) : (
         <p className={styles.modalTexto}>A pessoa seguirá para o pagamento da taxa de inscrição.</p>
       )}
+      {avisoDaDiretoria && (
+        <label className={styles.check}>
+          <input id="av-aprovar" type="checkbox" checked={avisar} onChange={e => setAvisar(e.target.checked)} /> Avisar a pessoa por e-mail <small>(ficha feita pela diretoria: o e-mail do cadastro pode estar desatualizado)</small>
+        </label>
+      )}
     </Modal>
   );
 }
 
 // ---- Recusar (definitivo; o registro é mantido como histórico)
 
-export function ModalRecusar({ nome, onConfirmar, onFechar }: {
-  nome: string; onConfirmar: Confirmar<string>; onFechar: () => void;
+export function ModalRecusar({ nome, avisoDaDiretoria = false, onConfirmar, onFechar }: {
+  nome: string; avisoDaDiretoria?: boolean; onConfirmar: Confirmar<{ motivo: string; avisar: boolean }>; onFechar: () => void;
 }) {
   const [motivo, setMotivo] = useState('');
+  const [avisar, setAvisar] = useState(false);
   const { erro, setErro, salvando, salvar } = useSalvar(onConfirmar);
 
   function confirmar() {
     if (!motivo.trim()) { setErro('Informe o motivo da recusa.'); return; }
-    salvar(motivo.trim());
+    salvar({ motivo: motivo.trim(), avisar });
   }
 
   return (
@@ -81,6 +88,11 @@ export function ModalRecusar({ nome, onConfirmar, onFechar }: {
         <textarea id="motivo" className={styles.textarea} rows={3} maxLength={500} value={motivo}
           onChange={e => { setMotivo(e.target.value); setErro(''); }} />
       </div>
+      {avisoDaDiretoria && (
+        <label className={styles.check}>
+          <input id="av-recusar" type="checkbox" checked={avisar} onChange={e => setAvisar(e.target.checked)} /> Avisar a pessoa por e-mail <small>(ficha feita pela diretoria: o e-mail do cadastro pode estar desatualizado)</small>
+        </label>
+      )}
     </Modal>
   );
 }
@@ -246,15 +258,17 @@ export function ModalCobranca({ taxaAtual, descontos, categorias, onSalvarTaxa, 
 
 // ---- Pagamento (taxa ou saldo)
 
-export function ModalPagamento({ tipo, nome, saldo, taxa, onConfirmar, onFechar }: {
+export function ModalPagamento({ tipo, nome, saldo, taxa, avisoDaDiretoria = false, onConfirmar, onFechar }: {
   tipo: 'taxa' | 'saldo';
   nome: string;
   saldo?: number;
   taxa?: number | null;
-  onConfirmar: Confirmar<{ valor?: number; dataIso: string }>;
+  avisoDaDiretoria?: boolean;
+  onConfirmar: Confirmar<{ valor?: number; dataIso: string; avisar: boolean }>;
   onFechar: () => void;
 }) {
   const [data, setData] = useState(hojeDdmm());
+  const [avisar, setAvisar] = useState(false);
   const [valor, setValor] = useState(saldo != null ? String(saldo.toFixed(2)).replace('.', ',') : '');
   const { erro, setErro, salvando, salvar } = useSalvar(onConfirmar);
 
@@ -264,9 +278,9 @@ export function ModalPagamento({ tipo, nome, saldo, taxa, onConfirmar, onFechar 
       const n = paraNumero(valor);
       if (Number.isNaN(n) || n <= 0) { setErro('Informe um valor válido.'); return; }
       if (saldo != null && n > saldo + 0.001) { setErro(`Valor maior que o saldo em aberto (${formatarMoeda(saldo)}).`); return; }
-      salvar({ valor: n, dataIso: ddmmParaIso(data) });
+      salvar({ valor: n, dataIso: ddmmParaIso(data), avisar });
     } else {
-      salvar({ dataIso: ddmmParaIso(data) });
+      salvar({ dataIso: ddmmParaIso(data), avisar });
     }
   }
 
@@ -290,6 +304,11 @@ export function ModalPagamento({ tipo, nome, saldo, taxa, onConfirmar, onFechar 
         <label htmlFor="pg-data">Data do pagamento</label>
         <DataInput id="pg-data" value={data} onChange={v => { setData(v); setErro(''); }} anoMin={2000} anoMax={2100} />
       </div>
+      {avisoDaDiretoria && tipo === 'taxa' && (
+        <label className={styles.check}>
+          <input id="av-pagamento" type="checkbox" checked={avisar} onChange={e => setAvisar(e.target.checked)} /> Avisar a pessoa por e-mail <small>(ficha feita pela diretoria: o e-mail do cadastro pode estar desatualizado)</small>
+        </label>
+      )}
     </Modal>
   );
 }

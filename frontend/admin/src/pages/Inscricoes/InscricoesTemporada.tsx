@@ -12,6 +12,7 @@ import {
   registrarPagamentoTaxa,
   corrigirIdentificacao,
   unirCadastros,
+  autorizarLigacaoDeConta,
   desfazerAprovacao,
   editarDadosDaFicha,
   estornarPagamento,
@@ -37,7 +38,7 @@ import {
   ModalValoresCategorias,
 } from './ModaisDiretoria';
 import {
-  ModalDesfazerAprovacao, ModalEditarFicha, ModalExportar, ModalIdentificacao, ModalImportar, ModalPagamentos, ModalReabrir, ModalUnir,
+  ModalDesfazerAprovacao, ModalEditarFicha, ModalExportar, ModalIdentificacao, ModalImportar, ModalLigacaoDeConta, ModalPagamentos, ModalReabrir, ModalUnir,
 } from './ModaisG7';
 import styles from './Inscricoes.module.css';
 
@@ -70,6 +71,7 @@ type Modal =
   | { tipo: 'editar'; ficha: Ficha }
   | { tipo: 'identificacao'; ficha: Ficha }
   | { tipo: 'unir'; ficha: Ficha }
+  | { tipo: 'ligacao'; ficha: Ficha }
   | { tipo: 'pagamentos'; ficha: Ficha }
   | { tipo: 'reabrir'; ficha: Ficha; pedido: CategoriaPedida }
   | { tipo: 'desfazer'; ficha: Ficha; pedido: CategoriaPedida }
@@ -363,10 +365,11 @@ export default function InscricoesTemporada() {
                 <tr key={f.id}>
                   <td className={styles.pessoa}>
                     <b>{f.pessoa.nome}</b>
-                    <span>{f.pessoa.cpf} · {f.pessoa.idade} anos · {f.pessoa.perfil}</span>
+                    <span>{f.pessoa.cpf} · {f.pessoa.idade} anos · {f.associadoNaTemporada ? 'Associado na temporada' : 'Não associado na temporada'}</span>
                     <span className={styles.origem}>
                       {f.origem === 'Site' ? `Site · #${f.protocolo}` : 'Diretoria'}
                       {f.contaLigada && ' · conta ligada'}
+                      {f.ligacaoAutorizadaPara && ` · ligação autorizada para ${f.ligacaoAutorizadaPara}`}
                       {f.origem === 'Site' && f.autorizacoes.imagem && <span title={`Dados e imagem autorizados em ${formatarData(f.autorizacoes.dados)} (termos v${f.autorizacoes.versaoTermos})`}> · autorizações ok</span>}
                     </span>
                   </td>
@@ -436,6 +439,11 @@ export default function InscricoesTemporada() {
                                 Corrigir identificação<small>nome, CPF, nascimento e sexo (Administrador)</small>
                               </button>
                             )}
+                            {ehAdministrador && !f.contaLigada && (
+                              <button className={styles.menuItem} role="menuitem" disabled={encerrada} onClick={() => { setMenuAberto(null); setModal({ tipo: 'ligacao', ficha: f }); }}>
+                                Autorizar ligação com conta do site<small>para conta criada com outro e-mail (Administrador)</small>
+                              </button>
+                            )}
                             {ehAdministrador && (
                               <button className={styles.menuItem} role="menuitem" disabled={encerrada} onClick={() => { setMenuAberto(null); setModal({ tipo: 'unir', ficha: f }); }}>
                                 Unir cadastro duplicado<small>passa as fichas e a conta do duplicado para este (Administrador)</small>
@@ -478,16 +486,17 @@ export default function InscricoesTemporada() {
         />
       )}
       {modal?.tipo === 'aprovar' && (
-        <ModalAprovar nome={`${modal.ficha.pessoa.nome} — ${modal.pedido.nome}`} foraDoEsperado={modal.pedido.foraDoEsperado} onFechar={() => setModal(null)}
-          onConfirmar={just => executar(() => aprovarInscricao(modal.pedido.id, just), 'Inscrição aprovada.')} />
+        <ModalAprovar nome={`${modal.ficha.pessoa.nome} — ${modal.pedido.nome}`} foraDoEsperado={modal.pedido.foraDoEsperado}
+          avisoDaDiretoria={modal.ficha.origem === 'Diretoria'} onFechar={() => setModal(null)}
+          onConfirmar={({ justificativa, avisar }) => executar(() => aprovarInscricao(modal.pedido.id, justificativa, avisar), 'Inscrição aprovada.')} />
       )}
       {modal?.tipo === 'recusar' && (
-        <ModalRecusar nome={`${modal.ficha.pessoa.nome} — ${modal.pedido.nome}`} onFechar={() => setModal(null)}
-          onConfirmar={motivo => executar(() => recusarInscricao(modal.pedido.id, motivo), 'Categoria recusada e mantida no histórico.')} />
+        <ModalRecusar nome={`${modal.ficha.pessoa.nome} — ${modal.pedido.nome}`} avisoDaDiretoria={modal.ficha.origem === 'Diretoria'} onFechar={() => setModal(null)}
+          onConfirmar={({ motivo, avisar }) => executar(() => recusarInscricao(modal.pedido.id, motivo, avisar), 'Categoria recusada e mantida no histórico.')} />
       )}
       {modal?.tipo === 'taxa' && (
-        <ModalPagamento tipo="taxa" nome={modal.ficha.pessoa.nome} taxa={taxa} onFechar={() => setModal(null)}
-          onConfirmar={({ dataIso }) => executar(() => registrarPagamentoTaxa(modal.ficha.id, dataIso),
+        <ModalPagamento tipo="taxa" nome={modal.ficha.pessoa.nome} taxa={taxa} avisoDaDiretoria={modal.ficha.origem === 'Diretoria'} onFechar={() => setModal(null)}
+          onConfirmar={({ dataIso, avisar }) => executar(() => registrarPagamentoTaxa(modal.ficha.id, dataIso, avisar),
             `Taxa registrada: ${modal.ficha.pessoa.nome} agora é Associado.`)} />
       )}
       {modal?.tipo === 'saldo' && (
@@ -501,6 +510,10 @@ export default function InscricoesTemporada() {
       {modal?.tipo === 'identificacao' && (
         <ModalIdentificacao ficha={modal.ficha} anoTemporada={temporada.ano} onFechar={() => setModal(null)}
           onConfirmar={dados => executar(() => corrigirIdentificacao(modal.ficha.pessoa.id, dados), 'Identificação corrigida e registrada na auditoria.')} />
+      )}
+      {modal?.tipo === 'ligacao' && (
+        <ModalLigacaoDeConta ficha={modal.ficha} onFechar={() => setModal(null)}
+          onConfirmar={email => executar(() => autorizarLigacaoDeConta(modal.ficha.pessoa.id, email), email ? 'Ligação autorizada e registrada na auditoria.' : 'Autorização cancelada.')} />
       )}
       {modal?.tipo === 'unir' && (
         <ModalUnir ficha={modal.ficha} onFechar={() => setModal(null)}

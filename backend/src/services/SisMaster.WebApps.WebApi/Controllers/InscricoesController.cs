@@ -25,11 +25,16 @@ public class InscricoesController : MainController
     private readonly ExportacaoDeInscricoesQuery _exportacao;
     private readonly ImportacaoDeInscricoes _importacao;
     private readonly UniaoDeCadastros _uniao;
+    private readonly IPessoaRepository _pessoas;
+    private readonly Domain.Auditoria.IAuditoria _auditoria;
 
     public InscricoesController(IMediatorHandler mediator, IInscricaoRepository repository, ITemporadaRepository temporadaRepository,
-        ExportacaoDeInscricoesQuery exportacao, ImportacaoDeInscricoes importacao, UniaoDeCadastros uniao)
+        ExportacaoDeInscricoesQuery exportacao, ImportacaoDeInscricoes importacao, UniaoDeCadastros uniao,
+        IPessoaRepository pessoas, Domain.Auditoria.IAuditoria auditoria)
     {
         _uniao = uniao;
+        _pessoas = pessoas;
+        _auditoria = auditoria;
         _mediator = mediator;
         _repository = repository;
         _temporadaRepository = temporadaRepository;
@@ -83,6 +88,9 @@ public class InscricoesController : MainController
             i.Protocolo,
             i.Origem,
             ContaLigada = i.Pessoa.ContaId != null,
+            LigacaoAutorizadaPara = i.Pessoa.EmailAutorizadoParaLigacao,
+            // Associado é por temporada: quem tem pedido efetivado (taxa paga) nesta temporada.
+            AssociadoNaTemporada = i.Categorias.Any(c => c.Status == StatusInscricaoCategoria.Efetivada),
             Autorizacoes = new { Dados = RelogioLocal.DeUtc(i.ConsentimentoLgpdEm), Imagem = RelogioLocal.DeUtc(i.ConsentimentoImagemEm), i.VersaoTermos },
             Financeiro = ProjetarFinanceiro(i),
             Categorias = i.Categorias
@@ -201,6 +209,29 @@ public class InscricoesController : MainController
     {
         command.PessoaId = pessoaId;
         return CustomResponse(await _mediator.EnviarComando(command));
+    }
+
+    public sealed record CorpoDaAutorizacaoDeConta(string? Email);
+
+    /// <summary>
+    /// Autoriza a ligação deste cadastro com a conta do site que tenha o e-mail informado (para quando o e-mail do cadastro é outro). A pessoa
+    /// ainda precisa entrar com a conta confirmada e digitar o CPF certo. E-mail vazio cancela a autorização. Só o Administrador.
+    /// </summary>
+    [Authorize(Policy = Politicas.SomenteAdministrador)]
+    [HttpPost("pessoas/{pessoaId:guid}/autorizar-conta")]
+    public async Task<ActionResult> AutorizarConta(Guid pessoaId, [FromBody] CorpoDaAutorizacaoDeConta corpo, CancellationToken ct)
+    {
+        var pessoa = await _pessoas.ObterPorIdAsync(pessoaId, ct);
+        if (pessoa is null) return NotFound();
+        try
+        {
+            pessoa.AutorizarLigacaoComConta(corpo.Email);
+            _auditoria.Registrar("AutorizacaoDeLigacaoDeConta", "Pessoa", pessoa.Id,
+                pessoa.EmailAutorizadoParaLigacao is null ? "Autorização de ligação com conta do site cancelada" : $"Ligação do cadastro autorizada para a conta {pessoa.EmailAutorizadoParaLigacao}");
+            await _pessoas.UnitOfWork.Commit();
+            return CustomResponse();
+        }
+        catch (DomainException ex) { AdicionarErro(ex.Message); return CustomResponse(); }
     }
 
     public sealed record CorpoDaUniao(string? CpfDuplicada);

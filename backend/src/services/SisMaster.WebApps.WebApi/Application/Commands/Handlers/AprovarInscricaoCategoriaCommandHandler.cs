@@ -37,7 +37,7 @@ public class AprovarInscricaoCategoriaCommandHandler : IRequestHandler<AprovarIn
             // Se a taxa da ficha já foi paga, o pedido aprovado já é efetivado.
             ficha.AprovarCategoria(ic.Id, request.JustificativaExcecao, motivos.Count > 0);
             await _repository.UnitOfWork.Commit();
-            await _avisos.AprovadaAsync(ficha, ic, ficha.TaxaPaga, cancellationToken);
+            await _avisos.AprovadaAsync(ficha, ic, ficha.TaxaPaga, request.AvisarPorEmail, cancellationToken);
 
             return request.ValidationResult;
         }

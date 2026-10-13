@@ -19,6 +19,7 @@ public class PessoaMapping : IEntityTypeConfiguration<Pessoa>
         builder.Property(p => p.Telefone).HasMaxLength(30);
         builder.Property(p => p.Perfil).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(p => p.ContaId).HasMaxLength(450);
+        builder.Property(p => p.EmailAutorizadoParaLigacao).HasMaxLength(150);
         // Uma conta, um cadastro (só vale para os cadastros ligados).
         builder.HasIndex(p => p.ContaId).IsUnique().HasFilter("[ContaId] IS NOT NULL");
 

@@ -54,7 +54,7 @@ public class InscricaoDoParticipanteServico
 
     /// <summary>
     /// Liga a conta a um cadastro. Conta já ligada: devolve o cadastro (só o telefone pode ser atualizado). CPF novo: cria o cadastro ligado.
-    /// CPF existente e sem conta com o MESMO e-mail da conta (confirmado): liga. Qualquer outro caso: bloqueia sem dizer nada do cadastro.
+    /// CPF existente e sem conta com o MESMO e-mail da conta (confirmado), ou com ligação autorizada pela diretoria para esse e-mail: liga. Qualquer outro caso: bloqueia sem dizer nada do cadastro.
     /// </summary>
     public async Task<ResultadoDoVinculo> VincularAsync(string contaId, string contaEmail, DadosDaPessoaDoSite d, DateOnly hoje, CancellationToken ct)
     {
@@ -83,7 +83,7 @@ public class InscricaoDoParticipanteServico
             return new ResultadoDoVinculo(SituacaoDoVinculo.Vinculada, nova);
         }
 
-        if (existente.ContaId is null && string.Equals(existente.Email, contaEmail, StringComparison.OrdinalIgnoreCase))
+        if (existente.ContaId is null && existente.AceitaLigacaoDaConta(contaEmail))
         {
             if (Pessoa.EhMenorDeIdade(existente.Nascimento, hoje)) return new ResultadoDoVinculo(SituacaoDoVinculo.Menor, null);
             existente.VincularConta(contaId);
@@ -247,7 +247,7 @@ public class InscricaoDoParticipanteServico
     public async Task<object> MinhaContaAsync(string contaId, CancellationToken ct)
     {
         var pessoa = await _pessoas.ObterPorContaAsync(contaId, ct);
-        if (pessoa is null) return new { Pessoa = (object?)null, Autorizacoes = Array.Empty<object>() };
+        if (pessoa is null) return new { Pessoa = (object?)null, Autorizacoes = Array.Empty<object>(), Temporadas = Array.Empty<object>() };
 
         var fichas = await _inscricoes.ListarDaPessoaAsync(pessoa.Id, ct);
         var autorizacoes = fichas.Select(i =>
@@ -275,9 +275,32 @@ public class InscricaoDoParticipanteServico
                 pessoa.Telefone,
                 pessoa.Email
             },
-            Autorizacoes = autorizacoes
+            Autorizacoes = autorizacoes,
+            Temporadas = SituacaoPorTemporada(fichas)
         };
     }
+
+    /// <summary>
+    /// Associado é por temporada: na temporada em que algum pedido foi efetivado (taxa paga) a pessoa é Associado, desde o primeiro pagamento da taxa;
+    /// com pedido ainda em análise ou aguardando pagamento, está "em andamento"; com todos recusados, sem vínculo.
+    /// </summary>
+    public static IReadOnlyList<object> SituacaoPorTemporada(IReadOnlyList<Inscricao> fichas) =>
+        fichas.GroupBy(f => f.TemporadaId).Select(g =>
+        {
+            var pedidos = g.SelectMany(f => f.Categorias).ToList();
+            var temporada = pedidos.Select(c => c.TemporadaCategoria.Temporada).FirstOrDefault();
+            var associado = pedidos.Any(c => c.Status == StatusInscricaoCategoria.Efetivada);
+            var desde = g.SelectMany(f => f.Pagamentos).Where(p => p.Ativo && p.Tipo == TipoPagamento.Taxa).Select(p => (DateOnly?)p.Data).Min();
+            return new
+            {
+                TemporadaId = g.Key,
+                Campeonato = temporada?.Campeonato.Nome,
+                Ano = temporada?.Ano,
+                Situacao = associado ? "Associado" : pedidos.Any(c => c.Ativa) ? "EmAndamento" : "SemVinculo",
+                Desde = associado ? desde?.ToString("yyyy-MM-dd") : null,
+                Categorias = pedidos.Where(c => c.Status == StatusInscricaoCategoria.Efetivada).Select(c => c.TemporadaCategoria.Nome).OrderBy(n => n).ToList()
+            };
+        }).OrderByDescending(x => x.Ano).ToList<object>();
 
     // ------------------------------------------------------------------ envio (I3)
 

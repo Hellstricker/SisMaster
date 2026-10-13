@@ -165,6 +165,32 @@ export function ModalUnir({ ficha, onConfirmar, onFechar }: { ficha: Ficha; onCo
   );
 }
 
+// ---- Autorizar a ligação com uma conta do site (só o Administrador; fica na auditoria)
+
+export function ModalLigacaoDeConta({ ficha, onConfirmar, onFechar }: { ficha: Ficha; onConfirmar: Confirmar<string>; onFechar: () => void }) {
+  const [email, setEmail] = useState(ficha.ligacaoAutorizadaPara ?? '');
+  const { erro, setErro, salvando, salvar } = useSalvar(onConfirmar);
+
+  function confirmar() {
+    if (email.trim() && !email.includes('@')) return setErro('Informe um e-mail válido (ou deixe em branco para cancelar a autorização).');
+    salvar(email.trim());
+  }
+
+  return (
+    <Modal titulo="Autorizar ligação com conta do site" largo erro={erro} salvando={salvando} onConfirmar={confirmar} onFechar={onFechar}>
+      <p className={styles.modalTexto}>
+        Cadastro: <b>{ficha.pessoa.nome}</b> ({ficha.pessoa.cpf}), e-mail do cadastro <b>{ficha.pessoa.email}</b>.
+      </p>
+      <div className={styles.field}><label htmlFor="l-email">E-mail da conta do site</label>
+        <input id="l-email" className={styles.input} type="email" value={email} onChange={e => { setEmail(e.target.value); setErro(''); }} /></div>
+      <div className={styles.aviso}>
+        Use quando a pessoa criou a conta com um e-mail diferente do cadastro. Quando ela entrar nessa conta (com o e-mail confirmado) e informar o CPF
+        certo, o cadastro é ligado a ela, sem mudar nenhum dado do cadastro. A autorização some depois de usada. Deixe em branco para cancelá-la.
+      </div>
+    </Modal>
+  );
+}
+
 // ---- Pagamentos da ficha: histórico e estorno
 
 export function ModalPagamentos({ ficha, somenteLeitura, onEstornar, onFechar }: {

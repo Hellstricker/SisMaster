@@ -9,6 +9,9 @@ public class RecusarInscricaoCategoriaCommand : Command
     public Guid InscricaoCategoriaId { get; set; }
     public string Motivo { get; set; } = string.Empty;
 
+    /// <summary>Avisar a pessoa por e-mail mesmo que a ficha seja da diretoria (quem se inscreveu pelo site é sempre avisado).</summary>
+    public bool AvisarPorEmail { get; set; }
+
     public override bool EhValido()
     {
         ValidationResult = new RecusarInscricaoCategoriaCommandValidation().Validate(this);

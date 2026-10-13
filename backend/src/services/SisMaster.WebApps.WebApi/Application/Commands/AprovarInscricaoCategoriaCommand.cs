@@ -11,6 +11,9 @@ public class AprovarInscricaoCategoriaCommand : Command
     /// <summary>Obrigatória quando idade/sexo fogem do esperado para a categoria.</summary>
     public string? JustificativaExcecao { get; set; }
 
+    /// <summary>Avisar a pessoa por e-mail mesmo que a ficha seja da diretoria (quem se inscreveu pelo site é sempre avisado).</summary>
+    public bool AvisarPorEmail { get; set; }
+
     public override bool EhValido()
     {
         ValidationResult = new AprovarInscricaoCategoriaCommandValidation().Validate(this);

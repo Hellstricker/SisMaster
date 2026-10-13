@@ -9,11 +9,14 @@ import CampoSenha, { senhaValida } from './CampoSenha';
 
 interface DadosDaConta {
   pessoa: { nome: string; cpfMascarado: string; nascimento: string; sexo: string; telefone: string | null; email: string } | null;
+  temporadas: { temporadaId: string; campeonato: string | null; ano: number | null; situacao: 'Associado' | 'EmAndamento' | 'SemVinculo'; desde: string | null; categorias: string[] }[];
   autorizacoes: { protocolo: string | null; campeonato: string | null; ano: number | null; dados: string; imagem: string | null; versao: string | null }[];
 }
 
-type Aba = 'dados' | 'senha' | 'autorizacoes';
-const ABAS: { id: Aba; nome: string }[] = [{ id: 'dados', nome: 'Dados pessoais' }, { id: 'senha', nome: 'Senha' }, { id: 'autorizacoes', nome: 'Autorizações' }];
+type Aba = 'dados' | 'senha' | 'associacao' | 'autorizacoes';
+const ABAS: { id: Aba; nome: string }[] = [{ id: 'dados', nome: 'Dados pessoais' }, { id: 'senha', nome: 'Senha' }, { id: 'associacao', nome: 'Associação' }, { id: 'autorizacoes', nome: 'Autorizações' }];
+const ROTULO_SITUACAO = { Associado: 'Associado', EmAndamento: 'Em andamento', SemVinculo: 'Sem vínculo' } as const;
+const CLASSE_SITUACAO = { Associado: 'st-Efetivada', EmAndamento: 'st-Pendente', SemVinculo: 'st-Recusada' } as const;
 
 /** Minha conta (I8): dados do cadastro (só o telefone muda), troca de senha e as autorizações dadas em cada inscrição. */
 export default function MinhaConta() {
@@ -130,6 +133,35 @@ export default function MinhaConta() {
           <CampoSenha id="mc-repete" rotulo="Repita a nova senha" valor={repete} aoMudar={setRepete} autoComplete="new-password" />
           {msgSenha && <p className={`aviso ${msgSenha.ok ? 'ok' : 'bad'}`} role="status">{msgSenha.texto}</p>}
           <button className="btn primary" type="button" disabled={ocupado} onClick={trocarSenha}>Alterar senha</button>
+        </section>
+      )}
+
+      {aba === 'associacao' && (
+        <section className="card" aria-label="Associação por temporada">
+          <h2>Associação por temporada</h2>
+          <p className="muted">O vínculo vale <b>por temporada</b>: você é associado na temporada em que tem uma inscrição efetivada (taxa paga). A cada temporada, uma nova inscrição.</p>
+          {dados.temporadas.length === 0 ? (
+            <p className="muted">Você ainda não tem inscrições. <Link href="/#ins">Ver inscrições abertas</Link></p>
+          ) : (
+            <div className="tabela-rolavel">
+              <table>
+                <thead><tr><th>Temporada</th><th>Situação</th><th>Categorias efetivadas</th></tr></thead>
+                <tbody>
+                  {dados.temporadas.map(t => (
+                    <tr key={t.temporadaId}>
+                      <td><b>{t.campeonato} · {t.ano}</b></td>
+                      <td>
+                        <span className={`badge ${CLASSE_SITUACAO[t.situacao]}`}>{ROTULO_SITUACAO[t.situacao]}</span>
+                        {t.desde && <div className="small muted">desde {isoParaBr(t.desde)}</div>}
+                      </td>
+                      <td>{t.categorias.length > 0 ? t.categorias.join(', ') : <span className="muted">—</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="small muted">Para encerrar um vínculo ou tirar uma dúvida sobre ele, fale com a diretoria: <Link href="/contato">contato</Link>.</p>
         </section>
       )}
 

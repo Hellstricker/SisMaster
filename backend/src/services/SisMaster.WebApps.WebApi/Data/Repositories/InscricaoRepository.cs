@@ -58,6 +58,7 @@ public class InscricaoRepository : IInscricaoRepository
         await _context.Inscricoes
             .AsNoTracking()
             .AsSplitQuery()
+            .Include(i => i.Pagamentos)
             .Include(i => i.Categorias).ThenInclude(c => c.TemporadaCategoria).ThenInclude(tc => tc.Temporada).ThenInclude(t => t.Campeonato).ThenInclude(c => c.Associacao)
             .Where(i => i.PessoaId == pessoaId)
             .OrderByDescending(i => i.DataEnvio)

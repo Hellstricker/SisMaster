@@ -67,6 +67,10 @@ export interface Ficha {
   /** O cadastro está ligado a uma conta do site. */
   contaLigada: boolean;
   autorizacoes: { dados: string; imagem: string | null; versaoTermos: string | null };
+  /** E-mail da conta do site cuja ligação com este cadastro a diretoria autorizou (some depois de usada). */
+  ligacaoAutorizadaPara: string | null;
+  /** Associado é por temporada: tem pedido efetivado (taxa paga) nesta temporada. */
+  associadoNaTemporada: boolean;
   financeiro: Financeiro;
   categorias: CategoriaPedida[];
 }
@@ -96,16 +100,16 @@ export function enviarInscricao(dados: NovaInscricao): Promise<void> {
   return enviar('POST', '/api/inscricoes', dados, 'Erro ao enviar inscrição');
 }
 
-export function aprovarInscricao(id: string, justificativaExcecao?: string): Promise<void> {
-  return enviar('PATCH', `/api/inscricoes-categorias/${id}/aprovar`, { justificativaExcecao }, 'Erro ao aprovar inscrição');
+export function aprovarInscricao(id: string, justificativaExcecao?: string, avisarPorEmail = false): Promise<void> {
+  return enviar('PATCH', `/api/inscricoes-categorias/${id}/aprovar`, { justificativaExcecao, avisarPorEmail }, 'Erro ao aprovar inscrição');
 }
 
-export function recusarInscricao(id: string, motivo: string): Promise<void> {
-  return enviar('PATCH', `/api/inscricoes-categorias/${id}/recusar`, { motivo }, 'Erro ao recusar inscrição');
+export function recusarInscricao(id: string, motivo: string, avisarPorEmail = false): Promise<void> {
+  return enviar('PATCH', `/api/inscricoes-categorias/${id}/recusar`, { motivo, avisarPorEmail }, 'Erro ao recusar inscrição');
 }
 
-export function registrarPagamentoTaxa(inscricaoId: string, dataPagamento: string): Promise<void> {
-  return enviar('POST', `/api/inscricoes/${inscricaoId}/pagamentos/taxa`, { dataPagamento }, 'Erro ao registrar a taxa');
+export function registrarPagamentoTaxa(inscricaoId: string, dataPagamento: string, avisarPorEmail = false): Promise<void> {
+  return enviar('POST', `/api/inscricoes/${inscricaoId}/pagamentos/taxa`, { dataPagamento, avisarPorEmail }, 'Erro ao registrar a taxa');
 }
 
 export function registrarPagamentoSaldo(inscricaoId: string, valor: number, dataPagamento: string): Promise<void> {
@@ -150,6 +154,11 @@ export interface Identificacao {
 /** Só o Administrador: nome, CPF, nascimento e sexo definem a elegibilidade. */
 export function corrigirIdentificacao(pessoaId: string, dados: Identificacao): Promise<void> {
   return enviar('PATCH', `/api/pessoas/${pessoaId}/identificacao`, dados, 'Erro ao corrigir a identificação');
+}
+
+/** Só o Administrador: autoriza a ligação deste cadastro com a conta do site de outro e-mail (vazio cancela). */
+export function autorizarLigacaoDeConta(pessoaId: string, email: string): Promise<void> {
+  return enviar('POST', `/api/pessoas/${pessoaId}/autorizar-conta`, { email }, 'Erro ao autorizar a ligação com a conta');
 }
 
 /** Só o Administrador: passa as fichas (e a conta do site) do cadastro duplicado, achado pelo CPF, para este cadastro e apaga o duplicado. */

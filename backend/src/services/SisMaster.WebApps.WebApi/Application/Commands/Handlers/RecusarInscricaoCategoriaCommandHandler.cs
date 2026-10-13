@@ -33,7 +33,7 @@ public class RecusarInscricaoCategoriaCommandHandler : IRequestHandler<RecusarIn
             var pedido = ficha.Categorias.First(c => c.Id == request.InscricaoCategoriaId);
             pedido.Recusar(request.Motivo);
             await _repository.UnitOfWork.Commit();
-            await _avisos.RecusadaAsync(ficha, pedido, cancellationToken);
+            await _avisos.RecusadaAsync(ficha, pedido, request.AvisarPorEmail, cancellationToken);
 
             return request.ValidationResult;
         }

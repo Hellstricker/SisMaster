@@ -115,6 +115,28 @@ test('I9: gestão com protocolo, origem e conta; e-mails de status; união de ca
     await expect(linha(nomePrincipal)).not.toContainText('conta ligada');
   });
 
+  await test.step('ficha da diretoria: aviso por e-mail é opcional; ficha do site não pergunta; associado é por temporada', async () => {
+    await expect(linha(nomePrincipal)).toContainText('Não associado na temporada');
+    await linha(nomePrincipal).getByRole('button', { name: 'Aprovar' }).click();
+    await expect(page.getByLabel(/Avisar a pessoa por e-mail/)).toBeVisible();
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await linha(nomeSite).getByRole('button', { name: 'Aprovar' }).click();
+    await expect(page.getByLabel(/Avisar a pessoa por e-mail/)).toHaveCount(0);
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+  });
+
+  await test.step('autorizar a ligação do cadastro da diretoria com uma conta de outro e-mail', async () => {
+    await linha(nomePrincipal).getByRole('button', { name: /Ações/ }).click();
+    await page.getByRole('menuitem', { name: /Autorizar ligação com conta do site/ }).click();
+    await page.getByLabel('E-mail da conta do site').fill('sem-arroba');
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.getByText('Informe um e-mail válido')).toBeVisible();
+    await page.getByLabel('E-mail da conta do site').fill(`outra.conta.${sufixo}@exemplo.com`);
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.getByText('Ligação autorizada e registrada na auditoria.')).toBeVisible();
+    await expect(linha(nomePrincipal)).toContainText(`ligação autorizada para outra.conta.${sufixo}@exemplo.com`);
+  });
+
   await test.step('aprovar pela interface (o e-mail de aviso é conferido no teste de API)', async () => {
     await linha(nomeSite).getByRole('button', { name: 'Aprovar' }).click();
     await page.getByRole('button', { name: /^Aprovar/ }).last().click();
