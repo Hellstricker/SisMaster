@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
   type CategoriaDoFormulario, type InscricaoEnviada, type PessoaDoSite, type Preparo, type ResultadoDoVinculo,
-  POSICOES, cpfValido, dataParaIso, foraDoEsperado, isoParaBr, maiorDeIdade, mascaraCpf, mascaraData, mascaraTelefone,
+  POSICOES, cpfValido, dataParaIso, foraDoEsperado, isoParaBr, maiorDeIdade, mascaraCpf, mascaraTelefone,
 } from '@/lib/inscricao';
+import CampoData from '@/components/CampoData';
 import { chamarApi, lerSessao, type SessaoDoSite } from '@/lib/sessao';
 
 const NOMES = ['Seus dados', 'Ficha', 'Categorias', 'Autorizações', 'Revisão'];
@@ -234,7 +235,7 @@ export default function Assistente({ temporadaId, versaoTermos }: { temporadaId:
                 <div className="f"><label htmlFor="a-nome">Nome completo</label><input id="a-nome" type="text" autoComplete="name" value={nome} onChange={e => setNome(e.target.value)} /></div>
                 <div className="g2">
                   <div className="f"><label htmlFor="a-cpf">CPF</label><input id="a-cpf" type="text" inputMode="numeric" value={cpf} onChange={e => setCpf(mascaraCpf(e.target.value))} /><span className="hint">Usamos o CPF para reconhecer seu cadastro e evitar duplicidade.</span></div>
-                  <div className="f"><label htmlFor="a-nasc">Data de nascimento</label><input id="a-nasc" type="text" inputMode="numeric" placeholder="DD/MM/AAAA" value={nasc} onChange={e => setNasc(mascaraData(e.target.value))} /></div>
+                  <div className="f"><label htmlFor="a-nasc">Data de nascimento</label><CampoData id="a-nasc" valor={nasc} aoMudar={setNasc} /></div>
                 </div>
                 <div className="g2">
                   <div className="f"><label htmlFor="a-sexo">Sexo</label><select id="a-sexo" value={sexo} onChange={e => setSexo(e.target.value as 'Masculino' | 'Feminino')}><option>Masculino</option><option>Feminino</option></select><span className="hint">Usado para a elegibilidade nas categorias.</span></div>
@@ -267,7 +268,7 @@ export default function Assistente({ temporadaId, versaoTermos }: { temporadaId:
         {passo === 3 && pessoa && (
           <>
             <h1>Categorias</h1>
-            <p className="muted">Idade considerada na temporada: <b>{t.ano - Number(pessoa.nascimento.slice(0, 4))} anos</b> ({t.ano} − {pessoa.nascimento.slice(0, 4)}). Você pode pedir mais de uma categoria; há desconto por quantidade, definido pela associação.</p>
+            <p className="muted">Idade considerada na temporada: <b>{t.ano - Number(pessoa.nascimento.slice(0, 4))} anos</b> ({t.ano} − {pessoa.nascimento.slice(0, 4)}). Você pode pedir mais de uma categoria.</p>
             {preparo.categorias.map(c => {
               const motivos = alertas(c);
               const ja = c.jaPedida !== null;

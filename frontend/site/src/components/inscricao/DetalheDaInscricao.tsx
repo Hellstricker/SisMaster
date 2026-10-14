@@ -2,37 +2,44 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { type StatusDoPedido, ROTULO_FICHA, ROTULO_PEDIDO, dataCurta } from '@/lib/inscricao';
+import { ROTULO_FICHA, ROTULO_PEDIDO, dataCurta } from '@/lib/inscricao';
 import { type DetalheDaInscricao as Dados, brl, dataEHora } from '@/lib/detalhe';
 import { chamarApi, lerSessao, type SessaoDoSite } from '@/lib/sessao';
 
 type Pedido = Dados['categorias'][number];
 
-/** A linha do tempo de um pedido: derivada da situação dele. */
-function LinhaDoTempo({ c, enviadaEm }: { c: Pedido; enviadaEm: string }) {
-  if (c.status === 'Recusada') {
-    return (
-      <ul className="tl">
-        <li className="done"><b>Pedido enviado</b><span className="small muted">{dataCurta(enviadaEm)}</span></li>
-        <li className="bad"><b>Recusada</b><span className="small">{c.motivoRecusa ?? 'Sem motivo informado.'}</span></li>
-      </ul>
-    );
-  }
-  const ordem: StatusDoPedido[] = ['Pendente', 'AguardandoPagamento', 'Efetivada'];
-  const atual = ordem.indexOf(c.status);
+/**
+ * O acompanhamento de um pedido, em linguagem simples: três passos (pedido enviado, aprovado pela diretoria, inscrição confirmada)
+ * e uma frase dizendo o que acontece agora e o que a pessoa precisa fazer, se precisar.
+ */
+function Acompanhamento({ c, enviadaEm, taxa }: { c: Pedido; enviadaEm: string; taxa: number | null }) {
+  const recusada = c.status === 'Recusada';
+  const etapa = c.status === 'Pendente' ? 1 : c.status === 'AguardandoPagamento' ? 2 : c.status === 'Efetivada' ? 3 : 1;
   const passos = [
-    { t: 'Pedido enviado', sub: dataCurta(enviadaEm) },
-    { t: atual === 0 ? 'Em análise pela diretoria' : 'Aprovada pela diretoria', sub: 'Falta pagar a taxa para efetivar' },
-    { t: c.equipe ? `Efetivada — equipe ${c.equipe}` : 'Efetivada', sub: 'Você entra na equipe' },
+    { n: 1, titulo: 'Pedido enviado', detalhe: dataCurta(enviadaEm) },
+    { n: 2, titulo: recusada ? 'Pedido recusado' : 'Aprovado pela diretoria', detalhe: recusada && c.recusadaEm ? dataCurta(c.recusadaEm) : '' },
+    { n: 3, titulo: 'Inscrição confirmada', detalhe: '' },
   ];
+  const estado = (n: number) => (recusada ? (n === 1 ? 'feito' : n === 2 ? 'recusado' : 'espera') : n <= etapa ? 'feito' : n === etapa + 1 ? 'agora' : 'espera');
+
   return (
-    <ul className="tl">
-      {passos.map((p, k) => {
-        const cls = k === 0 || k < atual || (k === atual && atual === 2) ? 'done' : k === atual ? 'now' : 'wait';
-        const sub = k === 0 ? p.sub : (cls === 'wait' || cls === 'now') ? p.sub : '';
-        return <li key={k} className={cls}><b>{p.t}</b>{sub && <span className="small muted">{sub}</span>}</li>;
-      })}
-    </ul>
+    <>
+      <ol className="passos" aria-label="Etapas do pedido">
+        {passos.map(p => (
+          <li key={p.n} className={estado(p.n)} aria-current={estado(p.n) === 'agora' ? 'step' : undefined}>
+            <span className="bola" aria-hidden="true">{estado(p.n) === 'feito' ? '✓' : estado(p.n) === 'recusado' ? '✕' : p.n}</span>
+            <b>{p.titulo}</b>
+            {p.detalhe && <small>{p.detalhe}</small>}
+          </li>
+        ))}
+      </ol>
+      <p className="o-que-agora"><b>O que acontece agora: </b>
+        {c.status === 'Pendente' && 'a diretoria vai analisar o seu pedido. Você recebe um e-mail quando houver resposta; não precisa fazer nada.'}
+        {c.status === 'AguardandoPagamento' && <>seu pedido foi aprovado. Para confirmar a inscrição falta pagar a taxa{taxa != null ? ` de ${brl(taxa)}` : ''}: <Link href="/contato">fale com a diretoria</Link> para combinar o pagamento. Quando ela confirmar que recebeu, a inscrição fica confirmada.</>}
+        {c.status === 'Efetivada' && (c.equipe ? `sua inscrição está confirmada e você está na equipe ${c.equipe}.` : 'sua inscrição está confirmada. Em breve a diretoria coloca você em uma equipe.')}
+        {recusada && <>seu pedido não foi aceito. <b>Motivo:</b> {c.motivoRecusa ?? 'não informado'}. Você pode fazer uma nova inscrição, escolhendo outra categoria.</>}
+      </p>
+    </>
   );
 }
 
@@ -117,14 +124,15 @@ export default function DetalheDaInscricao({ id }: { id: string }) {
                 <h3 style={{ margin: 0 }}>{c.nome}</h3>
                 <span className={`badge st-${c.status}`}>{ROTULO_PEDIDO[c.status]}</span>
               </div>
-              <LinhaDoTempo c={c} enviadaEm={d.enviadaEm} />
+              <Acompanhamento c={c} enviadaEm={d.enviadaEm} taxa={f?.taxa ?? null} />
             </div>
           ))}
         </div>
         <div>
+          {f && f.algumPedidoAprovado && (
           <div className="card" data-testid="pagamento">
             <h3>Pagamento</h3>
-            {!f ? <p className="muted">Nenhum valor foi cobrado.</p> : (
+            {(
               <>
                 {f.taxa != null ? (
                   <div className="dinheiro">
@@ -150,6 +158,7 @@ export default function DetalheDaInscricao({ id }: { id: string }) {
               </>
             )}
           </div>
+          )}
           <div className="card">
             <h3>Dados desta inscrição</h3>
             <dl className="kv small">

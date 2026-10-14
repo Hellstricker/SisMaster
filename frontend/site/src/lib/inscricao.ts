@@ -123,11 +123,11 @@ export interface MinhasInscricoes {
 }
 
 export const ROTULO_FICHA: Record<SituacaoDaFicha, string> = {
-  AguardandoPagamento: 'Aguardando pagamento', EmAnalise: 'Em análise', Efetivada: 'Efetivada', Recusada: 'Recusada',
+  AguardandoPagamento: 'Aguardando pagamento', EmAnalise: 'Em análise', Efetivada: 'Confirmada', Recusada: 'Recusada',
 };
 
 export const ROTULO_PEDIDO: Record<StatusDoPedido, string> = {
-  Pendente: 'Em análise', AguardandoPagamento: 'Aprovada', Efetivada: 'Efetivada', Recusada: 'Recusada',
+  Pendente: 'Em análise', AguardandoPagamento: 'Aprovada', Efetivada: 'Confirmada', Recusada: 'Recusada',
 };
 
 /** Data/hora ISO do servidor (hora da Bahia, sem fuso) -> "08/10/2026". */

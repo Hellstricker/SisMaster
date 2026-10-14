@@ -117,6 +117,15 @@ test('I6: minhas inscrições com situação por categoria, ação necessária, 
     await expect(page.getByText('Ação necessária')).toHaveCount(0);
   });
 
+  await test.step('antes da aprovação não aparece o cartão de pagamento e o acompanhamento diz que não precisa fazer nada', async () => {
+    await page.goto('/minhas-inscricoes');
+    await page.locator('.ficha', { hasText: `Min ${sufixo}` }).click();
+    await expect(page.getByTestId('situacao')).toHaveText('Em análise');
+    await expect(page.getByTestId('pagamento')).toHaveCount(0);
+    await expect(page.locator('.o-que-agora').first()).toContainText('não precisa fazer nada');
+    await expect(page.locator('.passos li.agora').first()).toContainText('Aprovado pela diretoria');
+  });
+
   await test.step('a gestão aprova uma categoria e recusa a outra: a ficha pede ação e mostra cada situação', async () => {
     const fichas = dados(await chamar(request, token, 'GET', `/api/temporadas/${temporada}/inscricoes`)) as any[];
     const minha = fichas.find(f => f.pessoa.nome === 'José Santana');
@@ -137,9 +146,11 @@ test('I6: minhas inscrições com situação por categoria, ação necessária, 
     await page.locator('.ficha', { hasText: `Min ${sufixo}` }).click();
     await expect(page).toHaveURL(/\/minhas-inscricoes\/[0-9a-f-]{36}$/);
     await expect(page.getByTestId('situacao')).toHaveText('Aguardando pagamento');
-    const master = page.locator('.card', { hasText: nomes.master }).filter({ has: page.locator('.tl') });
-    await expect(master).toContainText('Aprovada pela diretoria');
-    await expect(master).toContainText('Falta pagar a taxa para efetivar');
+    const master = page.locator('.card', { hasText: nomes.master }).filter({ has: page.locator('.passos') });
+    await expect(master).toContainText('Aprovado pela diretoria');
+    await expect(master.locator('.passos li.feito')).toHaveCount(2);        // enviado e aprovado
+    await expect(master.locator('.passos li.agora')).toContainText('Inscrição confirmada');
+    await expect(master.locator('.o-que-agora')).toContainText('falta pagar a taxa');
     const hiper = page.locator('[data-categoria]', { hasText: nomes.hiper });
     await expect(hiper).toContainText('Recusada');
     await expect(hiper).toContainText('Fora da idade');

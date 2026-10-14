@@ -200,6 +200,34 @@ input[readonly] { background: color-mix(in srgb, var(--border) 40%, var(--card))
 .aceite-janela { max-width: 520px; width: 100%; margin: 0; }
 .aceite-botoes { display: flex; gap: 10px; flex-wrap: wrap; }
 .faixa-aceite { background: var(--warn-bg); color: var(--warn); padding: 10px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+/* campo de data com calendário */
+.dt { position: relative; }
+.dt-linha { display: flex; gap: 6px; }
+.dt-linha input { flex: 1; min-width: 0; }
+.dt-abrir { min-width: 46px; border: 1px solid var(--border-input); background: var(--card); border-radius: 10px; cursor: pointer; font-size: 1.1rem; }
+.cal { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; background: var(--card); border: 1px solid var(--border-input); border-radius: 12px; padding: 12px; width: min(300px, calc(100vw - 32px)); box-shadow: 0 10px 30px #0003; }
+.cal header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px; }
+.cal header button { min-height: 36px; min-width: 36px; border: 1px solid var(--border); background: transparent; border-radius: 8px; cursor: pointer; color: var(--text); }
+.cal header select { min-height: 36px; padding: 2px 6px; width: auto; flex: 1; min-width: 0; }
+.cal .dias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.cal .dias span { font-size: .75rem; color: var(--text-2); padding: 4px 0; }
+.cal .dias button { border: 0; background: transparent; border-radius: 8px; min-height: 36px; cursor: pointer; color: var(--text); }
+.cal .dias button:hover:not(:disabled) { background: var(--border); }
+.cal .dias button:disabled { opacity: .35; cursor: not-allowed; }
+.cal .dias button.sel { background: var(--brand); color: #fff; }
+
+/* acompanhamento do pedido */
+.passos { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.passos li { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; font-size: .85rem; color: var(--text-2); border-top: 4px solid var(--border); padding-top: 8px; }
+.passos li .bola { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--border-input); background: var(--card); font-weight: 700; }
+.passos li small { color: var(--text-2); }
+.passos li.feito { border-color: var(--ok); color: var(--text); }
+.passos li.feito .bola { background: var(--ok); border-color: var(--ok); color: #fff; }
+.passos li.agora { border-color: var(--brand); color: var(--text); font-weight: 700; }
+.passos li.agora .bola { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 25%, transparent); }
+.passos li.recusado { border-color: var(--bad); color: var(--text); }
+.passos li.recusado .bola { background: var(--bad); border-color: var(--bad); color: #fff; }
+.o-que-agora { margin: 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--border) 45%, var(--card)); line-height: 1.5; }
 .historico-legal { margin-top: 12px; font-size: .9rem; }
 .historico-legal summary { cursor: pointer; font-weight: 600; }
 .historico-legal ul { padding-left: 20px; margin: 8px 0 0; }

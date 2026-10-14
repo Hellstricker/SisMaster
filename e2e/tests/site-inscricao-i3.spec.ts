@@ -112,7 +112,14 @@ test('I2/I3/I5: assistente de inscrição pela conta, com vínculo pelo CPF e pr
     await page.getByLabel('Data de nascimento').fill('31/02/1975');
     await page.getByRole('button', { name: 'Continuar' }).click();
     await expect(page.getByText('data de nascimento válida')).toBeVisible();
-    await page.getByLabel('Data de nascimento').fill('10/05/1975');
+    // calendário em português: mês e ano em listas, dia por toque
+    await page.getByRole('button', { name: 'Abrir o calendário' }).click();
+    await page.screenshot({ path: 'test-results/i3-calendario.png' });
+    await page.getByLabel('Ano', { exact: true }).selectOption('1975');
+    await page.getByLabel('Mês', { exact: true }).selectOption({ label: 'Maio' });
+    await page.getByRole('dialog', { name: 'Calendário' }).getByRole('button', { name: '10', exact: true }).click();
+    await expect(page.getByLabel('Data de nascimento')).toHaveValue('10/05/1975');
+    await expect(page.getByRole('dialog', { name: 'Calendário' })).toHaveCount(0);
     await page.getByLabel('Telefone / WhatsApp').fill('71988887777');
     await page.getByRole('button', { name: 'Continuar' }).click();
     await expect(page.getByRole('heading', { name: 'Ficha esportiva' })).toBeVisible();
