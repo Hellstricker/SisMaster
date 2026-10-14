@@ -132,6 +132,12 @@ test('I9: gestão com protocolo, origem e conta; e-mails de status; união de ca
 
   await test.step('autorizar a ligação do cadastro da diretoria com uma conta de outro e-mail', async () => {
     await linha(nomePrincipal).getByRole('button', { name: /Ações/ }).click();
+    // o menu não pode ser cortado pela tabela: fica inteiro dentro da janela
+    const caixa = await page.getByRole('menu').boundingBox();
+    const janela = page.viewportSize()!;
+    expect(caixa!.y).toBeGreaterThanOrEqual(0);
+    expect(caixa!.y + caixa!.height).toBeLessThanOrEqual(janela.height);
+    expect(caixa!.x + caixa!.width).toBeLessThanOrEqual(janela.width);
     await page.getByRole('menuitem', { name: /Autorizar ligação com conta do site/ }).click();
     await page.getByLabel('E-mail da conta do site').fill('sem-arroba');
     await page.getByRole('button', { name: 'Salvar' }).click();

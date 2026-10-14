@@ -276,9 +276,10 @@
 .tileL { color: var(--text-secondary); font-size: 12px; display: block; }
 
 .menuWrap { position: relative; display: inline-block; }
+/* Posição fixa (calculada pelo botão): dentro da tabela, que rola na horizontal, um menu absoluto era cortado e criava barras de rolagem. */
 .menuLista {
-  position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 250px;
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); overflow: hidden;
+  position: fixed; z-index: 50; min-width: 250px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow-y: auto;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 .menuItem {
   display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 8px 12px; cursor: pointer;

@@ -99,6 +99,7 @@ export default function InscricoesTemporada() {
   const [pagina, setPagina] = useState(1);
   const [modal, setModal] = useState<Modal | null>(null);
   const [menuAberto, setMenuAberto] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top?: number; bottom?: number; right: number }>({ right: 0 });
   const { usuario } = useAuth();
   const ehAdministrador = usuario?.perfil === 'Administrador';
   const [aviso, setAviso] = useState<{ texto: string; erro: boolean } | null>(null);
@@ -121,12 +122,34 @@ export default function InscricoesTemporada() {
 
   useEffect(() => { carregar(); }, [carregar]);
 
-  // o menu de ações fecha ao clicar em qualquer outro lugar
+  // O menu usa posição fixa, calculada pelo botão: abre para baixo se couber e para cima se não.
+  function abrirMenu(botao: HTMLElement, id: string) {
+    if (menuAberto === id) { setMenuAberto(null); return; }
+    const r = botao.getBoundingClientRect();
+    const right = window.innerWidth - r.right;
+    setMenuPos(window.innerHeight - r.bottom > 340 ? { top: r.bottom + 4, right } : { bottom: window.innerHeight - r.top + 4, right });
+    setMenuAberto(id);
+  }
+
+  // o menu de ações fecha ao clicar em qualquer outro lugar (e ao rolar ou redimensionar, porque a posição é fixa)
   useEffect(() => {
     if (menuAberto === null) return;
     const fechar = () => setMenuAberto(null);
     document.addEventListener('click', fechar);
-    return () => document.removeEventListener('click', fechar);
+    window.addEventListener('resize', fechar);
+    // Rolar a página ou a tabela fecha o menu (a posição é fixa); rolar o próprio menu, quando é mais alto que a janela, não.
+    // Os primeiros instantes são ignorados: a rolagem do próprio clique (que leva o botão à vista) chega logo depois de abrir.
+    const abriuEm = Date.now();
+    const aoRolar = (e: Event) => {
+      if (Date.now() - abriuEm < 300) return;
+      if (!(e.target instanceof Element && e.target.closest('[role="menu"]'))) fechar();
+    };
+    window.addEventListener('scroll', aoRolar, true);
+    return () => {
+      document.removeEventListener('click', fechar);
+      window.removeEventListener('resize', fechar);
+      window.removeEventListener('scroll', aoRolar, true);
+    };
   }, [menuAberto]);
 
   useEffect(() => {
@@ -430,9 +453,9 @@ export default function InscricoesTemporada() {
                       )}
                       <span className={styles.menuWrap} onClick={e => e.stopPropagation()}>
                         <button className={`${styles.btnSecondary} ${styles.btnSm}`} aria-haspopup="menu" aria-expanded={menuAberto === f.id}
-                          onClick={() => setMenuAberto(menuAberto === f.id ? null : f.id)}>Ações ▾</button>
+                          onClick={e => abrirMenu(e.currentTarget, f.id)}>Ações ▾</button>
                         {menuAberto === f.id && (
-                          <div className={styles.menuLista} role="menu">
+                          <div className={styles.menuLista} role="menu" style={menuPos}>
                             <button className={styles.menuItem} role="menuitem" disabled={encerrada} onClick={() => { setMenuAberto(null); setModal({ tipo: 'editar', ficha: f }); }}>Corrigir dados da ficha</button>
                             {ehAdministrador && (
                               <button className={styles.menuItem} role="menuitem" disabled={encerrada} onClick={() => { setMenuAberto(null); setModal({ tipo: 'identificacao', ficha: f }); }}>
