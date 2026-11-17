@@ -55,6 +55,10 @@ Se a conferência falhar, o script imprime o comando para voltar à versão ante
    ```
 3. Suba as APIs de novo: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`.
 
+## Banco: SQL Server Express
+
+O sistema usa a edição **Express** do SQL Server (gratuita e licenciada para produção, banco de até 10 GB por base); a Developer não pode ser usada em produção nem em demonstração pública. A edição vem de `MSSQL_PID` (padrão Express no `docker-compose.yml`). Trocar de Developer para Express num volume existente foi testado e mantém os dados. O Express não tem SQL Server Agent: o backup agendado é o `backup.sh` (cron).
+
 ## Segredos
 
 O `.env` do servidor guarda senhas e nunca vai para o Git. Troque `SA_PASSWORD` e `JWT_SEGREDO` por valores novos e fortes na instalação (não reutilize os de desenvolvimento) e guarde uma cópia do `.env` em lugar seguro, fora do servidor: sem ele não há como reconstruir o ambiente.
