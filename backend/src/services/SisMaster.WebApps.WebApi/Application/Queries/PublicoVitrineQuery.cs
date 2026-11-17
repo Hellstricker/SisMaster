@@ -116,6 +116,7 @@ public class PublicoVitrineQuery
         {
             temporada.Id,
             Campeonato = temporada.Campeonato.Nome,
+            Publico = temporada.Publico.ToString(),
             temporada.Ano,
             Status = temporada.Status.ToString(),
             TabelaGerada = temporada.TabelaJogosGerada,

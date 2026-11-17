@@ -281,7 +281,8 @@ public class InscricaoDoParticipanteServico
     }
 
     /// <summary>
-    /// Associado é por temporada: na temporada em que algum pedido foi efetivado (taxa paga) a pessoa é Associado, desde o primeiro pagamento da taxa;
+    /// Associado é por temporada: na temporada (de associados) em que algum pedido foi efetivado (taxa paga) a pessoa é Associado, desde o primeiro pagamento da taxa;
+    /// em torneio aberto ela é só "Participante" (sem vínculo);
     /// com pedido ainda em análise ou aguardando pagamento, está "em andamento"; com todos recusados, sem vínculo.
     /// </summary>
     public static IReadOnlyList<object> SituacaoPorTemporada(IReadOnlyList<Inscricao> fichas) =>
@@ -289,15 +290,18 @@ public class InscricaoDoParticipanteServico
         {
             var pedidos = g.SelectMany(f => f.Categorias).ToList();
             var temporada = pedidos.Select(c => c.TemporadaCategoria.Temporada).FirstOrDefault();
-            var associado = pedidos.Any(c => c.Status == StatusInscricaoCategoria.Efetivada);
+            var efetivado = pedidos.Any(c => c.Status == StatusInscricaoCategoria.Efetivada);
+            var aberta = temporada?.Aberta == true;
+            var associado = efetivado && !aberta;
             var desde = g.SelectMany(f => f.Pagamentos).Where(p => p.Ativo && p.Tipo == TipoPagamento.Taxa).Select(p => (DateOnly?)p.Data).Min();
             return new
             {
                 TemporadaId = g.Key,
                 Campeonato = temporada?.Campeonato.Nome,
                 Ano = temporada?.Ano,
-                Situacao = associado ? "Associado" : pedidos.Any(c => c.Ativa) ? "EmAndamento" : "SemVinculo",
-                Desde = associado ? desde?.ToString("yyyy-MM-dd") : null,
+                Aberto = aberta,
+                Situacao = associado ? "Associado" : efetivado ? "Participante" : pedidos.Any(c => c.Ativa) ? "EmAndamento" : "SemVinculo",
+                Desde = efetivado ? desde?.ToString("yyyy-MM-dd") : null,
                 Categorias = pedidos.Where(c => c.Status == StatusInscricaoCategoria.Efetivada).Select(c => c.TemporadaCategoria.Nome).OrderBy(n => n).ToList()
             };
         }).OrderByDescending(x => x.Ano).ToList<object>();

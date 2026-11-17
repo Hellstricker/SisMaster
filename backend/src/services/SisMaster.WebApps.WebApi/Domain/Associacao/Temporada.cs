@@ -23,6 +23,11 @@ public class Temporada : Entity
     /// <summary>Taxa fixa paga uma vez por ficha ao ter a inscrição aceita. Nulo = a definir.</summary>
     public decimal? TaxaInscricao { get; private set; }
 
+    /// <summary>Só associados (padrão) ou aberto a qualquer pessoa. Em temporada aberta, participar não cria vínculo de associado.</summary>
+    public TipoDePublico Publico { get; private set; } = TipoDePublico.Associados;
+
+    public bool Aberta => Publico == TipoDePublico.Aberto;
+
     public Campeonato Campeonato { get; private set; } = null!;
 
     private List<TemporadaCategoria> _categorias = [];
@@ -198,6 +203,13 @@ public class Temporada : Entity
         if (habilitadas && cobrancasGeradas)
             throw new DomainException("Com as cobranças geradas não é possível reabrir as inscrições. Para incluir alguém, use a inscrição pela diretoria");
         InscricoesHabilitadas = habilitadas;
+    }
+
+    public void DefinirPublico(TipoDePublico publico)
+    {
+        if (Status == StatusTemporada.Encerrada)
+            throw new DomainException("Temporada encerrada não aceita alteração do público");
+        Publico = publico;
     }
 
     public void DefinirTaxaInscricao(decimal? taxa)

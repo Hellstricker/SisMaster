@@ -23,6 +23,7 @@ public class TemporadaMapping : IEntityTypeConfiguration<Temporada>
         builder.Ignore(t => t.TabelaJogosGerada);
         builder.Property(t => t.ValorBonificacaoPorAtleta).HasPrecision(6, 2).IsRequired();
         builder.Property(t => t.TaxaInscricao).HasPrecision(10, 2);
+        builder.Property(t => t.Publico).IsRequired().HasDefaultValue(TipoDePublico.Associados);
 
         builder.HasMany(t => t.Descontos)
                .WithOne()

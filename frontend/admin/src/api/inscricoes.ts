@@ -71,6 +71,8 @@ export interface Ficha {
   ligacaoAutorizadaPara: string | null;
   /** Associado é por temporada: tem pedido efetivado (taxa paga) nesta temporada. */
   associadoNaTemporada: boolean;
+  /** A temporada é um torneio aberto: participar não cria vínculo de associado. */
+  torneioAberto: boolean;
   financeiro: Financeiro;
   categorias: CategoriaPedida[];
 }

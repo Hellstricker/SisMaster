@@ -5,6 +5,7 @@ import { type Categoria, obterCategoriasDaAssociacao } from '../../api/categoria
 import {
   type ResumoTemporada, type TemporadaDetalhe, type TipoDesconto,
   adicionarCategoria, alterarDatas, alterarInscricoesHabilitadas, configurarBonificacao, definirDesconto,
+  definirPublico,
   definirTaxaInscricao, definirValorCategoria, gerarCobrancas, obterResumo, obterTemporada, removerCategoria, removerDesconto,
 } from '../../api/temporadas';
 import DataInput, { dataValida, ddmmParaIso } from '../../components/DataInput/DataInput';
@@ -361,6 +362,17 @@ export default function DetalheTemporada() {
           </div>
           {erroDatas && <p className={styles.fieldErro}>{erroDatas}</p>}
           <button className={styles.btnSecondary} onClick={salvarDatas} disabled={encerrada || salvando}>Salvar datas</button>
+
+          <div className={styles.field} style={{ marginTop: 16 }}>
+            <label htmlFor="t-publico">Público do campeonato</label>
+            <select id="t-publico" className={styles.select} value={temporada.publico} disabled={encerrada || salvando}
+              onChange={e => void executar(() => definirPublico(temporada.id, e.target.value as 'Associados' | 'Aberto'),
+                e.target.value === 'Aberto' ? 'Campeonato aberto: qualquer pessoa pode se inscrever e participar não cria vínculo de associado.' : 'Só associados: a inscrição efetivada cria o vínculo de associado na temporada.')}>
+              <option value="Associados">Só associados</option>
+              <option value="Aberto">Aberto (qualquer pessoa)</option>
+            </select>
+            <small className={styles.dica}>Em campeonato aberto, o site oferece a inscrição de equipe e a individual, e participar <b>não torna a pessoa associada</b>.</small>
+          </div>
 
           <div className={styles.switch} style={{ marginTop: 16 }}>
             <button className={`${styles.sw} ${habilitadas ? styles.swOn : ''}`} onClick={alternarInscricoes}

@@ -25,6 +25,8 @@ export interface TemporadaAberta {
   ano: number;
   inicioInscricoes: string;
   fimInscricoes: string;
+  /** 'Aberto': qualquer pessoa pode participar (por equipe ou individualmente), sem criar vínculo de associado. */
+  publico: 'Associados' | 'Aberto';
   diasRestantes: number;
   categorias: CategoriaAberta[];
 }
@@ -66,6 +68,7 @@ export interface TemporadaPublica {
   campeonato: string;
   ano: number;
   status: string;
+  publico: 'Associados' | 'Aberto';
   tabelaGerada: boolean;
   totalEquipes: number;
   categorias: { id: string; nome: string }[];

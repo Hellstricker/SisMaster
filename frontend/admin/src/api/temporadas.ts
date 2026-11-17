@@ -44,6 +44,8 @@ export interface TemporadaDetalhe {
   inscricoesHabilitadas: boolean;
   valorBonificacaoPorAtleta: number;
   taxaInscricao: number | null;
+  /** Só associados (padrão) ou aberto a qualquer pessoa: em aberto, participar não cria vínculo de associado. */
+  publico: 'Associados' | 'Aberto';
   descontos: Desconto[];
   categorias: TemporadaCategoria[];
 }
@@ -62,6 +64,10 @@ export function removerCategoria(temporadaId: string, categoriaId: string): Prom
 
 export function definirValorCategoria(temporadaId: string, categoriaId: string, valor: number | null): Promise<void> {
   return enviar('PATCH', `/api/temporadas/${temporadaId}/categorias/${categoriaId}/valor`, { valor }, 'Erro ao definir valor');
+}
+
+export function definirPublico(temporadaId: string, publico: 'Associados' | 'Aberto'): Promise<void> {
+  return enviar('PATCH', `/api/temporadas/${temporadaId}/publico`, { publico }, 'Erro ao definir o público da temporada');
 }
 
 export function definirTaxaInscricao(temporadaId: string, taxa: number | null): Promise<void> {

@@ -388,7 +388,7 @@ export default function InscricoesTemporada() {
                 <tr key={f.id}>
                   <td className={styles.pessoa}>
                     <b>{f.pessoa.nome}</b>
-                    <span>{f.pessoa.cpf} · {f.pessoa.idade} anos · {f.associadoNaTemporada ? 'Associado na temporada' : 'Não associado na temporada'}</span>
+                    <span>{f.pessoa.cpf} · {f.pessoa.idade} anos · {f.torneioAberto ? 'Torneio aberto (sem vínculo)' : f.associadoNaTemporada ? 'Associado na temporada' : 'Não associado na temporada'}</span>
                     <span className={styles.origem}>
                       {f.origem === 'Site' ? `Site · #${f.protocolo}` : 'Diretoria'}
                       {f.contaLigada && ' · conta ligada'}

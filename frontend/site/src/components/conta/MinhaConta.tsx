@@ -9,14 +9,14 @@ import CampoSenha, { senhaValida } from './CampoSenha';
 
 interface DadosDaConta {
   pessoa: { nome: string; cpfMascarado: string; nascimento: string; sexo: string; telefone: string | null; email: string } | null;
-  temporadas: { temporadaId: string; campeonato: string | null; ano: number | null; situacao: 'Associado' | 'EmAndamento' | 'SemVinculo'; desde: string | null; categorias: string[] }[];
+  temporadas: { temporadaId: string; campeonato: string | null; ano: number | null; situacao: 'Associado' | 'Participante' | 'EmAndamento' | 'SemVinculo'; aberto?: boolean; desde: string | null; categorias: string[] }[];
   autorizacoes: { protocolo: string | null; campeonato: string | null; ano: number | null; dados: string; imagem: string | null; versao: string | null }[];
 }
 
 type Aba = 'dados' | 'senha' | 'associacao' | 'autorizacoes';
 const ABAS: { id: Aba; nome: string }[] = [{ id: 'dados', nome: 'Dados pessoais' }, { id: 'senha', nome: 'Senha' }, { id: 'associacao', nome: 'Associação' }, { id: 'autorizacoes', nome: 'Autorizações' }];
-const ROTULO_SITUACAO = { Associado: 'Associado', EmAndamento: 'Em andamento', SemVinculo: 'Sem vínculo' } as const;
-const CLASSE_SITUACAO = { Associado: 'st-Efetivada', EmAndamento: 'st-Pendente', SemVinculo: 'st-Recusada' } as const;
+const ROTULO_SITUACAO = { Associado: 'Associado', Participante: 'Participante (torneio aberto)', EmAndamento: 'Em andamento', SemVinculo: 'Sem vínculo' } as const;
+const CLASSE_SITUACAO = { Associado: 'st-Efetivada', Participante: 'st-Efetivada', EmAndamento: 'st-Pendente', SemVinculo: 'st-Recusada' } as const;
 
 /** Minha conta (I8): dados do cadastro (só o telefone muda), troca de senha e as autorizações dadas em cada inscrição. */
 export default function MinhaConta() {
@@ -139,7 +139,7 @@ export default function MinhaConta() {
       {aba === 'associacao' && (
         <section className="card" aria-label="Associação por temporada">
           <h2>Associação por temporada</h2>
-          <p className="muted">O vínculo vale <b>por temporada</b>: você é associado na temporada em que tem uma inscrição efetivada (taxa paga). A cada temporada, uma nova inscrição.</p>
+          <p className="muted">O vínculo vale <b>por temporada</b>: você é associado na temporada em que tem uma inscrição efetivada (taxa paga). A cada temporada, uma nova inscrição. Em <b>torneios abertos</b> você participa sem se tornar associado.</p>
           {dados.temporadas.length === 0 ? (
             <p className="muted">Você ainda não tem inscrições. <Link href="/#ins">Ver inscrições abertas</Link></p>
           ) : (

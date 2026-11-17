@@ -90,7 +90,8 @@ public class InscricoesController : MainController
             ContaLigada = i.Pessoa.ContaId != null,
             LigacaoAutorizadaPara = i.Pessoa.EmailAutorizadoParaLigacao,
             // Associado é por temporada: quem tem pedido efetivado (taxa paga) nesta temporada.
-            AssociadoNaTemporada = i.Categorias.Any(c => c.Status == StatusInscricaoCategoria.Efetivada),
+            AssociadoNaTemporada = !temporada.Aberta && i.Categorias.Any(c => c.Status == StatusInscricaoCategoria.Efetivada),
+            TorneioAberto = temporada.Aberta,
             Autorizacoes = new { Dados = RelogioLocal.DeUtc(i.ConsentimentoLgpdEm), Imagem = RelogioLocal.DeUtc(i.ConsentimentoImagemEm), i.VersaoTermos },
             Financeiro = ProjetarFinanceiro(i),
             Categorias = i.Categorias

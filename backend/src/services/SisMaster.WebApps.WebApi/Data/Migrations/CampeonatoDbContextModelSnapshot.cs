@@ -267,6 +267,11 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.Property<bool>("InscricoesHabilitadas")
                         .HasColumnType("bit");
 
+                    b.Property<int>("Publico")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 

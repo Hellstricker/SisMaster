@@ -43,8 +43,9 @@ public class RegistrarPagamentoTaxaCommandHandler : IRequestHandler<RegistrarPag
             var pagamento = ficha.RegistrarPagamentoTaxa(temporada.TaxaInscricao, request.DataPagamento);
             _inscricaoRepository.AdicionarPagamento(pagamento);
 
-            // Regra: quem paga a inscrição passa a ser Associado automaticamente.
-            ficha.Pessoa.TornarAssociado();
+            // Regra: quem paga a inscrição passa a ser Associado automaticamente
+            // (só em temporada de associados: em torneio aberto, participar não cria vínculo)
+            if (!temporada.Aberta) ficha.Pessoa.TornarAssociado();
 
             await _inscricaoRepository.UnitOfWork.Commit();
             await _avisos.TaxaConfirmadaAsync(ficha, request.AvisarPorEmail, cancellationToken);

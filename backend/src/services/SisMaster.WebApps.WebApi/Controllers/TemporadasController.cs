@@ -45,6 +45,7 @@ public class TemporadasController : MainController
             t.InscricoesHabilitadas,
             t.ValorBonificacaoPorAtleta,
             t.TaxaInscricao,
+            Publico = t.Publico.ToString(),
             Descontos = t.Descontos
                 .Select(d => new
                 {
@@ -84,6 +85,32 @@ public class TemporadasController : MainController
         command.TemporadaId = id;
         var result = await _mediator.EnviarComando(command);
         return CustomResponse(result);
+    }
+
+    public sealed record PublicoRequest(string? Publico);
+
+    /// <summary>Define se a temporada é só de associados ou aberta a qualquer pessoa (em aberta, participar não cria vínculo de associado).</summary>
+    [HttpPatch("{id:guid}/publico")]
+    public async Task<ActionResult> DefinirPublico(Guid id, [FromBody] PublicoRequest corpo, CancellationToken ct)
+    {
+        var t = await _repository.ObterPorIdAsync(id, ct);
+        if (t is null) return NotFound();
+        if (!Enum.TryParse<Domain.Associacao.TipoDePublico>(corpo.Publico, true, out var publico) || !Enum.IsDefined(publico))
+        {
+            AdicionarErro("Público inválido: use Associados ou Aberto.");
+            return CustomResponse();
+        }
+        try
+        {
+            t.DefinirPublico(publico);
+            await _repository.UnitOfWork.Commit();
+            return NoContent();
+        }
+        catch (SisMaster.Core.DomainObjects.DomainException ex)
+        {
+            AdicionarErro(ex.Message);
+            return CustomResponse();
+        }
     }
 
     [HttpPatch("{id:guid}/taxa-inscricao")]

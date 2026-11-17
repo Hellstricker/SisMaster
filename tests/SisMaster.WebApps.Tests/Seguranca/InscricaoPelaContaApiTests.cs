@@ -687,6 +687,74 @@ public class InscricaoPelaContaApiTests
             .GetProperty("ligacaoAutorizadaPara").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
+    // ------------------------------------------------------------------ torneio aberto (Fase 2)
+
+    [Fact]
+    public async Task Temporada_e_de_associados_por_padrao_e_so_a_gestao_a_torna_aberta()
+    {
+        if (SemBanco) return;
+        var c = await NovoAsync("PubPadrao");
+        var url = $"/api/temporadas/{c.TemporadaId}";
+
+        Dados((await Chamar(c.Admin, HttpMethod.Get, url)).Json).GetProperty("publico").GetString().Should().Be("Associados");
+        var abertas = (await Chamar(_fabrica.ClienteCom(null), HttpMethod.Get, "/api/publico/associacoes/PubPadrao/inscricoes-abertas")).Json;
+        abertas.GetProperty("temporadas").EnumerateArray().Single().GetProperty("publico").GetString().Should().Be("Associados");
+
+        (await Chamar(c.Admin, HttpMethod.Patch, $"{url}/publico", new { publico = "Qualquer" })).Status.Should().Be(HttpStatusCode.BadRequest);
+        (await Chamar(_fabrica.ClienteCom(null), HttpMethod.Patch, $"{url}/publico", new { publico = "Aberto" })).Status.Should().Be(HttpStatusCode.Unauthorized);
+        var outraAssoc = await NovoAsync("PubOutra");
+        var gestorDeOutra = _fabrica.ClienteCom(ApiFactory.Token("AdministradorDeAssociacao", Guid.NewGuid()));
+        (await Chamar(gestorDeOutra, HttpMethod.Patch, $"{url}/publico", new { publico = "Aberto" })).Status.Should().Be(HttpStatusCode.Forbidden);
+
+        (await Chamar(c.Admin, HttpMethod.Patch, $"{url}/publico", new { publico = "Aberto" })).Status.Should().Be(HttpStatusCode.NoContent);
+        Dados((await Chamar(c.Admin, HttpMethod.Get, url)).Json).GetProperty("publico").GetString().Should().Be("Aberto");
+        (await Chamar(_fabrica.ClienteCom(null), HttpMethod.Get, "/api/publico/associacoes/PubPadrao/inscricoes-abertas")).Json
+            .GetProperty("temporadas").EnumerateArray().Single().GetProperty("publico").GetString().Should().Be("Aberto");
+        _ = outraAssoc;
+    }
+
+    [Fact]
+    public async Task Em_torneio_aberto_pagar_a_taxa_efetiva_mas_nao_cria_vinculo_de_associado()
+    {
+        if (SemBanco) return;
+        var aberto = await NovoAsync("TorAberto");
+        var fechado = await NovoAsync("TorFechado");
+        await Chamar(aberto.Admin, HttpMethod.Patch, $"/api/temporadas/{aberto.TemporadaId}/publico", new { publico = "Aberto" });
+        foreach (var c in new[] { aberto, fechado }) await Chamar(c.Admin, HttpMethod.Patch, $"/api/temporadas/{c.TemporadaId}/taxa-inscricao", new { taxa = 100 });
+
+        var conta = Conta(out _, out _);
+        await Chamar(conta, HttpMethod.Post, "/api/participante/vinculo", Vinculo(CpfValido(_semente++)));
+        foreach (var c in new[] { aberto, fechado })
+        {
+            await Chamar(conta, HttpMethod.Post, "/api/participante/inscricoes", Envio(c, Guid.NewGuid(), [c.CategoriaMaster]));
+            var f = Dados((await Chamar(c.Admin, HttpMethod.Get, $"/api/temporadas/{c.TemporadaId}/inscricoes")).Json).EnumerateArray().Single();
+            await Chamar(c.Admin, HttpMethod.Patch, $"/api/inscricoes-categorias/{f.GetProperty("categorias")[0].GetProperty("id").GetGuid()}/aprovar", new { });
+            await Chamar(c.Admin, HttpMethod.Post, $"/api/inscricoes/{f.GetProperty("id").GetGuid()}/pagamentos/taxa", new { dataPagamento = "2027-01-02" });
+        }
+
+        var situacoes = Dados((await Chamar(conta, HttpMethod.Get, "/api/participante/conta")).Json).GetProperty("temporadas").EnumerateArray()
+            .ToDictionary(t => t.GetProperty("temporadaId").GetGuid(), t => t);
+        situacoes[aberto.TemporadaId].GetProperty("situacao").GetString().Should().Be("Participante");
+        situacoes[aberto.TemporadaId].GetProperty("aberto").GetBoolean().Should().BeTrue();
+        situacoes[fechado.TemporadaId].GetProperty("situacao").GetString().Should().Be("Associado");
+
+        var fichaAberta = Dados((await Chamar(aberto.Admin, HttpMethod.Get, $"/api/temporadas/{aberto.TemporadaId}/inscricoes")).Json).EnumerateArray().Single();
+        fichaAberta.GetProperty("associadoNaTemporada").GetBoolean().Should().BeFalse();
+        fichaAberta.GetProperty("torneioAberto").GetBoolean().Should().BeTrue();
+        Dados((await Chamar(fechado.Admin, HttpMethod.Get, $"/api/temporadas/{fechado.TemporadaId}/inscricoes")).Json).EnumerateArray().Single()
+            .GetProperty("associadoNaTemporada").GetBoolean().Should().BeTrue();
+        // quem só participa do torneio aberto continua sem o perfil de associado
+        var soAberto = Conta(out _, out _);
+        await Chamar(soAberto, HttpMethod.Post, "/api/participante/vinculo", Vinculo(CpfValido(_semente++), nome: "Só Torneio"));
+        await Chamar(soAberto, HttpMethod.Post, "/api/participante/inscricoes", Envio(aberto, Guid.NewGuid(), [aberto.CategoriaMaster]));
+        var fichas = Dados((await Chamar(aberto.Admin, HttpMethod.Get, $"/api/temporadas/{aberto.TemporadaId}/inscricoes")).Json).EnumerateArray().ToList();
+        var dele = fichas.Single(x => x.GetProperty("pessoa").GetProperty("nome").GetString() == "Só Torneio");
+        await Chamar(aberto.Admin, HttpMethod.Patch, $"/api/inscricoes-categorias/{dele.GetProperty("categorias")[0].GetProperty("id").GetGuid()}/aprovar", new { });
+        await Chamar(aberto.Admin, HttpMethod.Post, $"/api/inscricoes/{dele.GetProperty("id").GetGuid()}/pagamentos/taxa", new { dataPagamento = "2027-01-03" });
+        Dados((await Chamar(aberto.Admin, HttpMethod.Get, $"/api/temporadas/{aberto.TemporadaId}/inscricoes")).Json).EnumerateArray()
+            .Single(x => x.GetProperty("pessoa").GetProperty("nome").GetString() == "Só Torneio").GetProperty("pessoa").GetProperty("perfil").GetString().Should().Be("Convidado");
+    }
+
     // ------------------------------------------------------------------ isolamento
 
     [Theory]
