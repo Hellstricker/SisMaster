@@ -38,6 +38,9 @@ public sealed class ResolvedorDeAssociacao(CampeonatoDbContext db) : IResolvedor
             case Recurso.Inscricao:
                 return await DaTemporada(db.Inscricoes.Where(x => x.Id == id).Select(x => x.TemporadaId), ct);
 
+            case Recurso.InscricaoDeEquipe:
+                return await DaTemporada(db.InscricoesDeEquipe.Where(x => x.Id == id).Select(x => x.TemporadaId), ct);
+
             case Recurso.InscricaoCategoria:
                 return await DaTemporada(
                     db.TemporadaCategorias

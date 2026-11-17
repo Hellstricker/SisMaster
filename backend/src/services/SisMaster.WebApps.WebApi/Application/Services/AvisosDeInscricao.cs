@@ -41,7 +41,7 @@ public class AvisosDeInscricao(IEnviadorDeEmail email, ILogger<AvisosDeInscricao
 
     private async Task Enviar(Inscricao ficha, bool avisar, string assunto, string texto, CancellationToken ct)
     {
-        if (ficha.Origem != "Site" && !avisar) return;
+        if (!ficha.VeioDoSite && !avisar) return;
         try
         {
             await email.EnviarAsync(ficha.Pessoa.Email, assunto, $"Olá, {ficha.Pessoa.Nome.Split(' ')[0]}!\n\n{texto}{Rodape}", ct);

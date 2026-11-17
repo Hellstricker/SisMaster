@@ -25,6 +25,10 @@ public static class ApiConfiguration
                     PermitLimit = contexto.RequestServices.GetRequiredService<IConfiguration>().GetValue("Seguranca:LimiteDeVinculosPorHora", tentativasDeVinculo),
                     Window = TimeSpan.FromHours(1), QueueLimit = 0
                 }));
+            // Consulta do link de convite (sem login): o código tem 256 bits, o limite só barra abuso.
+            o.AddPolicy("convite", contexto => RateLimitPartition.GetFixedWindowLimiter(
+                contexto.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
         });
         // Batimento de 5 s e tolerância de 20 s: a queda de rede na quadra é percebida rápido (o padrão é 15 s / 30 s).
         services.AddSignalR(o =>

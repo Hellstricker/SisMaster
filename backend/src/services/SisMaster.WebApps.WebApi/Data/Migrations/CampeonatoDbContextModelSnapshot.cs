@@ -1227,6 +1227,156 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.ToTable("SumulaTimes", (string)null);
                 });
 
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Torneio.ConviteDeAtleta", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CodigoHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Cpf")
+                        .HasMaxLength(11)
+                        .HasColumnType("nvarchar(11)");
+
+                    b.Property<bool>("EhResponsavel")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<Guid>("InscricaoDeEquipeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("InscricaoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly?>("Nascimento")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<Guid?>("PessoaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RespondidoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Sexo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("ValidoAte")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoHash");
+
+                    b.HasIndex("InscricaoDeEquipeId");
+
+                    b.HasIndex("InscricaoId");
+
+                    b.ToTable("ConvitesDeAtleta", (string)null);
+                });
+
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Torneio.InscricaoDeEquipe", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CodigoDeEnvio")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContaId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("DataEnvio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DecididaEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("EquipeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("JustificativaExcecao")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MotivoRecusa")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Protocolo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ResponsavelEmail")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("ResponsavelNome")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("ResponsavelTelefone")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("TemporadaCategoriaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TemporadaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoDeEnvio")
+                        .IsUnique();
+
+                    b.HasIndex("ContaId");
+
+                    b.HasIndex("EquipeId");
+
+                    b.HasIndex("TemporadaCategoriaId");
+
+                    b.HasIndex("TemporadaId", "Protocolo")
+                        .IsUnique();
+
+                    b.ToTable("InscricoesDeEquipe", (string)null);
+                });
+
             modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.Campeonato", b =>
                 {
                     b.HasOne("SisMaster.WebApps.WebApi.Domain.Associacao.Associacao", "Associacao")
@@ -1683,6 +1833,35 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Torneio.ConviteDeAtleta", b =>
+                {
+                    b.HasOne("SisMaster.WebApps.WebApi.Domain.Torneio.InscricaoDeEquipe", null)
+                        .WithMany("Convites")
+                        .HasForeignKey("InscricaoDeEquipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Torneio.InscricaoDeEquipe", b =>
+                {
+                    b.HasOne("SisMaster.WebApps.WebApi.Domain.Equipes.Equipe", null)
+                        .WithMany()
+                        .HasForeignKey("EquipeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SisMaster.WebApps.WebApi.Domain.Associacao.TemporadaCategoria", null)
+                        .WithMany()
+                        .HasForeignKey("TemporadaCategoriaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SisMaster.WebApps.WebApi.Domain.Associacao.Temporada", null)
+                        .WithMany()
+                        .HasForeignKey("TemporadaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Associacao.Associacao", b =>
                 {
                     b.Navigation("Campeonatos");
@@ -1729,6 +1908,11 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
             modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Sumula.Time", b =>
                 {
                     b.Navigation("Jogadores");
+                });
+
+            modelBuilder.Entity("SisMaster.WebApps.WebApi.Domain.Torneio.InscricaoDeEquipe", b =>
+                {
+                    b.Navigation("Convites");
                 });
 #pragma warning restore 612, 618
         }

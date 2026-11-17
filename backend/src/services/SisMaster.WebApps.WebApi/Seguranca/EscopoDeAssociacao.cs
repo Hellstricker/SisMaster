@@ -10,6 +10,7 @@ public enum Recurso
     Categoria,
     Inscricao,
     InscricaoCategoria,
+    InscricaoDeEquipe,
     Equipe,
     Fase,
     Jogo,

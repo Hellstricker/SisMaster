@@ -98,6 +98,12 @@ public class InscricaoRepository : IInscricaoRepository
             && c.Inscricao.PessoaId == pessoaId
             && c.Status != StatusInscricaoCategoria.Recusada, ct);
 
+    public async Task<bool> ExisteAtivaPorCpfAsync(string cpfSomenteDigitos, Guid temporadaCategoriaId, CancellationToken ct = default) =>
+        await _context.InscricoesCategorias.AnyAsync(c =>
+            c.TemporadaCategoriaId == temporadaCategoriaId
+            && c.Inscricao.Pessoa.Cpf.Numero == cpfSomenteDigitos
+            && c.Status != StatusInscricaoCategoria.Recusada, ct);
+
     public async Task<bool> ExisteCobrancaGeradaAsync(Guid temporadaId, CancellationToken ct = default) =>
         await _context.Inscricoes.AnyAsync(i => i.TemporadaId == temporadaId && i.CobrancaGeradaEm != null, ct);
 

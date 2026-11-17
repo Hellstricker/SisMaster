@@ -10,11 +10,13 @@ public class AprovarInscricaoCategoriaCommandHandler : IRequestHandler<AprovarIn
 {
     private readonly IInscricaoRepository _repository;
     private readonly AvisosDeInscricao _avisos;
+    private readonly InscricaoDeEquipeServico _equipes;
 
-    public AprovarInscricaoCategoriaCommandHandler(IInscricaoRepository repository, AvisosDeInscricao avisos)
+    public AprovarInscricaoCategoriaCommandHandler(IInscricaoRepository repository, AvisosDeInscricao avisos, InscricaoDeEquipeServico equipes)
     {
         _repository = repository;
         _avisos = avisos;
+        _equipes = equipes;
     }
 
     public async Task<ValidationResult> Handle(AprovarInscricaoCategoriaCommand request, CancellationToken cancellationToken)
@@ -36,6 +38,9 @@ public class AprovarInscricaoCategoriaCommandHandler : IRequestHandler<AprovarIn
 
             // Se a taxa da ficha já foi paga, o pedido aprovado já é efetivado.
             ficha.AprovarCategoria(ic.Id, request.JustificativaExcecao, motivos.Count > 0);
+
+            // Atleta de convite cuja equipe já foi aprovada e cuja taxa já estava paga: o pedido efetivado entra no elenco.
+            await _equipes.ColocarNaEquipeAsync(ficha, cancellationToken);
             await _repository.UnitOfWork.Commit();
             await _avisos.AprovadaAsync(ficha, ic, ficha.TaxaPaga, request.AvisarPorEmail, cancellationToken);
 

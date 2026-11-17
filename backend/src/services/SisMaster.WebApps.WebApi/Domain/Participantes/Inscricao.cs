@@ -84,15 +84,18 @@ public class Inscricao : Entity, IAggregateRoot
     }
 
     /// <summary>Marca a ficha como enviada pelo site: protocolo, as duas autorizações com a versão do texto e o código de envio.</summary>
-    public void RegistrarEnvioPeloSite(string protocolo, DateTime consentimentoImagemEm, string versaoTermos, Guid codigoDeEnvio)
+    public void RegistrarEnvioPeloSite(string protocolo, DateTime consentimentoImagemEm, string versaoTermos, Guid codigoDeEnvio, string origem = "Site")
     {
         Validacoes.ValidarSeVazio(protocolo, "Protocolo inválido");
         Protocolo = protocolo;
         ConsentimentoImagemEm = consentimentoImagemEm;
         VersaoTermos = string.IsNullOrWhiteSpace(versaoTermos) ? "?" : versaoTermos.Trim();
         CodigoDeEnvio = codigoDeEnvio;
-        Origem = "Site";
+        Origem = origem;
     }
+
+    /// <summary>Veio do site (pessoa) ou do convite de uma equipe: nos dois casos quem se inscreveu é avisado por e-mail.</summary>
+    public bool VeioDoSite => Origem is "Site" or "Equipe";
 
     // ---- Situação financeira
 

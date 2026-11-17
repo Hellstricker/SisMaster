@@ -12,12 +12,15 @@ public class RegistrarPagamentoTaxaCommandHandler : IRequestHandler<RegistrarPag
     private readonly IInscricaoRepository _inscricaoRepository;
     private readonly ITemporadaRepository _temporadaRepository;
     private readonly AvisosDeInscricao _avisos;
+    private readonly InscricaoDeEquipeServico _equipes;
 
-    public RegistrarPagamentoTaxaCommandHandler(IInscricaoRepository inscricaoRepository, ITemporadaRepository temporadaRepository, AvisosDeInscricao avisos)
+    public RegistrarPagamentoTaxaCommandHandler(IInscricaoRepository inscricaoRepository, ITemporadaRepository temporadaRepository, AvisosDeInscricao avisos,
+        InscricaoDeEquipeServico equipes)
     {
         _inscricaoRepository = inscricaoRepository;
         _temporadaRepository = temporadaRepository;
         _avisos = avisos;
+        _equipes = equipes;
     }
 
     public async Task<ValidationResult> Handle(RegistrarPagamentoTaxaCommand request, CancellationToken cancellationToken)
@@ -46,6 +49,9 @@ public class RegistrarPagamentoTaxaCommandHandler : IRequestHandler<RegistrarPag
             // Regra: quem paga a inscrição passa a ser Associado automaticamente
             // (só em temporada de associados: em torneio aberto, participar não cria vínculo)
             if (!temporada.Aberta) ficha.Pessoa.TornarAssociado();
+
+            // Atleta que veio por convite de equipe aprovada entra no elenco ao ser efetivado (na mesma gravação).
+            await _equipes.ColocarNaEquipeAsync(ficha, cancellationToken);
 
             await _inscricaoRepository.UnitOfWork.Commit();
             await _avisos.TaxaConfirmadaAsync(ficha, request.AvisarPorEmail, cancellationToken);

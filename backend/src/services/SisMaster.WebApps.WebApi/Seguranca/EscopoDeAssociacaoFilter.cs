@@ -23,6 +23,7 @@ public sealed class EscopoDeAssociacaoFilter(IAcessoDoUsuario acesso, IResolvedo
         ["categoriaId"] = Recurso.Categoria,
         ["inscricaoId"] = Recurso.Inscricao,
         ["inscricaoCategoriaId"] = Recurso.InscricaoCategoria,
+        ["inscricaoDeEquipeId"] = Recurso.InscricaoDeEquipe,
         ["equipeId"] = Recurso.Equipe,
         ["faseId"] = Recurso.Fase,
         ["jogoId"] = Recurso.Jogo,

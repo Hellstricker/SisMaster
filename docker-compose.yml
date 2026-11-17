@@ -70,6 +70,7 @@ services:
       Email__Remetente: "${SMTP_FROM:-}"
       Email__NomeExibicao: "${EMAIL_NOME:-SisMaster}"
       Seguranca__LimiteDeVinculosPorHora: "${LIMITE_VINCULOS_POR_HORA:-8}"
+      App__UrlPublica: "${APP_URL:-http://localhost:3000}"
       ConnectionStrings__CampeonatoConnection: "Server=sqlserver,1433;Database=${DB_NAME:-SisMaster};User Id=sa;Password=${SA_PASSWORD:?Defina SA_PASSWORD no arquivo .env};MultipleActiveResultSets=true;TrustServerCertificate=True"
     depends_on:
       sqlserver:

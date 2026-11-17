@@ -44,6 +44,7 @@ public static class DependenciesConfiguration
         services.AddScoped<Domain.Auditoria.IAuditoria, Data.Auditoria.ServicoDeAuditoria>();
         services.AddScoped<IInscricaoRepository, InscricaoRepository>();
         services.AddScoped<IEquipeRepository, EquipeRepository>();
+        services.AddScoped<Domain.Torneio.IInscricaoDeEquipeRepository, InscricaoDeEquipeRepository>();
         services.AddScoped<IFaseRepository, FaseRepository>();
         services.AddScoped<IJogoRepository, JogoRepository>();
         services.AddScoped<ILocalRepository, LocalRepository>();
@@ -58,6 +59,8 @@ public static class DependenciesConfiguration
         services.AddScoped<PublicoVitrineQuery>();
         services.AddScoped<SisMaster.WebApps.WebApi.Application.Services.InscricaoDoParticipanteServico>();
         services.AddScoped<SisMaster.WebApps.WebApi.Application.Services.AvisosDeInscricao>();
+        services.AddScoped<SisMaster.WebApps.WebApi.Application.Services.InscricaoDeEquipeServico>();
+        services.AddScoped<SisMaster.WebApps.WebApi.Application.Services.ConviteDeAtletaServico>();
         services.AddScoped<SisMaster.WebApps.WebApi.Application.Services.UniaoDeCadastros>();
         services.AddScoped<JogosDoArbitroQuery>();
         services.AddScoped<JogosDaTemporadaQuery>();
