@@ -125,7 +125,7 @@ export async function entrar(email: string, senha: string): Promise<{ ok: true; 
  * Chamada autenticada à API (token da sessão). Renova o token quando falta pouco para vencer; resposta 401 encerra a sessão
  * (o chamador leva a pessoa a entrar de novo). Devolve também os erros já em texto legível.
  */
-export async function chamarApi<T = unknown>(metodo: 'GET' | 'POST' | 'PUT', caminho: string, corpo?: unknown): Promise<Resultado<T> & { expirou?: boolean }> {
+export async function chamarApi<T = unknown>(metodo: 'GET' | 'POST' | 'PUT' | 'DELETE', caminho: string, corpo?: unknown): Promise<Resultado<T> & { expirou?: boolean }> {
   let sessao = lerSessao();
   if (!sessao) return { ok: false, status: 401, erro: 'Sua sessão terminou. Entre de novo para continuar.', expirou: true };
   if (sessao.expiraEm - Date.now() < 5 * 60_000) {

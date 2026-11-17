@@ -92,6 +92,7 @@ public class PublicoQuery
                 Campeonato = t.Campeonato.Nome,
                 t.Ano,
                 Publico = t.Publico.ToString(),
+                t.TaxaInscricao,
                 InicioInscricoes = t.DataInicioInscricoes,
                 FimInscricoes = t.DataFimInscricoes,
                 DiasRestantes = (t.DataFimInscricoes.Date - hoje).Days,

@@ -85,7 +85,8 @@ public class PublicoV0ApiTests
         t.GetProperty("diasRestantes").GetInt32().Should().BeInRange(29, 30);
         t.GetProperty("categorias").EnumerateArray().Single().GetProperty("nome").GetString().Should().Be("Master 40+");
         var bruto = t.GetRawText().ToLowerInvariant();
-        bruto.Should().NotContain("taxa").And.NotContain("cpf").And.NotContain("email");
+        // A taxa de inscrição por atleta é pública (o torneio aberto a mostra antes da inscrição); nenhum outro valor, nem dado pessoal.
+        bruto.Should().NotContain("cpf").And.NotContain("email").And.NotContain("valorBonificacao").And.NotContain("desconto");
     }
 
     [Fact]

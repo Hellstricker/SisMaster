@@ -14,6 +14,7 @@ import DetalheTemporada from './pages/Temporadas/DetalheTemporada';
 import CategoriasAssociacao from './pages/Categorias/CategoriasAssociacao';
 import InscricoesTemporada from './pages/Inscricoes/InscricoesTemporada';
 import EquipesTemporada from './pages/Equipes/EquipesTemporada';
+import EquipesInscritas from './pages/Inscricoes/EquipesInscritas';
 import FasesTemporada from './pages/Fases/FasesTemporada';
 import DetalheFase from './pages/Fases/DetalheFase';
 import LocaisAssociacao from './pages/Locais/LocaisAssociacao';
@@ -68,6 +69,7 @@ export default function App() {
                     <Route path="/temporadas/:id" element={<DetalheTemporada />} />
                     <Route path="/temporadas/:id/inscricoes" element={<InscricoesTemporada />} />
                     <Route path="/temporadas/:id/equipes" element={<EquipesTemporada />} />
+                    <Route path="/temporadas/:id/equipes-inscritas" element={<EquipesInscritas />} />
                     <Route path="/temporadas/:id/fases" element={<FasesTemporada />} />
                     <Route path="/fases/:id" element={<DetalheFase />} />
                     <Route path="/fases/:id/classificacao" element={<ClassificacaoFase />} />

@@ -9,6 +9,7 @@ import {
   definirTaxaInscricao, definirValorCategoria, gerarCobrancas, obterResumo, obterTemporada, removerCategoria, removerDesconto,
 } from '../../api/temporadas';
 import DataInput, { dataValida, ddmmParaIso } from '../../components/DataInput/DataInput';
+import { listarEquipesInscritas } from '../../api/equipesInscritas';
 import { formatarData, formatarMoeda, paraNumero } from '../../utils/formatacao';
 import styles from './DetalheTemporada.module.css';
 
@@ -46,6 +47,8 @@ export default function DetalheTemporada() {
 
   const [temporada, setTemporada] = useState<TemporadaDetalhe | null>(null);
   const [resumo, setResumo] = useState<ResumoTemporada | null>(null);
+  /** Torneio aberto: quantas equipes foram inscritas pelo site e quantas esperam a diretoria. */
+  const [equipesInscritas, setEquipesInscritas] = useState<{ total: number; pendentes: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
@@ -72,6 +75,10 @@ export default function DetalheTemporada() {
       const [t, r] = await Promise.all([obterTemporada(id), obterResumo(id)]);
       setTemporada(t);
       setResumo(r);
+      if (t.publico === 'Aberto') {
+        const e = await listarEquipesInscritas(t.id).catch(() => null);
+        setEquipesInscritas(e ? { total: e.equipes.length, pendentes: e.equipes.filter(x => x.situacao === 'EmAnalise' || x.situacao === 'AguardandoConfirmacoes').length } : null);
+      } else setEquipesInscritas(null);
       setDatas({ inscIni: isoParaDdmm(t.dataInicioInscricoes), inscFim: isoParaDdmm(t.dataFimInscricoes), compIni: isoParaDdmm(t.dataInicioCompeticao), compFim: isoParaDdmm(t.dataFimCompeticao) });
       setTaxa(dinheiro(t.taxaInscricao));
       setBonif(String(t.valorBonificacaoPorAtleta ?? 0).replace('.', ','));
@@ -265,6 +272,8 @@ export default function DetalheTemporada() {
   const tiles: { n: number; rotulo: string; chip: [string, string]; ir: string }[] = [
     { n: resumo.fichas, rotulo: 'Fichas de inscrição', ir: `/temporadas/${temporada.id}/inscricoes`,
       chip: resumo.pedidosPendentes > 0 ? [`${resumo.pedidosPendentes} pendentes`, styles.miniAviso] : ['em dia', styles.miniOk] },
+    ...(equipesInscritas ? [{ n: equipesInscritas.total, rotulo: 'Equipes inscritas', ir: `/temporadas/${temporada.id}/equipes-inscritas`,
+      chip: (equipesInscritas.pendentes > 0 ? [`${equipesInscritas.pendentes} para analisar`, styles.miniAviso] : ['em dia', styles.miniOk]) as [string, string] }] : []),
     { n: resumo.equipes, rotulo: 'Equipes', ir: `/temporadas/${temporada.id}/equipes`,
       chip: status === 'InscricoesAbertas' ? ['após encerrar inscrições', ''] : resumo.equipes > 0 ? ['formadas', styles.miniOk] : ['a formar', styles.miniAviso] },
     { n: resumo.fases, rotulo: 'Fases', ir: `/temporadas/${temporada.id}/fases`,

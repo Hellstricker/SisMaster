@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { type MinhasInscricoes as Dados, ROTULO_FICHA, ROTULO_PEDIDO, dataCurta } from '@/lib/inscricao';
+import { type MinhaEquipeItem, CLASSE_EQUIPE, ROTULO_EQUIPE } from '@/lib/equipe';
 import { chamarApi, lerSessao, type SessaoDoSite } from '@/lib/sessao';
 
 /** A lista das inscrições da conta, categoria por categoria (I6). */
@@ -10,6 +11,7 @@ export default function MinhasInscricoes() {
   const [sessao, setSessao] = useState<SessaoDoSite | null | undefined>(undefined);
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState('');
+  const [equipes, setEquipes] = useState<MinhaEquipeItem[]>([]);
 
   useEffect(() => {
     const s = lerSessao();
@@ -19,6 +21,7 @@ export default function MinhasInscricoes() {
       if (r.ok) setDados(r.dados);
       else { setErro(r.erro); if (r.expirou) setSessao(null); }
     });
+    void chamarApi<{ equipes: MinhaEquipeItem[] }>('GET', '/api/participante/equipes').then(r => { if (r.ok) setEquipes(r.dados.equipes); });
   }, []);
 
   if (sessao === undefined) return <div className="card conta centro"><p>Carregando…</p></div>;
@@ -45,7 +48,26 @@ export default function MinhasInscricoes() {
         <p className="aviso warn" role="status"><b>Ação necessária:</b> uma inscrição foi aprovada e aguarda o pagamento da taxa. A associação envia as instruções de pagamento.</p>
       )}
 
-      {dados.inscricoes.length === 0 ? (
+      {equipes.length > 0 && (
+        <>
+          <h2>Minhas equipes</h2>
+          {equipes.map(e => (
+            <Link className="card ficha" key={e.id} href={`/minhas-inscricoes/equipes/${e.id}`} data-equipe={e.nome}>
+              <div className="linha entre">
+                <div>
+                  <h3>{e.nome}</h3>
+                  <div className="muted small">{e.campeonato} · {e.ano} · {e.categoria} · protocolo #{e.protocolo} · enviada em {dataCurta(e.enviadaEm)}</div>
+                </div>
+                <span className={`badge ${CLASSE_EQUIPE[e.situacao]}`}>{ROTULO_EQUIPE[e.situacao]}</span>
+              </div>
+              <div className="muted small">{e.confirmados} de {e.convidados} atletas confirmaram</div>
+            </Link>
+          ))}
+          {dados.inscricoes.length > 0 && <h2>Minhas inscrições individuais</h2>}
+        </>
+      )}
+
+      {dados.inscricoes.length === 0 && equipes.length > 0 ? null : dados.inscricoes.length === 0 ? (
         <div className="card vazio">
           <p><b>Você ainda não fez nenhuma inscrição.</b></p>
           <p className="muted">Veja as temporadas com inscrições abertas.</p>

@@ -27,6 +27,8 @@ export interface TemporadaAberta {
   fimInscricoes: string;
   /** 'Aberto': qualquer pessoa pode participar (por equipe ou individualmente), sem criar vínculo de associado. */
   publico: 'Associados' | 'Aberto';
+  /** Taxa de inscrição por atleta (nulo = ainda não definida). */
+  taxaInscricao: number | null;
   diasRestantes: number;
   categorias: CategoriaAberta[];
 }
