@@ -1,5 +1,5 @@
 using FluentValidation.Results;
-using MediatR;
+using SisMaster.Core.Communications;
 using SisMaster.WebApps.WebApi.Domain.Associacao;
 
 namespace SisMaster.WebApps.WebApi.Application.Commands.Handlers;

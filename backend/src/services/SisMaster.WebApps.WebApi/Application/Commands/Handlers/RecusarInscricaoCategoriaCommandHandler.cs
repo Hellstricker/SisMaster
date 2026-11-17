@@ -1,5 +1,5 @@
 using FluentValidation.Results;
-using MediatR;
+using SisMaster.Core.Communications;
 using SisMaster.Core.DomainObjects;
 using SisMaster.WebApps.WebApi.Application.Services;
 using SisMaster.WebApps.WebApi.Domain.Participantes;

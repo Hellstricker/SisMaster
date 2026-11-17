@@ -1,4 +1,3 @@
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SisMaster.Core.Communications;
 using SisMaster.Core.Messages.CommonMessages.Notifications;
@@ -22,8 +21,8 @@ public static class DependenciesConfiguration
 {
     public static IServiceCollection AddDependenciesConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
-        // MediatR + Notifications
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(DependenciesConfiguration).Assembly));
+        // Mediador próprio + Notifications
+        services.AddMediator(typeof(DependenciesConfiguration).Assembly);
         services.AddScoped<IMediatorHandler, MediatorHandler>();
         services.AddScoped<INotificationHandler<DomainNotification>, DomainNotificationHandler>();
 

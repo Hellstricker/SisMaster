@@ -1,5 +1,5 @@
 using FluentValidation.Results;
-using MediatR;
+using SisMaster.Core.Communications;
 using Microsoft.AspNetCore.SignalR;
 using SisMaster.Core.DomainObjects;
 using SisMaster.WebApps.WebApi.Application.Services;

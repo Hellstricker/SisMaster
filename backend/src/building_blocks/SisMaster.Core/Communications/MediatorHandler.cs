@@ -1,5 +1,4 @@
 ﻿using FluentValidation.Results;
-using MediatR;
 using SisMaster.Core.Messages;
 using SisMaster.Core.Messages.CommonMessages.DomainEvents;
 using SisMaster.Core.Messages.CommonMessages.Notifications;

@@ -1,4 +1,4 @@
-﻿using MediatR;
+﻿using SisMaster.Core.Communications;
 
 namespace SisMaster.Core.Messages.CommonMessages.DomainEvents
 {
