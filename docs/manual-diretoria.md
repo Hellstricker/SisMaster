@@ -24,6 +24,19 @@ Cada pessoa se inscreve pelo site (ou a diretoria cadastra em **+ Nova inscriç�
 - **Exportar** gera a lista em planilha (CPF e contato só saem se você marcar; cada exportação fica registrada).
 - Depois de encerrar as inscrições, **Gerar cobranças** calcula o total por pessoa (categorias menos descontos) e o saldo em aberto; registre os pagamentos do saldo na ficha.
 
+## 2B. Torneio aberto e equipes inscritas
+
+Na temporada, o campo **Público do campeonato** pode ser **Aberto (qualquer pessoa)**: participar **não cria vínculo de associado** (a pessoa aparece como *Participante*). Em campeonato aberto, o site pergunta se a pessoa é **responsável por uma equipe** ou quer jogar **sem equipe** (inscrição individual, como sempre).
+
+Fluxo da equipe, na tela **Equipes inscritas** (cartão na temporada):
+
+1. O responsável inscreve a equipe pelo site (de 5 a 15 atletas) e cada atleta recebe um e-mail com um link pessoal, válido por 14 dias, para confirmar os dados e as autorizações. Menores de 18 anos não entram por aqui: a diretoria os inscreve, com a autorização do responsável legal.
+2. Com pelo menos 5 atletas confirmados, **Aprovar** a equipe (ou **Recusar**, com o motivo, que o responsável vê). Aprovar não cobra nada e cria a equipe, ainda sem elenco. Se algum atleta estiver fora da idade ou do sexo da categoria, o sistema pede uma justificativa.
+3. **Ver atletas e taxas**: marque os atletas cuja taxa foi recebida e use **Registrar taxa dos selecionados**. Cada um fica *Efetivado* e **entra no elenco da equipe sozinho**; a equipe não espera os outros. Quem pagou antes da aprovação, ou confirmou o convite depois dela, entra do mesmo jeito.
+4. Atleta que se inscreveu sozinho continua na tela **Inscrições**; depois de efetivado, você o coloca em uma equipe pela tela **Equipes**.
+
+Enquanto as inscrições estão abertas, a equipe criada na aprovação só muda pelo responsável (adicionar, reenviar convite, remover quem não confirmou). Não dá para voltar a temporada para *Só associados* se já há equipe inscrita.
+
 ## 3. Equipes, fases e jogos
 
 1. **Equipes**: crie as equipes e coloque os atletas efetivados. Trocar um atleta de equipe mantém o histórico das súmulas.

@@ -390,4 +390,17 @@ public class EquipeDeTorneioApiTests
         r.Status.Should().Be(HttpStatusCode.BadRequest);
         r.Corpo.Should().Contain("já confirmou");
     }
+
+    [Fact]
+    public async Task Temporada_com_equipe_inscrita_nao_volta_a_ser_so_de_associados()
+    {
+        if (SemBanco) return;
+        var c = await NovoAsync("EqTrava");
+        var atletas = Enumerable.Range(1, 5).Select(i => NovoAtleta($"Trava{i} Elenco")).ToList();
+        (await Chamar(ContaDe($"resp.{Guid.NewGuid():N}@exemplo.com"), HttpMethod.Post, "/api/participante/equipes", Equipe(c, "Travada", atletas))).Status.Should().Be(HttpStatusCode.OK);
+
+        var r = await Chamar(c.Admin, HttpMethod.Patch, $"/api/temporadas/{c.TemporadaId}/publico", new { publico = "Associados" });
+        r.Status.Should().Be(HttpStatusCode.BadRequest);
+        r.Corpo.Should().Contain("Já há equipe inscrita");
+    }
 }

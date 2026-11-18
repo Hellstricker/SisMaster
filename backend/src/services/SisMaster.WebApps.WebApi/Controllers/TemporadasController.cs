@@ -18,9 +18,12 @@ public class TemporadasController : MainController
     private readonly IMediatorHandler _mediator;
     private readonly ITemporadaRepository _repository;
     private readonly ResumoDaTemporadaQuery _resumo;
+    private readonly Domain.Torneio.IInscricaoDeEquipeRepository _equipesInscritas;
 
-    public TemporadasController(IMediatorHandler mediator, ITemporadaRepository repository, ResumoDaTemporadaQuery resumo)
+    public TemporadasController(IMediatorHandler mediator, ITemporadaRepository repository, ResumoDaTemporadaQuery resumo,
+        Domain.Torneio.IInscricaoDeEquipeRepository equipesInscritas)
     {
+        _equipesInscritas = equipesInscritas;
         _mediator = mediator;
         _repository = repository;
         _resumo = resumo;
@@ -98,6 +101,11 @@ public class TemporadasController : MainController
         if (!Enum.TryParse<Domain.Associacao.TipoDePublico>(corpo.Publico, true, out var publico) || !Enum.IsDefined(publico))
         {
             AdicionarErro("Público inválido: use Associados ou Aberto.");
+            return CustomResponse();
+        }
+        if (publico == Domain.Associacao.TipoDePublico.Associados && await _equipesInscritas.ContarProtocolosAsync(id, ct) > 0)
+        {
+            AdicionarErro("Já há equipe inscrita nesta temporada: ela não pode voltar a ser só de associados.");
             return CustomResponse();
         }
         try
