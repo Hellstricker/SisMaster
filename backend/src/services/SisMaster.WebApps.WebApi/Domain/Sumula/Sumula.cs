@@ -22,15 +22,15 @@ public class Sumula : Entity, IAggregateRoot
 
     // Cronômetro: armazenados para reconstrução do estado
     public bool CronometroAtivo { get; private set; }
-    public int CronometroSegundosRestantes { get; private set; }
+    public double CronometroSegundosRestantes { get; private set; }
     public DateTime? CronometroIniciadoEm { get; private set; }
-    public int CronometroSegundosAoIniciar { get; private set; }
+    public double CronometroSegundosAoIniciar { get; private set; }
 
     // Shot clock
     public bool ShotClockAtivo { get; private set; }
-    public int ShotClockSegundosRestantes { get; private set; }
+    public double ShotClockSegundosRestantes { get; private set; }
     public DateTime? ShotClockIniciadoEm { get; private set; }
-    public int ShotClockSegundosAoIniciar { get; private set; }
+    public double ShotClockSegundosAoIniciar { get; private set; }
 
     // Posse
     public bool PosseCasa { get; private set; }
@@ -184,7 +184,7 @@ public class Sumula : Entity, IAggregateRoot
     }
 
     /// <summary>Segundos que o relógio do período mostra agora (descontado o que já correu, se estiver rodando).</summary>
-    public int CronometroSegundosRestantesAgora => CalcularSegundosRestantesCronometro();
+    public int CronometroSegundosRestantesAgora => (int)Math.Ceiling(CalcularSegundosRestantesCronometro());
 
     /// <summary>O jogo ainda não chegou ao fim: antes do 4º período ou com tempo no relógio.</summary>
     public bool AntesDoTempo => PeriodoAtual < Periodo.Quarto || CalcularSegundosRestantesCronometro() > 0;
@@ -501,17 +501,17 @@ public class Sumula : Entity, IAggregateRoot
         FaltasVisitante = Math.Max(0, FaltasVisitante);
     }
 
-    private int CalcularSegundosRestantesCronometro()
+    private double CalcularSegundosRestantesCronometro()
     {
         if (!CronometroAtivo || CronometroIniciadoEm is null) return CronometroSegundosRestantes;
-        var decorrido = (int)(DateTime.UtcNow - CronometroIniciadoEm.Value).TotalSeconds;
+        var decorrido = (DateTime.UtcNow - CronometroIniciadoEm.Value).TotalSeconds;
         return Math.Max(0, CronometroSegundosAoIniciar - decorrido);
     }
 
-    private int CalcularSegundosRestantesShotClock()
+    private double CalcularSegundosRestantesShotClock()
     {
         if (!ShotClockAtivo || ShotClockIniciadoEm is null) return ShotClockSegundosRestantes;
-        var decorrido = (int)(DateTime.UtcNow - ShotClockIniciadoEm.Value).TotalSeconds;
+        var decorrido = (DateTime.UtcNow - ShotClockIniciadoEm.Value).TotalSeconds;
         return Math.Max(0, ShotClockSegundosAoIniciar - decorrido);
     }
 }

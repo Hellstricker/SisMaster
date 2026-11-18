@@ -617,4 +617,19 @@ public class SumulaTests
 
         s.ShotClockAtivo.Should().BeFalse("3s de jogo não comportam um shot clock de 24s");
     }
+
+    [Fact]
+    public void Pausar_guarda_os_decimos_do_cronometro_e_do_shot_clock()
+    {
+        var s = Iniciada();
+        s.IniciarCronometro();
+        var ini = DateTime.UtcNow.AddSeconds(-20.6);
+        typeof(Sumula).GetProperty(nameof(Sumula.CronometroIniciadoEm))!.SetValue(s, ini);
+        typeof(Sumula).GetProperty(nameof(Sumula.ShotClockIniciadoEm))!.SetValue(s, ini);
+
+        s.PausarCronometro();
+
+        s.CronometroSegundosRestantes.Should().BeApproximately(579.4, 0.2, "a pausa não arredonda para cima");
+        s.ShotClockSegundosRestantes.Should().BeApproximately(3.4, 0.2, "o shot clock parado mostra o mesmo décimo que mostrava rodando");
+    }
 }

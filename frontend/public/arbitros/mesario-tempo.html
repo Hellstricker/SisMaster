@@ -464,6 +464,12 @@
     if (clockState.shotClockAtivo && clockState.shotClockIniciadoEmMs) {
       const elapsed = (now - clockState.shotClockIniciadoEmMs) / 1000;
       shotSec = Math.max(0, clockState.shotClockSegundosAoIniciar - elapsed);
+      // Shot clock estourou (violação): pausa o jogo e toca a buzina, uma vez por violação.
+      if (shotSec <= 0) {
+        if (!violacaoTratada) { violacaoTratada = true; violacaoDeShotClock(); }
+      } else {
+        violacaoTratada = false;
+      }
     }
     renderGameClock(gameSec);
     renderShotClock(shotSec);
@@ -494,6 +500,41 @@
     // Últimos 5s do shot clock: com décimos.
     el.textContent = sec <= 4.9 ? arredondarDecimo(sec).toFixed(1) : intSec.toString().padStart(2, '0');
     el.className = 'shot-display' + (clockState?.ativo && intSec <= 5 ? ' warning' : '');
+  }
+
+  let violacaoTratada = false;
+  let audioCtx = null;
+
+  // O navegador só libera áudio depois de um gesto do usuário; o mesário sempre clica antes de iniciar o jogo.
+  document.addEventListener('click', () => {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  });
+
+  function buzina(duracao = 1.2) {
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const ganho = audioCtx.createGain();
+    ganho.gain.setValueAtTime(0.5, t0);
+    ganho.gain.setValueAtTime(0.5, t0 + duracao - 0.05);
+    ganho.gain.linearRampToValueAtTime(0, t0 + duracao);
+    ganho.connect(audioCtx.destination);
+    [415, 420].forEach(freq => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      osc.connect(ganho);
+      osc.start(t0);
+      osc.stop(t0 + duracao);
+    });
+  }
+
+  async function violacaoDeShotClock() {
+    buzina();
+    if (await acaoNoHub('PausarCronometro', [], 'Erro ao pausar o cronômetro na violação')) {
+      log('Violação de shot clock — cronômetro pausado');
+      toast('Violação de shot clock');
+    }
   }
 
   // ── Hub actions ──────────────────────────────────────────────────

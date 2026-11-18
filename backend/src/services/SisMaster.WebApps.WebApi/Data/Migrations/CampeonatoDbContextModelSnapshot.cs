@@ -1099,11 +1099,11 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.Property<DateTime?>("CronometroIniciadoEm")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("CronometroSegundosAoIniciar")
-                        .HasColumnType("int");
+                    b.Property<double>("CronometroSegundosAoIniciar")
+                        .HasColumnType("float");
 
-                    b.Property<int>("CronometroSegundosRestantes")
-                        .HasColumnType("int");
+                    b.Property<double>("CronometroSegundosRestantes")
+                        .HasColumnType("float");
 
                     b.Property<int>("FaltasCasa")
                         .HasColumnType("int");
@@ -1137,11 +1137,11 @@ namespace SisMaster.WebApps.WebApi.Data.Migrations
                     b.Property<DateTime?>("ShotClockIniciadoEm")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("ShotClockSegundosAoIniciar")
-                        .HasColumnType("int");
+                    b.Property<double>("ShotClockSegundosAoIniciar")
+                        .HasColumnType("float");
 
-                    b.Property<int>("ShotClockSegundosRestantes")
-                        .HasColumnType("int");
+                    b.Property<double>("ShotClockSegundosRestantes")
+                        .HasColumnType("float");
 
                     b.Property<string>("Status")
                         .IsRequired()

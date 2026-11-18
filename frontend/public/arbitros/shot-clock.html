@@ -32,18 +32,16 @@
     .shot-clock {
       font-size: 46vw; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -2vw;
       line-height: 1; color: #f59e0b;
-      width: 56vw; height: 56vw; border-radius: 50%;
-      border: 1vw solid rgba(245,158,11,.5); background: rgba(245,158,11,.08);
       display: flex; align-items: center; justify-content: center;
-      transition: color .3s, border-color .3s, background .3s;
+      transition: color .3s;
     }
-    .shot-clock.casa { border-color: rgba(34,197,94,.6); }
-    .shot-clock.visit { border-color: rgba(59,130,246,.6); }
-    .shot-clock.off { font-size: 20vw; color: #4a5a72; border-color: #2a3346; background: transparent; }
+    .shot-clock.off { font-size: 20vw; color: #4a5a72; }
     .shot-clock.warning {
-      color: #ef4444; border-color: rgba(239,68,68,.7); background: rgba(239,68,68,.12);
+      color: #ef4444;
       animation: blink .5s ease-in-out infinite alternate;
     }
+    .btn-som { position: fixed; bottom: 1vw; left: 1vw; z-index: 10; font-size: 1.6vw; padding: .6vw 1.4vw; border-radius: 1vw; border: .15vw solid #2a3346; background: transparent; color: #8b98ad; cursor: pointer; }
+    .btn-som.ligado { color: #22c55e; border-color: rgba(34,197,94,.5); }
     @keyframes blink { from{opacity:1} to{opacity:.35} }
 
     a.back { position: fixed; bottom: 1vw; right: 1vw; font-size: 1.2vw; color: #1e2430; text-decoration: none; z-index: 10; }
@@ -59,6 +57,7 @@
   <div class="shot-clock" id="shotClock">24</div>
 </div>
 
+<button class="btn-som" id="btnSom" onclick="alternarSom()">🔇 Ativar som</button>
 <a class="back" href="/arbitros/">← Início</a>
 
 <script>
@@ -110,8 +109,50 @@
     let shotSec = clockState.shotClockSegundos;
     if (clockState.shotClockAtivo && clockState.shotClockIniciadoEmMs) {
       shotSec = Math.max(0, clockState.shotClockSegundosAoIniciar - (now - clockState.shotClockIniciadoEmMs) / 1000);
+      // Estourou: buzina uma vez por violação (o mesário é quem pausa o jogo).
+      if (shotSec <= 0) {
+        if (!buzinou) { buzinou = true; buzina(); }
+      } else {
+        buzinou = false;
+      }
     }
     renderShotClock(shotSec);
+  }
+
+  // ── Sinal sonoro ─────────────────────────────────────────────────
+  // O navegador só libera áudio depois de um clique, por isso o botão "Ativar som".
+  let buzinou = false;
+  let audioCtx = null;
+  let somLigado = false;
+
+  function alternarSom() {
+    somLigado = !somLigado;
+    if (somLigado) {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx.resume();
+      buzina(0.15); // teste curto
+    }
+    const btn = document.getElementById('btnSom');
+    btn.classList.toggle('ligado', somLigado);
+    btn.textContent = somLigado ? '🔊 Som ligado' : '🔇 Ativar som';
+  }
+
+  function buzina(duracao = 1.2) {
+    if (!somLigado || !audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const ganho = audioCtx.createGain();
+    ganho.gain.setValueAtTime(0.5, t0);
+    ganho.gain.setValueAtTime(0.5, t0 + duracao - 0.05);
+    ganho.gain.linearRampToValueAtTime(0, t0 + duracao);
+    ganho.connect(audioCtx.destination);
+    [415, 420].forEach(freq => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      osc.connect(ganho);
+      osc.start(t0);
+      osc.stop(t0 + duracao);
+    });
   }
 
   // Arredonda para cima, com 1 casa decimal (nunca mostra "0.0" antes da hora de verdade acabar).
