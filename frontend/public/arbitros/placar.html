@@ -297,7 +297,8 @@
   const arredondarDecimo = sec => Math.ceil(sec * 10) / 10;
 
   function renderGameClock(totalSec, running) {
-    const s = Math.floor(totalSec);
+    // Para cima, igual ao mesário e ao que o servidor grava ao pausar: nunca mostra menos tempo do que realmente resta.
+    const s = Math.ceil(totalSec);
     const el = document.getElementById('gameClock');
     // Último minuto do período: só segundos, com décimos (padrão oficial de cronômetro de jogo).
     el.textContent = totalSec <= 59.9
@@ -314,7 +315,7 @@
       el.className = 'shot-clock';
       return;
     }
-    const s = Math.floor(sec);
+    const s = Math.ceil(sec); // mesma regra do relógio de jogo: para cima
     // Últimos 5s do shot clock: com décimos.
     el.textContent = sec <= 4.9 ? arredondarDecimo(sec).toFixed(1) : s.toString().padStart(2, '0');
     el.className = 'shot-clock' + (running && s <= 5 ? ' warning' : '');
