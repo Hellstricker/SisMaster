@@ -209,6 +209,7 @@ export default function PrepararSumula() {
                     </>
                   )}
                   <a className={`${base.btnSecondary} ${base.btnSm} ${styles.link}`} href={l.placar} target="_blank" rel="noreferrer">Placar</a>
+                  <a className={`${base.btnSecondary} ${base.btnSm} ${styles.link}`} href={l.shotClock} target="_blank" rel="noreferrer">Shot clock</a>
                   {dados.sumula!.status !== 'Encerrada' && (
                     <EncerrarSumula pequeno sumulaId={dados.sumula!.id} jogo={titulo}
                       onEncerrada={async () => { if (AREA_ARBITROS) navigate('/'); else await carregar(); }} />

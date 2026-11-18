@@ -208,6 +208,7 @@ export default function DetalheJogo() {
                   return (
                     <>
                       <a className={`${base.btnSecondary} ${styles.link}`} href={l.placar} target="_blank" rel="noreferrer">Placar</a>
+                      <a className={`${base.btnSecondary} ${styles.link}`} href={l.shotClock} target="_blank" rel="noreferrer">Shot clock</a>
                       {sumula.status !== 'Encerrada' && (
                         <EncerrarSumula sumulaId={sumula.id} jogo={`#${dados.numero} — ${dados.casa.texto} × ${dados.visitante.texto}`} onEncerrada={carregar} />
                       )}

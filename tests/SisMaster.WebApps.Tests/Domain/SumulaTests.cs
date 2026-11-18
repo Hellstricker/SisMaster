@@ -1,3 +1,4 @@
+using System.Reflection;
 using Xunit;
 using FluentAssertions;
 using SisMaster.Core.DomainObjects;
@@ -567,5 +568,53 @@ public class SumulaTests
         ev.TempoJogoSegundos.Should().Be(123);
         var futuro = () => s.RegistrarEvento(j.Id, TipoEvento.Ponto2, 100, null, Periodo.Terceiro);
         futuro.Should().Throw<DomainException>().WithMessage("*Período do evento inválido*");
+    }
+
+    // ---------- shot clock x fim de período ----------
+
+    /// <summary>Recua "CronometroIniciadoEm" para simular que já correu um tempo real, sem esperar de verdade.</summary>
+    private static void SimularTempoDecorrido(Sumula s, int segundos)
+    {
+        typeof(Sumula).GetProperty(nameof(Sumula.CronometroIniciadoEm))!
+            .SetValue(s, DateTime.UtcNow.AddSeconds(-segundos));
+    }
+
+    [Fact]
+    public void Resetar_shot_clock_nao_liga_se_o_periodo_acaba_antes()
+    {
+        var s = Iniciada();
+        s.IniciarCronometro(); // 600s no relógio, shot clock liga normalmente (600 >= 24)
+        s.ShotClockAtivo.Should().BeTrue();
+
+        SimularTempoDecorrido(s, 598); // sobram ~2s de jogo
+        s.ResetarShotClock(24);
+
+        s.ShotClockAtivo.Should().BeFalse("o período acaba antes dos 24s: o shot clock não vale mais");
+        s.ShotClockSegundosRestantes.Should().Be(24, "o valor fica guardado, só não conta regressivamente");
+    }
+
+    [Fact]
+    public void Resetar_shot_clock_liga_normalmente_quando_ha_tempo_de_sobra()
+    {
+        var s = Iniciada();
+        s.IniciarCronometro();
+
+        SimularTempoDecorrido(s, 60); // sobram 540s: muito mais que 24
+        s.ResetarShotClock(24);
+
+        s.ShotClockAtivo.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Retomar_o_cronometro_com_pouco_tempo_nao_religa_o_shot_clock()
+    {
+        var s = Iniciada();
+        s.IniciarCronometro();
+        SimularTempoDecorrido(s, 597); // sobram ~3s
+        s.PausarCronometro(); // guarda CronometroSegundosRestantes ~3, desliga o shot clock
+
+        s.IniciarCronometro(); // retoma com ~3s restantes; o shot clock guardado é 24
+
+        s.ShotClockAtivo.Should().BeFalse("3s de jogo não comportam um shot clock de 24s");
     }
 }

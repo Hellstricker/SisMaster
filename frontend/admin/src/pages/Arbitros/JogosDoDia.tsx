@@ -202,6 +202,7 @@ function Cartao({ j, mostrarData = false, onMudou }: { j: JogoDoArbitro; mostrar
               <a className={`${base.btnSecondary} ${base.btnSm} ${styles.botao}`} href={links!.mesarioTempo} target="_blank" rel="noreferrer">Mesário — tempo</a>
               <a className={`${base.btnSecondary} ${base.btnSm} ${styles.botao}`} href={links!.mesarioStats} target="_blank" rel="noreferrer">Mesário — estatísticas</a>
               <a className={`${base.btnSecondary} ${base.btnSm} ${styles.botao}`} href={links!.placar} target="_blank" rel="noreferrer">Placar</a>
+              <a className={`${base.btnSecondary} ${base.btnSm} ${styles.botao}`} href={links!.shotClock} target="_blank" rel="noreferrer">Shot clock</a>
             </div>
             <EncerrarSumula pequeno sumulaId={j.sumula.id} jogo={`#${j.numero} — ${j.casa.texto} × ${j.visitante.texto}`} onEncerrada={onMudou} />
           </>

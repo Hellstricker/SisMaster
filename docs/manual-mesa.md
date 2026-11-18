@@ -18,7 +18,9 @@ São duas telas, em dois celulares se possível:
 - **Tempo** (relógio): inicia e para o cronômetro, marca o período, o shot clock, a posse e as faltas de equipe.
 - **Estatísticas**: pontos, rebotes, assistências, roubadas, tocos, faltas e substituições, tudo com toque. Errou? **Desfazer** o último lançamento. No quinto fato de falta de um jogador o sistema bloqueia novos lances e a entrada dele em quadra.
 
-O **placar** para a TV ou projetor tem tela própria (texto grande, faltas em vermelho com teto de cinco). Peça o endereço à diretoria.
+O **placar** para a TV ou projetor tem tela própria (texto grande, faltas em vermelho com teto de cinco), e há também uma tela **só do shot clock** (número gigante, sem mais nada), para ficar perto das cestas. Peça os endereços à diretoria.
+
+Nos últimos segundos, os dois relógios passam a mostrar décimos: o cronômetro de jogo no último minuto do período (ex.: `12.4`) e o shot clock nos últimos 5 segundos (ex.: `4.9`). Se o tempo que falta para acabar o período for menor que o do shot clock, ele não liga (fica "—"): o período certamente vai acabar antes dele estourar.
 
 ## 4. Se a internet cair
 

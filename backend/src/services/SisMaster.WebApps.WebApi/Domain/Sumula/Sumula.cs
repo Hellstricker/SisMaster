@@ -117,7 +117,8 @@ public class Sumula : Entity, IAggregateRoot
         CronometroIniciadoEm = DateTime.UtcNow;
         CronometroSegundosAoIniciar = CronometroSegundosRestantes;
 
-        if (!ShotClockAtivo)
+        // Se o período acaba antes que o shot clock pudesse estourar, ele não liga: só o cronômetro de jogo importa daqui pra frente.
+        if (!ShotClockAtivo && CronometroSegundosRestantes >= ShotClockSegundosRestantes)
         {
             ShotClockAtivo = true;
             ShotClockIniciadoEm = DateTime.UtcNow;
@@ -138,16 +139,25 @@ public class Sumula : Entity, IAggregateRoot
         ShotClockIniciadoEm = null;
     }
 
+    /// <summary>
+    /// Reinicia o shot clock para o início de uma posse. Se o tempo restante do período for menor que <paramref name="segundos"/>,
+    /// o período acaba antes que o shot clock pudesse estourar: ele não liga (fica "—" nas telas) e só o cronômetro de jogo vale.
+    /// </summary>
     public void ResetarShotClock(int segundos = 24)
     {
         Validacoes.ValidarMinimoMaximo(segundos, 1, 24, "Shot clock deve estar entre 1 e 24 segundos");
 
         ShotClockSegundosRestantes = segundos;
-        if (CronometroAtivo)
+        if (CronometroAtivo && CalcularSegundosRestantesCronometro() >= segundos)
         {
             ShotClockAtivo = true;
             ShotClockIniciadoEm = DateTime.UtcNow;
             ShotClockSegundosAoIniciar = segundos;
+        }
+        else
+        {
+            ShotClockAtivo = false;
+            ShotClockIniciadoEm = null;
         }
     }
 

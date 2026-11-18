@@ -377,6 +377,7 @@ export const linksDaSumula = (sumulaId: string) => ({
   mesarioTempo: `/arbitros/mesario-tempo.html?partidaId=${sumulaId}`,
   mesarioStats: `/arbitros/mesario-stats.html?partidaId=${sumulaId}`,
   placar: `/arbitros/placar.html?partidaId=${sumulaId}`,
+  shotClock: `/arbitros/shot-clock.html?partidaId=${sumulaId}`,
 });
 
 // ---- Classificação da fase (Tela 12) ----

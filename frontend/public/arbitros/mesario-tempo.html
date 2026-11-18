@@ -469,18 +469,31 @@
     renderShotClock(shotSec);
   }
 
+  // Arredonda para cima, com 1 casa decimal (nunca mostra "0.0" antes da hora de verdade acabar).
+  const arredondarDecimo = sec => Math.ceil(sec * 10) / 10;
+
   function renderGameClock(totalSec) {
-    const s = Math.ceil(totalSec);
+    const intSec = Math.ceil(totalSec);
     const el = document.getElementById('clockDisplay');
-    el.textContent = `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
-    el.className = 'game-clock' + (!clockState?.ativo ? ' paused' : s <= 30 ? ' warning' : ' running');
+    // Último minuto do período: só segundos, com décimos (padrão oficial de cronômetro de jogo).
+    el.textContent = totalSec <= 59.9
+      ? arredondarDecimo(totalSec).toFixed(1)
+      : `${Math.floor(intSec / 60)}:${(intSec % 60).toString().padStart(2, '0')}`;
+    el.className = 'game-clock' + (!clockState?.ativo ? ' paused' : intSec <= 30 ? ' warning' : ' running');
   }
 
   function renderShotClock(sec) {
-    const s = Math.ceil(sec);
     const el = document.getElementById('shotDisplay');
-    el.textContent = s.toString().padStart(2, '0');
-    el.className = 'shot-display' + (clockState?.ativo && s <= 5 ? ' warning' : '');
+    // Cronômetro de jogo rodando mas o shot clock não ligou: o período acaba antes dele estourar, não vale mais.
+    if (clockState?.ativo && !clockState?.shotClockAtivo) {
+      el.textContent = '—';
+      el.className = 'shot-display';
+      return;
+    }
+    const intSec = Math.ceil(sec);
+    // Últimos 5s do shot clock: com décimos.
+    el.textContent = sec <= 4.9 ? arredondarDecimo(sec).toFixed(1) : intSec.toString().padStart(2, '0');
+    el.className = 'shot-display' + (clockState?.ativo && intSec <= 5 ? ' warning' : '');
   }
 
   // ── Hub actions ──────────────────────────────────────────────────
