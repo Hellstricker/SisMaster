@@ -25,7 +25,6 @@
     body.offline .faixa-offline { display: block; }
     body.offline .main { opacity: .5; }
 
-    .period-badge { font-size: 3.6vw; font-weight: 900; color: #f97316; background: rgba(249,115,22,.12); border: .2vw solid rgba(249,115,22,.5); border-radius: 5vw; padding: .5vw 3vw; white-space: nowrap; }
 
     .main { display: flex; flex-direction: column; align-items: center; gap: 3vw; transition: opacity .3s; }
 
@@ -53,7 +52,6 @@
 <div class="faixa-offline" role="alert">SEM CONEXÃO — o shot clock pode estar desatualizado</div>
 
 <div class="main">
-  <div class="period-badge" id="periodoLabel">—</div>
   <div class="shot-clock" id="shotClock">24</div>
 </div>
 
@@ -77,18 +75,14 @@
     partidaId: PARTIDA_ID,
     aoMudar: setStatus,
     registrar: connection => {
-      connection.on('EstadoAtual', state => { updateClock(state.cronometro); if (state.periodoAtual) setPeriodo(state.periodoAtual); });
-      connection.on('CronometroAtualizado', cron => { updateClock(cron); if (cron.periodoAtual) setPeriodo(cron.periodoAtual); });
+      connection.on('EstadoAtual', state => { updateClock(state.cronometro); });
+      connection.on('CronometroAtualizado', cron => { updateClock(cron); });
       connection.on('SumulaEncerrada', () => { document.getElementById('shotClock').className = 'shot-clock off'; document.getElementById('shotClock').textContent = '—'; });
     }
   });
 
   function setStatus(ok) {
     document.body.classList.toggle('offline', !ok);
-  }
-
-  function setPeriodo(n) {
-    document.getElementById('periodoLabel').textContent = periodLabel(n);
   }
 
   function updateClock(cron) {
@@ -171,10 +165,6 @@
     el.textContent = sec <= 4.9 ? arredondarDecimo(sec).toFixed(1) : s.toString().padStart(2, '0');
     const posse = clockState?.posseCasa ? 'casa' : 'visit';
     el.className = 'shot-clock ' + (clockState?.ativo ? posse : '') + (clockState?.ativo && s <= 5 ? ' warning' : '');
-  }
-
-  function periodLabel(n) {
-    return ['', '1º PERÍODO', '2º PERÍODO', '3º PERÍODO', '4º PERÍODO', 'PRORROGAÇÃO'][n] || n + 'º PERÍODO';
   }
 </script>
 </body>

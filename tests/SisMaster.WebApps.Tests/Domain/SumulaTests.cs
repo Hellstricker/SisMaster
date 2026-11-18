@@ -619,6 +619,22 @@ public class SumulaTests
     }
 
     [Fact]
+    public void Alternar_posse_nao_mexe_no_shot_clock()
+    {
+        var s = Iniciada();
+        s.IniciarCronometro();
+        var ini = DateTime.UtcNow.AddSeconds(-10);
+        typeof(Sumula).GetProperty(nameof(Sumula.ShotClockIniciadoEm))!.SetValue(s, ini);
+        var posseAntes = s.PosseCasa;
+
+        s.AlternarPosse();
+
+        s.PosseCasa.Should().Be(!posseAntes);
+        s.ShotClockIniciadoEm.Should().Be(ini, "trocar a posse não reinicia o shot clock");
+        s.ShotClockAtivo.Should().BeTrue();
+    }
+
+    [Fact]
     public void Pausar_guarda_os_decimos_do_cronometro_e_do_shot_clock()
     {
         var s = Iniciada();

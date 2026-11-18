@@ -163,8 +163,8 @@ public class Sumula : Entity, IAggregateRoot
 
     public void AlternarPosse()
     {
+        // Só troca a posse: o shot clock continua como está (o mesário reinicia pelos botões 24/14 quando a regra mandar).
         PosseCasa = !PosseCasa;
-        ResetarShotClock(24);
     }
 
     public void AvancarPeriodo()

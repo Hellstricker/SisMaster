@@ -554,6 +554,8 @@
   }
 
   async function definirPosse(casa) {
+    // Clicar no time que já está com a posse não faz nada (o servidor só sabe alternar).
+    if (clockState && clockState.posseCasa === casa) return;
     if (await acaoNoHub('AlternarPosse', [], 'Erro ao alternar posse')) {
       const nome = casa ? nomeCasaVal : nomeVisitVal;
       log(`Posse → ${nome}`);
