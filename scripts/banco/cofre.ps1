@@ -77,7 +77,7 @@ function Contagens([scriptblock]$sql, [string]$banco) {
 }
 
 function Backup-Docker([string]$banco, [string]$nomeArquivo) {
-    Sql-Docker "BACKUP DATABASE [$banco] TO DISK = N'/tmp/$nomeArquivo' WITH INIT, COPY_ONLY, COMPRESSION, CHECKSUM" | Out-Null
+    Sql-Docker "BACKUP DATABASE [$banco] TO DISK = N'/tmp/$nomeArquivo' WITH INIT, COPY_ONLY, CHECKSUM" | Out-Null
 }
 
 $stamp = Get-Date -Format 'yyyyMMdd_HHmm'

@@ -22,7 +22,7 @@ mkdir -p "$PASTA_BACKUP"
 for banco in "${BANCOS[@]}"; do
   arquivo="${banco}_${CARIMBO}.bak"
   echo "[$(date +%F\ %T)] backup de $banco"
-  "${SQLCMD[@]}" -Q "BACKUP DATABASE [$banco] TO DISK='/var/opt/mssql/backup-$arquivo' WITH COPY_ONLY, COMPRESSION, CHECKSUM, INIT"
+  "${SQLCMD[@]}" -Q "BACKUP DATABASE [$banco] TO DISK='/var/opt/mssql/backup-$arquivo' WITH COPY_ONLY, CHECKSUM, INIT"
   "${SQLCMD[@]}" -Q "RESTORE VERIFYONLY FROM DISK='/var/opt/mssql/backup-$arquivo' WITH CHECKSUM"
   docker cp "$CONTAINER:/var/opt/mssql/backup-$arquivo" "$PASTA_BACKUP/$arquivo"
   docker exec "$CONTAINER" rm -f "/var/opt/mssql/backup-$arquivo"
