@@ -8,5 +8,4 @@
 
 ## Publicação e manuais
 
-- [Publicação e operação](docs/producao.md): servidor, HTTPS, backup, atualização e volta atrás.
-- [Manual da diretoria](docs/manual-diretoria.md) e [Manual da mesa](docs/manual-mesa.md).
+Índice único: [docs/README.md](docs/README.md) — manual da diretoria, manual da mesa e publicação/operação.
